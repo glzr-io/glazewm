@@ -1,5 +1,5 @@
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
-use objc2_foundation::NSRect;
+use objc2_foundation::{NSPoint, NSRect, NSSize};
 
 use crate::Rect;
 
@@ -31,8 +31,8 @@ impl From<Rect> for CGRect {
 }
 
 pub(crate) trait NSRectExt {
-  /// Transforms an AppKit screen rectangle (e.g. `NSScreen.visibleFrame`)
-  /// into Core Graphics coordinate space (e.g. `CGDisplayBounds`).
+  /// Converts an `NSRect` in AppKit coordinates to a `CGRect` in Core
+  /// Graphics coordinates.
   ///
   /// AppKit has (0,0) at the bottom-left corner of the primary display,
   /// whereas Core Graphics has it at the top-left corner. So we can
@@ -52,6 +52,29 @@ impl NSRectExt for NSRect {
         y: adjusted_y,
       },
       CGSize {
+        width: self.size.width,
+        height: self.size.height,
+      },
+    )
+  }
+}
+
+pub(crate) trait CGRectExt {
+  /// Converts a `CGRect` in Core Graphics coordinates to an `NSRect` in
+  /// AppKit coordinates.
+  ///
+  /// Inverse of [`NSRectExt::to_cg_rect`].
+  fn to_ns_rect(&self, primary_height: f64) -> NSRect;
+}
+
+impl CGRectExt for CGRect {
+  fn to_ns_rect(&self, primary_height: f64) -> NSRect {
+    NSRect::new(
+      NSPoint {
+        x: self.origin.x,
+        y: primary_height - self.origin.y - self.size.height,
+      },
+      NSSize {
         width: self.size.width,
         height: self.size.height,
       },

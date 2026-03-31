@@ -8,7 +8,7 @@ use objc2_core_graphics::{
   CGDisplayMirrorsDisplay, CGDisplayMode, CGDisplayRotation, CGError,
   CGGetActiveDisplayList, CGGetOnlineDisplayList, CGMainDisplayID,
 };
-use objc2_foundation::{ns_string, NSNumber, NSRect};
+use objc2_foundation::{ns_string, NSNumber};
 
 use crate::{
   platform_impl::{ffi, NSRectExt},

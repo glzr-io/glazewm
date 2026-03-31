@@ -7,12 +7,11 @@ use objc2_app_kit::{
 };
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_core_graphics::CGImage;
-use objc2_foundation::NSRect;
 use objc2_quartz_core::{CALayer, CATransaction};
 
 use crate::{
-  Dispatcher, NativeWindow, NativeWindowExtMacOs, OpacityValue, Rect,
-  ThreadBound,
+  platform_impl::CGRectExt, Dispatcher, NativeWindow,
+  NativeWindowExtMacOs, OpacityValue, Rect, ThreadBound,
 };
 
 /// Shared animation context for macOS.
@@ -67,11 +66,8 @@ impl AnimationContext {
 pub(crate) struct AnimationWindow {
   ns_window: ThreadBound<Retained<NSWindow>>,
   layer: ThreadBound<Retained<CALayer>>,
-  /// Top-left of the animation window in CG (screen) coordinates.
-  cg_origin_x: f64,
-  cg_origin_y: f64,
-  /// Height of the overlay window in points.
-  bounds_height: f64,
+  /// Overlay bounds in CG (screen) coordinates.
+  outer_bounds: CGRect,
 }
 
 impl AnimationWindow {
@@ -87,135 +83,111 @@ impl AnimationWindow {
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let cg_image = window.screen_capture()?;
+    let outer_bounds = CGRect::from(outer_rect.clone());
 
-    let (ns_window, layer, cg_origin_x, cg_origin_y, bounds_height) =
-      dispatcher.dispatch_sync(|| {
-        // SAFETY: `dispatch_sync` runs on the main thread.
-        let mtm = unsafe { MainThreadMarker::new_unchecked() };
+    let (ns_window, layer) = dispatcher.dispatch_sync(|| {
+      // SAFETY: `dispatch_sync` runs on the main thread.
+      let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
-        // TODO: Clean up the coordinates logic.
-        let screens = NSScreen::screens(mtm);
-        let primary_height = screens
-          .iter()
-          .next()
-          .map_or(0.0, |screen| screen.frame().size.height);
+      let screens = NSScreen::screens(mtm);
+      let primary_screen = screens.iter().next();
+      let primary_height = primary_screen
+        .as_ref()
+        .map_or(0.0, |s| s.frame().size.height);
+      let scale_factor = primary_screen
+        .as_ref()
+        .map_or(2.0, |s| s.backingScaleFactor());
 
-        let scale_factor = screens
-          .iter()
-          .next()
-          .map_or(2.0, |screen| screen.backingScaleFactor());
-
-        let cg_origin_x = f64::from(outer_rect.x());
-        let cg_origin_y = f64::from(outer_rect.y());
-        let bounds_height = f64::from(outer_rect.height());
-
-        // Convert CG coordinates (top-left origin) to AppKit
-        // (bottom-left).
-        let appkit_y = primary_height
-          - f64::from(outer_rect.y())
-          - f64::from(outer_rect.height());
-
-        let ns_rect = NSRect::new(
-          objc2_foundation::NSPoint {
-            x: f64::from(outer_rect.x()),
-            y: appkit_y,
-          },
-          objc2_foundation::NSSize {
-            width: f64::from(outer_rect.width()),
-            height: f64::from(outer_rect.height()),
-          },
-        );
-
-        let ns_window = unsafe {
-          NSWindow::initWithContentRect_styleMask_backing_defer(
-            NSWindow::alloc(mtm),
-            ns_rect,
-            NSWindowStyleMask::Borderless,
-            NSBackingStoreType::Buffered,
-            false,
-          )
-        };
-
-        ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
-        ns_window.setOpaque(false);
-        ns_window.setIgnoresMouseEvents(true);
-        // SAFETY: We manage lifetime via `ThreadBound` + `orderOut`.
-        unsafe { ns_window.setReleasedWhenClosed(false) };
-
-        if let Some(content_view) = ns_window.contentView() {
-          content_view.setWantsLayer(true);
-        }
-
-        let root_layer = ns_window
-          .contentView()
-          .and_then(|v| v.layer())
-          .expect("layer must exist after setWantsLayer");
-
-        let layer = CALayer::new();
-
-        // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
-        unsafe {
-          layer.setContents(Some(
-            &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
-          ));
-        };
-
-        #[allow(clippy::cast_precision_loss)]
-        let image_width =
-          CGImage::width(Some(&cg_image)) as f64 / scale_factor;
-        #[allow(clippy::cast_precision_loss)]
-        let image_height =
-          CGImage::height(Some(&cg_image)) as f64 / scale_factor;
-
-        // Convert CG y (top-left origin, y-down) to AppKit layer
-        // coordinates (bottom-left origin, y-up).
-        let frame = CGRect::new(
-          CGPoint {
-            x: f64::from(inner_rect.x()) - cg_origin_x,
-            y: bounds_height
-              - (f64::from(inner_rect.y()) - cg_origin_y)
-              - image_height,
-          },
-          CGSize {
-            width: image_width,
-            height: image_height,
-          },
-        );
-
-        CATransaction::begin();
-        CATransaction::setDisableActions(true);
-        layer.setFrame(frame);
-
-        if let Some(opacity) = opacity {
-          layer.setOpacity(opacity.0);
-        }
-
-        root_layer.addSublayer(&layer);
-        CATransaction::commit();
-
-        // Order just above the source window.
-        #[allow(clippy::cast_possible_wrap)]
-        ns_window.orderWindow_relativeTo(
-          NSWindowOrderingMode::Above,
-          window.id().0 as isize,
-        );
-
-        (
-          ThreadBound::new(ns_window, dispatcher.clone()),
-          ThreadBound::new(layer, dispatcher.clone()),
-          cg_origin_x,
-          cg_origin_y,
-          bounds_height,
+      let ns_window = unsafe {
+        NSWindow::initWithContentRect_styleMask_backing_defer(
+          NSWindow::alloc(mtm),
+          outer_bounds.to_ns_rect(primary_height),
+          NSWindowStyleMask::Borderless,
+          NSBackingStoreType::Buffered,
+          false,
         )
-      })?;
+      };
+
+      ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
+      ns_window.setOpaque(false);
+      ns_window.setIgnoresMouseEvents(true);
+      // SAFETY: We manage lifetime via `ThreadBound` + `orderOut`.
+      unsafe { ns_window.setReleasedWhenClosed(false) };
+
+      let content_view = ns_window
+        .contentView()
+        .expect("NSWindow must have a content view");
+      content_view.setWantsLayer(true);
+
+      let root_layer = content_view
+        .layer()
+        .expect("layer must exist after setWantsLayer");
+
+      let layer = CALayer::new();
+
+      // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
+      unsafe {
+        layer.setContents(Some(
+          &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
+        ));
+      };
+
+      #[allow(clippy::cast_precision_loss)]
+      let image_size = CGSize {
+        width: CGImage::width(Some(&cg_image)) as f64 / scale_factor,
+        height: CGImage::height(Some(&cg_image)) as f64 / scale_factor,
+      };
+
+      CATransaction::begin();
+      CATransaction::setDisableActions(true);
+      layer.setFrame(Self::layer_frame(
+        inner_rect,
+        &outer_bounds,
+        image_size,
+      ));
+
+      if let Some(opacity) = opacity {
+        layer.setOpacity(opacity.0);
+      }
+
+      root_layer.addSublayer(&layer);
+      CATransaction::commit();
+
+      #[allow(clippy::cast_possible_wrap)]
+      ns_window.orderWindow_relativeTo(
+        NSWindowOrderingMode::Above,
+        window.id().0 as isize,
+      );
+
+      (
+        ThreadBound::new(ns_window, dispatcher.clone()),
+        ThreadBound::new(layer, dispatcher.clone()),
+      )
+    })?;
 
     Ok(Self {
       ns_window,
       layer,
-      cg_origin_x,
-      cg_origin_y,
-      bounds_height,
+      outer_bounds,
     })
+  }
+
+  /// Converts `inner_rect` from CG screen coordinates to layer-local
+  /// coordinates (bottom-left origin, y-up).
+  fn layer_frame(
+    inner_rect: &Rect,
+    outer_bounds: &CGRect,
+    size: CGSize,
+  ) -> CGRect {
+    CGRect::new(
+      CGPoint {
+        x: f64::from(inner_rect.x()) - outer_bounds.origin.x,
+        y: outer_bounds.size.height
+          - (f64::from(inner_rect.y()) - outer_bounds.origin.y)
+          - size.height,
+      },
+      size,
+    )
   }
 
   /// Resizes the `NSWindow` to cover the union of `start_rect` and
@@ -224,13 +196,9 @@ impl AnimationWindow {
   /// Called when an animation's target changes mid-flight so the
   /// existing screenshot and z-order are preserved.
   pub(crate) fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
-    self.cg_origin_x = f64::from(outer_rect.x());
-    self.cg_origin_y = f64::from(outer_rect.y());
-    self.bounds_height = f64::from(outer_rect.height());
+    self.outer_bounds = CGRect::from(outer_rect.clone());
 
-    let outer_rect = outer_rect.clone();
-
-    self.ns_window.with(move |ns_window| {
+    self.ns_window.with(|ns_window| {
       // SAFETY: `with` runs on the main thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -239,22 +207,10 @@ impl AnimationWindow {
         .next()
         .map_or(0.0, |s| s.frame().size.height);
 
-      let appkit_y = primary_height
-        - f64::from(outer_rect.y())
-        - f64::from(outer_rect.height());
-
-      let ns_rect = NSRect::new(
-        objc2_foundation::NSPoint {
-          x: f64::from(outer_rect.x()),
-          y: appkit_y,
-        },
-        objc2_foundation::NSSize {
-          width: f64::from(outer_rect.width()),
-          height: f64::from(outer_rect.height()),
-        },
+      ns_window.setFrame_display(
+        self.outer_bounds.to_ns_rect(primary_height),
+        false,
       );
-
-      ns_window.setFrame_display(ns_rect, false);
     })
   }
 
@@ -267,20 +223,11 @@ impl AnimationWindow {
     inner_rect: &Rect,
     opacity: Option<OpacityValue>,
   ) -> crate::Result<()> {
-    // Convert CG y (top-left origin, y-down) to AppKit layer
-    // coordinates (bottom-left origin, y-up).
-    let frame = CGRect::new(
-      CGPoint {
-        x: f64::from(inner_rect.x()) - self.cg_origin_x,
-        y: self.bounds_height
-          - (f64::from(inner_rect.y()) - self.cg_origin_y)
-          - f64::from(inner_rect.height()),
-      },
-      CGSize {
-        width: f64::from(inner_rect.width()),
-        height: f64::from(inner_rect.height()),
-      },
-    );
+    let size = CGSize {
+      width: f64::from(inner_rect.width()),
+      height: f64::from(inner_rect.height()),
+    };
+    let frame = Self::layer_frame(inner_rect, &self.outer_bounds, size);
 
     self.layer.with(move |layer| {
       layer.setFrame(frame);
