@@ -11,7 +11,6 @@ mod keyboard_hook;
 mod mouse_listener;
 mod native_window;
 mod notification_center;
-mod rect_ext;
 mod single_instance;
 mod window_listener;
 
@@ -27,6 +26,5 @@ pub(crate) use keyboard_hook::*;
 pub(crate) use mouse_listener::*;
 pub(crate) use native_window::*;
 pub(crate) use notification_center::*;
-pub(crate) use rect_ext::*;
 pub(crate) use single_instance::*;
 pub(crate) use window_listener::*;

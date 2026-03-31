@@ -5,14 +5,12 @@ use objc2_app_kit::{
   NSBackingStoreType, NSColor, NSScreen, NSWindow, NSWindowOrderingMode,
   NSWindowStyleMask,
 };
-use objc2_core_foundation::CGRect;
 use objc2_core_graphics::CGImage;
-use objc2_foundation::NSRect;
 use objc2_quartz_core::{CALayer, CATransaction};
 
 use crate::{
-  platform_impl::CGRectExt, Dispatcher, NativeWindow,
-  NativeWindowExtMacOs, OpacityValue, Rect, ThreadBound,
+  Dispatcher, NativeWindow, NativeWindowExtMacOs, OpacityValue, Rect,
+  ThreadBound,
 };
 
 /// Shared animation context for macOS.
@@ -86,14 +84,15 @@ impl AnimationWindow {
     let cg_image = window.screen_capture()?;
 
     let (ns_window, layer) = dispatcher.dispatch_sync(|| {
-      // SAFETY: `dispatch_sync` runs on the main thread.
+      // SAFETY: `Dispatcher::dispatch_sync` runs on the main thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
       let screens = NSScreen::screens(mtm);
       let primary_screen = screens.iter().next();
+      #[allow(clippy::cast_possible_truncation)]
       let primary_height = primary_screen
         .as_ref()
-        .map_or(0.0, |s| s.frame().size.height);
+        .map_or(0, |s| s.frame().size.height as i32);
       let scale_factor = primary_screen
         .as_ref()
         .map_or(2.0, |s| s.backingScaleFactor());
@@ -101,7 +100,8 @@ impl AnimationWindow {
       let ns_window = unsafe {
         NSWindow::initWithContentRect_styleMask_backing_defer(
           NSWindow::alloc(mtm),
-          CGRect::from(outer_rect.clone()).to_ns_rect(primary_height),
+          // Expects AppKit coordinates (bottom-left origin).
+          outer_rect.flip_y(primary_height).into(),
           NSWindowStyleMask::Borderless,
           NSBackingStoreType::Buffered,
           false,
@@ -130,7 +130,7 @@ impl AnimationWindow {
       // animate within it.
       let layer = CALayer::new();
 
-      // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
+      // SAFETY: `CGImageRef` is accepted by `CALayer::contents`.
       unsafe {
         layer.setContents(Some(
           &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
@@ -193,25 +193,23 @@ impl AnimationWindow {
     self.outer_rect = outer_rect.clone();
 
     self.ns_window.with(|ns_window| {
-      // SAFETY: `with` runs on the main thread.
+      // SAFETY: `ThreadBound::with` runs on the main thread.
       let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
+      #[allow(clippy::cast_possible_truncation)]
       let primary_height = NSScreen::screens(mtm)
         .iter()
         .next()
-        .map_or(0.0, |s| s.frame().size.height);
+        .map_or(0, |s| s.frame().size.height as i32);
 
       ns_window.setFrame_display(
-        CGRect::from(self.outer_rect.clone()).to_ns_rect(primary_height),
+        self.outer_rect.flip_y(primary_height).into(),
         false,
       );
     })
   }
 
-  /// Repositions the layer within the window to the given rect and
-  /// updates opacity.
-  ///
-  /// The `NSWindow` frame is never changed; only the `CALayer` moves.
+  /// Implements [`AnimationWindow::update`].
   pub(crate) fn update(
     &self,
     inner_rect: &Rect,
@@ -227,22 +225,26 @@ impl AnimationWindow {
     self.ns_window.with(|ns_window| ns_window.close())
   }
 
+  /// Repositions the layer within the window to the given rect and
+  /// updates opacity.
+  ///
+  /// The `NSWindow` frame is never changed; only the `CALayer` moves.
   fn update_layer(
     layer: &Retained<CALayer>,
     inner_rect: &Rect,
     outer_rect: &Rect,
     opacity: Option<&OpacityValue>,
   ) {
-    let relative = Rect::from_xy(
+    // `inner_rect` needs to be positioned relative to `outer_rect`.
+    let offset_rect = Rect::from_xy(
       inner_rect.x() - outer_rect.x(),
       inner_rect.y() - outer_rect.y(),
       inner_rect.width(),
       inner_rect.height(),
     );
-    let frame = NSRect::from(relative.flipped_y(outer_rect.height()));
 
-    // `setFrame` expects AppKit coordinates (top-left origin, y-down).
-    layer.setFrame(frame);
+    // `setFrame` expects AppKit coordinates (bottom-left origin).
+    layer.setFrame(offset_rect.flip_y(outer_rect.height()).into());
 
     if let Some(opacity) = opacity {
       layer.setOpacity(opacity.0);

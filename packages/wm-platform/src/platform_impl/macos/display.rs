@@ -11,9 +11,8 @@ use objc2_core_graphics::{
 use objc2_foundation::{ns_string, NSNumber};
 
 use crate::{
-  platform_impl::{ffi, NSRectExt},
-  ConnectionState, Dispatcher, DisplayDeviceId, DisplayId, MirroringState,
-  Point, Rect, ThreadBound,
+  platform_impl::ffi, ConnectionState, Dispatcher, DisplayDeviceId,
+  DisplayId, MirroringState, Point, Rect, ThreadBound,
 };
 
 /// Platform-specific implementation of [`Display`].
@@ -88,13 +87,11 @@ impl Display {
     };
 
     self.ns_screen.with(|screen| {
-      // Convert `NSScreen.visibleFrame` into the same coordinate space as
+      // Convert `NSScreen::visibleFrame` into the same coordinate space as
       // `CGDisplayBounds`.
       Ok(
-        screen
-          .visibleFrame()
-          .to_cg_rect(&primary_display_bounds)
-          .into(),
+        Rect::from(screen.visibleFrame())
+          .flip_y(primary_display_bounds.height()),
       )
     })?
   }

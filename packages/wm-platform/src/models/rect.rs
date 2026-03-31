@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use serde::{Deserialize, Serialize};
 
 use crate::{Direction, LengthValue, Point, RectDelta};
@@ -305,17 +307,48 @@ impl Rect {
   /// Returns a new `Rect` with the Y-axis flipped within a container of
   /// the given height.
   ///
-  /// Useful for converting between coordinate systems where the Y-axis
-  /// points in opposite directions (e.g. top-left origin vs bottom-left
-  /// origin).
+  /// Useful for converting between AppKit and Core Graphics coordinate
+  /// systems. AppKit has (0,0) at the bottom-left corner of the primary
+  /// display, whereas Core Graphics has it at the top-left corner. So we
+  /// can convert between the two by offsetting the Y-axis by the primary
+  /// display's height.
   #[must_use]
-  pub fn flipped_y(&self, container_height: i32) -> Self {
+  pub fn flip_y(&self, container_height: i32) -> Self {
     Self::from_xy(
       self.x(),
       container_height - self.y() - self.height(),
       self.width(),
       self.height(),
     )
+  }
+}
+
+#[cfg(target_os = "macos")]
+impl From<CGRect> for Rect {
+  fn from(value: CGRect) -> Self {
+    #[allow(clippy::cast_possible_truncation)]
+    Rect::from_xy(
+      value.origin.x as i32,
+      value.origin.y as i32,
+      value.size.width as i32,
+      value.size.height as i32,
+    )
+  }
+}
+
+#[cfg(target_os = "macos")]
+impl From<Rect> for CGRect {
+  fn from(value: Rect) -> Self {
+    CGRect {
+      origin: CGPoint {
+        x: f64::from(value.x()),
+        y: f64::from(value.y()),
+      },
+      size: CGSize {
+        width: f64::from(value.width()),
+        height: f64::from(value.height()),
+      },
+    }
   }
 }
 
