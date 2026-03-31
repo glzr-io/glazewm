@@ -11,8 +11,9 @@ use objc2_core_graphics::{
 use objc2_foundation::{ns_string, NSNumber, NSRect};
 
 use crate::{
-  platform_impl::ffi, ConnectionState, Dispatcher, DisplayDeviceId,
-  DisplayId, MirroringState, Point, Rect, ThreadBound,
+  platform_impl::{ffi, NSRectExt},
+  ConnectionState, Dispatcher, DisplayDeviceId, DisplayId, MirroringState,
+  Point, Rect, ThreadBound,
 };
 
 /// Platform-specific implementation of [`Display`].
@@ -89,10 +90,12 @@ impl Display {
     self.ns_screen.with(|screen| {
       // Convert `NSScreen.visibleFrame` into the same coordinate space as
       // `CGDisplayBounds`.
-      Ok(appkit_rect_to_cg_rect(
-        screen.visibleFrame(),
-        &primary_display_bounds,
-      ))
+      Ok(
+        screen
+          .visibleFrame()
+          .to_cg_rect(&primary_display_bounds)
+          .into(),
+      )
     })?
   }
 
@@ -155,29 +158,6 @@ impl Display {
   pub(crate) fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
     &self.ns_screen
   }
-}
-
-/// Transforms an AppKit screen rectangle (e.g. `NSScreen.visibleFrame`)
-/// into Core Graphics coordinate space (e.g. `CGDisplayBounds`).
-///
-/// AppKit has (0,0) at the bottom-left corner of the primary display,
-/// whereas Core Graphics has it at the top-left corner. So we can convert
-/// between the two by offsetting the Y-axis by the primary display's
-/// height.
-fn appkit_rect_to_cg_rect(
-  appkit_rect: NSRect,
-  primary_display_bounds: &Rect,
-) -> Rect {
-  let adjusted_y = f64::from(primary_display_bounds.height())
-    - (appkit_rect.origin.y + appkit_rect.size.height);
-
-  #[allow(clippy::cast_possible_truncation)]
-  Rect::from_xy(
-    appkit_rect.origin.x as i32,
-    adjusted_y as i32,
-    appkit_rect.size.width as i32,
-    appkit_rect.size.height as i32,
-  )
 }
 
 impl From<Display> for crate::Display {

@@ -87,14 +87,9 @@ impl AnimationWindow {
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let cg_image = window.screen_capture()?;
-    let source_window_number = window.id().0;
-    let inner_rect = inner_rect.clone();
-    let opacity = opacity.map(|o| o.0);
-
-    let dispatcher_clone = dispatcher.clone();
 
     let (ns_window, layer, cg_origin_x, cg_origin_y, bounds_height) =
-      dispatcher.dispatch_sync(move || {
+      dispatcher.dispatch_sync(|| {
         // SAFETY: `dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
@@ -191,8 +186,8 @@ impl AnimationWindow {
         CATransaction::setDisableActions(true);
         layer.setFrame(frame);
 
-        if let Some(alpha) = opacity {
-          layer.setOpacity(alpha);
+        if let Some(opacity) = opacity {
+          layer.setOpacity(opacity.0);
         }
 
         root_layer.addSublayer(&layer);
@@ -202,12 +197,12 @@ impl AnimationWindow {
         #[allow(clippy::cast_possible_wrap)]
         ns_window.orderWindow_relativeTo(
           NSWindowOrderingMode::Above,
-          source_window_number as isize,
+          window.id().0 as isize,
         );
 
         (
-          ThreadBound::new(ns_window, dispatcher_clone.clone()),
-          ThreadBound::new(layer, dispatcher_clone),
+          ThreadBound::new(ns_window, dispatcher.clone()),
+          ThreadBound::new(layer, dispatcher.clone()),
           cg_origin_x,
           cg_origin_y,
           bounds_height,
