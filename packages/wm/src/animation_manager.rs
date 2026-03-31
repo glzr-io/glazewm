@@ -206,10 +206,14 @@ impl AnimationManager {
   ) -> bool {
     // Skip animation if:
     //  - The window is minimized.
+    //  - The window is maximized (macOS only - can't override the OS's
+    //    animation).
     //  - The window is hidden in the corner, but not animating. Safeguards
     //    against race condition where window finished an animation, but
     //    hasn't been moved to the real window position yet.
     if window.native_properties().is_minimized
+      || (window.native_properties().is_maximized
+        && cfg!(target_os = "macos"))
       || (!self.is_animating(&window.id())
         && window.is_in_corner(&monitor_properties.working_area))
     {
