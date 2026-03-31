@@ -301,6 +301,22 @@ impl Rect {
 
     Rect::from_xy(new_x, new_y, new_width, new_height)
   }
+
+  /// Returns a new `Rect` with the Y-axis flipped within a container of
+  /// the given height.
+  ///
+  /// Useful for converting between coordinate systems where the Y-axis
+  /// points in opposite directions (e.g. top-left origin vs bottom-left
+  /// origin).
+  #[must_use]
+  pub fn flipped_y(&self, container_height: i32) -> Self {
+    Self::from_xy(
+      self.x(),
+      container_height - self.y() - self.height(),
+      self.width(),
+      self.height(),
+    )
+  }
 }
 
 #[cfg(test)]

@@ -184,8 +184,10 @@ impl AnimationManager {
         for (id, anim) in &self.animations {
           if !anim.is_complete() {
             if let Some(anim_window) = self.windows.get(id) {
-              anim_window
-                .update(&anim.current_rect(), anim.current_opacity())?;
+              anim_window.update(
+                &anim.current_rect(),
+                anim.current_opacity().as_ref(),
+              )?;
             }
           }
         }

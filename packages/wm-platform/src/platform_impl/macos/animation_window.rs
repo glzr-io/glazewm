@@ -5,8 +5,9 @@ use objc2_app_kit::{
   NSBackingStoreType, NSColor, NSScreen, NSWindow, NSWindowOrderingMode,
   NSWindowStyleMask,
 };
-use objc2_core_foundation::{CGPoint, CGRect, CGSize};
+use objc2_core_foundation::CGRect;
 use objc2_core_graphics::CGImage;
+use objc2_foundation::NSRect;
 use objc2_quartz_core::{CALayer, CATransaction};
 
 use crate::{
@@ -67,7 +68,7 @@ pub(crate) struct AnimationWindow {
   ns_window: ThreadBound<Retained<NSWindow>>,
   layer: ThreadBound<Retained<CALayer>>,
   /// Overlay bounds in CG (screen) coordinates.
-  outer_bounds: CGRect,
+  outer_rect: Rect,
 }
 
 impl AnimationWindow {
@@ -83,7 +84,6 @@ impl AnimationWindow {
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let cg_image = window.screen_capture()?;
-    let outer_bounds = CGRect::from(outer_rect.clone());
 
     let (ns_window, layer) = dispatcher.dispatch_sync(|| {
       // SAFETY: `dispatch_sync` runs on the main thread.
@@ -101,7 +101,7 @@ impl AnimationWindow {
       let ns_window = unsafe {
         NSWindow::initWithContentRect_styleMask_backing_defer(
           NSWindow::alloc(mtm),
-          outer_bounds.to_ns_rect(primary_height),
+          CGRect::from(outer_rect.clone()).to_ns_rect(primary_height),
           NSWindowStyleMask::Borderless,
           NSBackingStoreType::Buffered,
           false,
@@ -111,7 +111,10 @@ impl AnimationWindow {
       ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
       ns_window.setOpaque(false);
       ns_window.setIgnoresMouseEvents(true);
-      // SAFETY: We manage lifetime via `ThreadBound` + `orderOut`.
+
+      // SAFETY: `NSWindow` is normally released on close, but when the
+      // `Retained<NSWindow>` field is dropped, it sends another `release`
+      // which then segfaults due to double-free.
       unsafe { ns_window.setReleasedWhenClosed(false) };
 
       let content_view = ns_window
@@ -123,6 +126,8 @@ impl AnimationWindow {
         .layer()
         .expect("layer must exist after setWantsLayer");
 
+      // The root layer fills the content view, so a sublayer is needed to
+      // animate within it.
       let layer = CALayer::new();
 
       // SAFETY: `CGImageRef` is accepted by `CALayer.contents`.
@@ -133,25 +138,32 @@ impl AnimationWindow {
       };
 
       #[allow(clippy::cast_precision_loss)]
-      let image_size = CGSize {
-        width: CGImage::width(Some(&cg_image)) as f64 / scale_factor,
-        height: CGImage::height(Some(&cg_image)) as f64 / scale_factor,
-      };
+      let image_width =
+        CGImage::width(Some(&cg_image)) as f64 / scale_factor;
+      #[allow(clippy::cast_precision_loss)]
+      let image_height =
+        CGImage::height(Some(&cg_image)) as f64 / scale_factor;
 
       CATransaction::begin();
       CATransaction::setDisableActions(true);
-      layer.setFrame(Self::layer_frame(
-        inner_rect,
-        &outer_bounds,
-        image_size,
-      ));
 
-      if let Some(opacity) = opacity {
-        layer.setOpacity(opacity.0);
-      }
+      #[allow(clippy::cast_possible_truncation)]
+      let inner_rect = Rect::from_xy(
+        inner_rect.x(),
+        inner_rect.y(),
+        image_width as i32,
+        image_height as i32,
+      );
+
+      Self::update_layer(
+        &layer,
+        &inner_rect,
+        outer_rect,
+        opacity.as_ref(),
+      );
+      CATransaction::commit();
 
       root_layer.addSublayer(&layer);
-      CATransaction::commit();
 
       #[allow(clippy::cast_possible_wrap)]
       ns_window.orderWindow_relativeTo(
@@ -168,26 +180,8 @@ impl AnimationWindow {
     Ok(Self {
       ns_window,
       layer,
-      outer_bounds,
+      outer_rect: outer_rect.clone(),
     })
-  }
-
-  /// Converts `inner_rect` from CG screen coordinates to layer-local
-  /// coordinates (bottom-left origin, y-up).
-  fn layer_frame(
-    inner_rect: &Rect,
-    outer_bounds: &CGRect,
-    size: CGSize,
-  ) -> CGRect {
-    CGRect::new(
-      CGPoint {
-        x: f64::from(inner_rect.x()) - outer_bounds.origin.x,
-        y: outer_bounds.size.height
-          - (f64::from(inner_rect.y()) - outer_bounds.origin.y)
-          - size.height,
-      },
-      size,
-    )
   }
 
   /// Resizes the `NSWindow` to cover the union of `start_rect` and
@@ -196,7 +190,7 @@ impl AnimationWindow {
   /// Called when an animation's target changes mid-flight so the
   /// existing screenshot and z-order are preserved.
   pub(crate) fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
-    self.outer_bounds = CGRect::from(outer_rect.clone());
+    self.outer_rect = outer_rect.clone();
 
     self.ns_window.with(|ns_window| {
       // SAFETY: `with` runs on the main thread.
@@ -208,7 +202,7 @@ impl AnimationWindow {
         .map_or(0.0, |s| s.frame().size.height);
 
       ns_window.setFrame_display(
-        self.outer_bounds.to_ns_rect(primary_height),
+        CGRect::from(self.outer_rect.clone()).to_ns_rect(primary_height),
         false,
       );
     })
@@ -221,26 +215,37 @@ impl AnimationWindow {
   pub(crate) fn update(
     &self,
     inner_rect: &Rect,
-    opacity: Option<OpacityValue>,
+    opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
-    let size = CGSize {
-      width: f64::from(inner_rect.width()),
-      height: f64::from(inner_rect.height()),
-    };
-    let frame = Self::layer_frame(inner_rect, &self.outer_bounds, size);
-
-    self.layer.with(move |layer| {
-      layer.setFrame(frame);
-
-      if let Some(opacity) = opacity {
-        layer.setOpacity(opacity.0);
-      }
+    self.layer.with(|layer| {
+      Self::update_layer(layer, inner_rect, &self.outer_rect, opacity);
     })
   }
 
   /// Removes the overlay window from the screen.
   pub(crate) fn destroy(self) -> crate::Result<()> {
-    // TODO: Actually destroy the window.
-    self.ns_window.with(|ns_window| ns_window.orderOut(None))
+    self.ns_window.with(|ns_window| ns_window.close())
+  }
+
+  fn update_layer(
+    layer: &Retained<CALayer>,
+    inner_rect: &Rect,
+    outer_rect: &Rect,
+    opacity: Option<&OpacityValue>,
+  ) {
+    let relative = Rect::from_xy(
+      inner_rect.x() - outer_rect.x(),
+      inner_rect.y() - outer_rect.y(),
+      inner_rect.width(),
+      inner_rect.height(),
+    );
+    let frame = NSRect::from(relative.flipped_y(outer_rect.height()));
+
+    // `setFrame` expects AppKit coordinates (top-left origin, y-down).
+    layer.setFrame(frame);
+
+    if let Some(opacity) = opacity {
+      layer.setOpacity(opacity.0);
+    }
   }
 }

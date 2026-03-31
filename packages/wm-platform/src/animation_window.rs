@@ -86,7 +86,7 @@ impl AnimationWindow {
   pub fn update(
     &self,
     inner_rect: &Rect,
-    opacity: Option<OpacityValue>,
+    opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
     self.inner.update(inner_rect, opacity)
   }
