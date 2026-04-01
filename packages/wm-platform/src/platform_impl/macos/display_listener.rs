@@ -1,4 +1,10 @@
-use std::time::{Duration, Instant};
+use std::{
+  sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+  },
+  time::{Duration, Instant},
+};
 
 use objc2::rc::Retained;
 use tokio::sync::mpsc;
@@ -85,8 +91,21 @@ impl DisplayListener {
       // take 1-2 seconds to be reported as online.
       const WAKE_COALESCE_DURATION: Duration = Duration::from_secs(5);
 
+      // Duration to debounce display change events. macOS can fire
+      // multiple `NSApplicationDidChangeScreenParametersNotification`
+      // during a single reconfiguration, and `NSScreen.visibleFrame` may
+      // reflect a transient state (e.g. the menu bar being momentarily
+      // visible despite auto-hide being enabled). Waiting briefly ensures
+      // the display state has fully settled.
+      const DISPLAY_CHANGE_DEBOUNCE: Duration = Duration::from_millis(500);
+
       let mut is_asleep = false;
       let mut wake_time: Option<Instant> = None;
+
+      // Generation counter used to debounce rapid display change events.
+      // Each incoming event increments the counter and spawns a delayed
+      // send; only the latest generation actually delivers the event.
+      let debounce_gen = Arc::new(AtomicUsize::new(0));
 
       // Loop exits when the sender is dropped in `Self::terminate`.
       while let Some(event) = events_rx.blocking_recv() {
@@ -127,13 +146,25 @@ impl DisplayListener {
               wake_time = None;
             }
 
-            if let Err(err) = event_tx.send(()) {
-              tracing::warn!(
-                "Failed to send display change event: {}",
-                err
-              );
-              break;
-            }
+            // Debounce: increment the generation and schedule a delayed
+            // send. If another event arrives before the delay elapses,
+            // its generation will supersede this one and this send will
+            // be skipped.
+            let gen = debounce_gen.fetch_add(1, Ordering::SeqCst) + 1;
+            let gen_ref = debounce_gen.clone();
+            let tx = event_tx.clone();
+
+            std::thread::spawn(move || {
+              std::thread::sleep(DISPLAY_CHANGE_DEBOUNCE);
+
+              if gen_ref.load(Ordering::SeqCst) == gen {
+                if let Err(err) = tx.send(()) {
+                  tracing::warn!(
+                    "Failed to send display change event: {err}"
+                  );
+                }
+              }
+            });
           }
           _ => {}
         }
