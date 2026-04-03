@@ -156,7 +156,7 @@ window_rules:
         window_class: { not_regex: 'OpusApp' }
       - window_process: { equals: 'POWERPNT' }
         window_class: { not_regex: 'PPTFrameClass' }
-      - window_process: { equals: 'CleanShot X' } # CleanShot X screenshot tool for Mac https://cleanshot.com/
+      - window_process: { equals: 'CleanShot X' }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
