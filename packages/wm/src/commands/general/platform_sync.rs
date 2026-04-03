@@ -346,28 +346,43 @@ fn redraw_containers(
 
     debug!("Updating window position: {window}");
 
-    // When a surrogate overlay is active the real window must not receive
-    // any intermediate resize messages; the overlay handles all visuals.
-    if let AnimationPositionResult::Apply(rect_to_use) = position_result {
-      if let Err(err) = reposition_window(
-        window,
-        &rect_to_use,
-        *hide_corner,
-        &z_order,
-        is_visible,
-        config,
-      ) {
-        tracing::warn!("Failed to set window position: {}", err);
+    match position_result {
+      AnimationPositionResult::Frozen => {
+        // A surrogate overlay is covering this window. Cloak the real window
+        // so only the overlay is visible — prevents the "duplicate window"
+        // artifact where both the frozen real window and the moving surrogate
+        // are visible at the same time.
+        #[cfg(target_os = "windows")]
+        let _ = window.native().set_cloaked(true);
       }
+      AnimationPositionResult::Apply(rect_to_use) => {
+        // Uncloak in case the window was hidden by a surrogate on a previous
+        // frame. This is a no-op for windows that were never cloaked.
+        #[cfg(target_os = "windows")]
+        if is_visible {
+          let _ = window.native().set_cloaked(false);
+        }
 
-      // Apply opacity if there's an animation with fade.
-      #[cfg(target_os = "windows")]
-      if let Some(opacity) = opacity_override {
-        if let Err(err) = window.native().set_transparency(&opacity) {
-          tracing::warn!(
-            "Failed to set window opacity during animation: {}",
-            err
-          );
+        if let Err(err) = reposition_window(
+          window,
+          &rect_to_use,
+          *hide_corner,
+          &z_order,
+          is_visible,
+          config,
+        ) {
+          tracing::warn!("Failed to set window position: {}", err);
+        }
+
+        // Apply opacity if there's an animation with fade.
+        #[cfg(target_os = "windows")]
+        if let Some(opacity) = opacity_override {
+          if let Err(err) = window.native().set_transparency(&opacity) {
+            tracing::warn!(
+              "Failed to set window opacity during animation: {}",
+              err
+            );
+          }
         }
       }
     }

@@ -718,6 +718,10 @@ impl Drop for WmState {
       // Reset any effects on Windows.
       #[cfg(target_os = "windows")]
       {
+        // Uncloak first — surrogates cloak the real window, so this must
+        // happen before show() to ensure the window becomes visible.
+        let _ = window.native().set_cloaked(false);
+
         if let Err(err) = window.native().show() {
           warn!("Failed to show window: {:?}", err);
         }
