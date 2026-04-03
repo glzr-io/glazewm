@@ -51,14 +51,17 @@ fn ensure_class_registered() {
   });
 }
 
-/// Lightweight overlay window used to display a frozen snapshot of an app
-/// window during move/resize animations.
+/// Lightweight overlay window used during move/resize animations.
 ///
-/// The surrogate sits on top of the real app window and shows what the app
-/// looked like before the animation started. GlazeWM animates only this
-/// overlay every frame while the real app receives no resize messages.
-/// When the animation finishes the real window is moved to its final
-/// position and the surrogate is dropped.
+/// At animation start, the app window's on-screen content is captured and its
+/// dominant background color is sampled. Each frame the overlay is filled with
+/// the background color and then the captured snapshot is drawn at its natural
+/// (unscaled) size from the top-left corner. This keeps the window content
+/// visually stable while the overlay animates to the target rect.
+///
+/// GlazeWM cloaks the real app window while the overlay is active so the real
+/// window is invisible. When the animation finishes the real window is moved to
+/// its final position, uncloaked, and the surrogate is dropped.
 ///
 /// To avoid per-frame GDI allocation (the primary source of lag), the
 /// frame buffer is pre-allocated at `max(source, target)` size in
@@ -77,9 +80,8 @@ pub struct NativeSurrogate {
   capture_dc: isize,
   capture_bitmap: isize,
   default_capture_bitmap: isize,
-  /// Width of the captured snapshot in pixels.
+  /// Pixel dimensions of the captured snapshot.
   capture_width: i32,
-  /// Height of the captured snapshot in pixels.
   capture_height: i32,
 
   // --- Reusable frame buffer (written each frame) ---
@@ -311,13 +313,13 @@ impl NativeSurrogate {
     Ok(surrogate)
   }
 
-  /// Updates the surrogate's position and size, recompositing the captured
-  /// snapshot into the pre-allocated frame buffer.
+  /// Updates the surrogate's position and size.
   ///
-  /// The captured snapshot is drawn at its natural size from the top-left
-  /// corner. Any area beyond the snapshot dimensions is filled with the
-  /// background color. `UpdateLayeredWindow` repositions and repaints the
-  /// overlay in a single atomic DWM call with no GDI allocations.
+  /// The frame is filled with the background color, then the captured snapshot
+  /// is drawn at its natural (unscaled) size from the top-left corner. Areas
+  /// not covered by the snapshot (when the surrogate is larger than the
+  /// original window) show the background color. `UpdateLayeredWindow`
+  /// repositions and repaints the overlay atomically with no GDI allocations.
   pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
     let new_w = rect.width();
     let new_h = rect.height();
@@ -353,13 +355,15 @@ impl NativeSurrogate {
     // `background_brush` is a valid pre-created solid brush.
     unsafe { FillRect(HDC(self.frame_dc), &fill, HBRUSH(self.background_brush)) };
 
-    // Overlay the captured snapshot, clipped to the smaller of capture and
-    // visible dimensions.
+    // Overlay the captured snapshot at its natural size, clipped to the
+    // visible area. Any region beyond the snapshot dimensions is already
+    // filled with the background color above. This keeps the window content
+    // stable (no stretching) as the surrogate animates.
     let copy_w = self.capture_width.min(draw_w);
     let copy_h = self.capture_height.min(draw_h);
 
     if copy_w > 0 && copy_h > 0 {
-      // SAFETY: All DC/bitmap objects are valid; dimensions are positive.
+      // SAFETY: All DC/bitmap handles are valid; dimensions are positive.
       unsafe {
         BitBlt(
           HDC(self.frame_dc),

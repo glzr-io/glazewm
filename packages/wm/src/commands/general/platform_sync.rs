@@ -349,15 +349,18 @@ fn redraw_containers(
     match position_result {
       AnimationPositionResult::Frozen => {
         // A surrogate overlay is covering this window. Cloak the real window
-        // so only the overlay is visible — prevents the "duplicate window"
-        // artifact where both the frozen real window and the moving surrogate
-        // are visible at the same time.
+        // so only the surrogate is visible — prevents the duplicate-window
+        // artifact where both the stationary real window and the moving
+        // surrogate are visible at the same time.
+        //
+        // `handle_window_hidden` is guarded against unmanaging cloaked windows
+        // so this is safe.
         #[cfg(target_os = "windows")]
         let _ = window.native().set_cloaked(true);
       }
       AnimationPositionResult::Apply(rect_to_use) => {
         // Uncloak in case the window was hidden by a surrogate on a previous
-        // frame. This is a no-op for windows that were never cloaked.
+        // frame. No-op for windows that were never cloaked.
         #[cfg(target_os = "windows")]
         if is_visible {
           let _ = window.native().set_cloaked(false);

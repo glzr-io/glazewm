@@ -426,12 +426,17 @@ impl AnimationManager {
       let current_rect = animation.current_rect();
       let opacity = animation.current_opacity();
 
-      // If a surrogate session is active, update its overlay and tell the
-      // caller to leave the real window untouched this frame.
+      // If a surrogate overlay is active, update it and tell the caller to
+      // leave the real window untouched this frame. Only freeze when the
+      // surrogate was successfully created — if creation failed the session
+      // exists but `has_surrogate()` is false, and we fall through to `Apply`
+      // so the real window is animated normally instead of disappearing.
       #[cfg(target_os = "windows")]
       if let Some(session) = self.resize_sessions.get_mut(&window_id) {
         session.update(&current_rect);
-        return (AnimationPositionResult::Frozen, None);
+        if session.has_surrogate() {
+          return (AnimationPositionResult::Frozen, None);
+        }
       }
 
       (AnimationPositionResult::Apply(current_rect), opacity)
