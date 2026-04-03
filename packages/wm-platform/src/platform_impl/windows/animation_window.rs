@@ -163,10 +163,10 @@ impl AnimationContext {
 /// The contained DirectComposition visual is repositioned each tick; the
 /// HWND frame stays fixed for the lifetime of the animation.
 pub(crate) struct AnimationWindow {
-  hwnd: isize,
+  handle: isize,
   dcomp_device: IDCompositionDesktopDevice,
   _dcomp_target: IDCompositionTarget,
-  visual: IDCompositionVisual3,
+  dcomp_visual: IDCompositionVisual3,
   scale_transform: IDCompositionScaleTransform,
   /// Captured source texture dimensions (for scale calculations).
   src_width: u32,
@@ -200,21 +200,12 @@ impl AnimationWindow {
       let origin_y = outer_rect.y();
       let source_hwnd = window.inner.hwnd().0;
 
-      let outer_rect_clone = outer_rect.clone();
-      let hwnd = dispatcher.dispatch_sync(move || {
-        create_overlay_hwnd(
-          source_hwnd,
-          origin_x,
-          origin_y,
-          outer_rect_clone.width(),
-          outer_rect_clone.height(),
-        )
-      })??;
+      let handle = dispatcher
+        .dispatch_sync(|| create_window(source_hwnd, outer_rect))??;
 
       let dcomp_device = &context.dcomp_device;
-
       let dcomp_target =
-        unsafe { dcomp_device.CreateTargetForHwnd(HWND(hwnd), true)? };
+        unsafe { dcomp_device.CreateTargetForHwnd(HWND(handle), true)? };
 
       let dcomp_surface = unsafe {
         dcomp_device.CreateSurface(
@@ -233,28 +224,24 @@ impl AnimationWindow {
 
       captured.close()?;
 
-      let visual: IDCompositionVisual3 =
+      let dcomp_visual: IDCompositionVisual3 =
         unsafe { dcomp_device.CreateVisual()?.cast()? };
 
       unsafe {
-        visual.SetContent(&dcomp_surface)?;
-        dcomp_target.SetRoot(&visual)?;
+        dcomp_visual.SetContent(&dcomp_surface)?;
+        dcomp_target.SetRoot(&dcomp_visual)?;
       }
 
       #[allow(clippy::cast_precision_loss)]
       unsafe {
-        visual.SetOffsetX2((inner_rect.x() - origin_x) as f32)?;
-        visual.SetOffsetY2((inner_rect.y() - origin_y) as f32)?;
+        dcomp_visual.SetOffsetX2((inner_rect.x() - origin_x) as f32)?;
+        dcomp_visual.SetOffsetY2((inner_rect.y() - origin_y) as f32)?;
       }
 
       let scale_transform =
         unsafe { dcomp_device.CreateScaleTransform()? };
 
-      unsafe {
-        scale_transform.SetCenterX2(0.0)?;
-        scale_transform.SetCenterY2(0.0)?;
-        visual.SetTransform(&scale_transform)?;
-      }
+      unsafe { dcomp_visual.SetTransform(&scale_transform)? };
 
       update_scale(
         &scale_transform,
@@ -265,16 +252,16 @@ impl AnimationWindow {
       )?;
 
       if let Some(opacity) = opacity {
-        unsafe { visual.SetOpacity2(opacity.0)? };
+        unsafe { dcomp_visual.SetOpacity2(opacity.0)? };
       }
 
       unsafe { dcomp_device.Commit()? };
 
       Ok(Self {
-        hwnd,
+        handle,
         dcomp_device: dcomp_device.clone(),
         _dcomp_target: dcomp_target,
-        visual,
+        dcomp_visual,
         scale_transform,
         src_width: desc.Width,
         src_height: desc.Height,
@@ -296,7 +283,7 @@ impl AnimationWindow {
 
     unsafe {
       SetWindowPos(
-        HWND(self.hwnd),
+        HWND(self.handle),
         None,
         outer_rect.x(),
         outer_rect.y(),
@@ -318,31 +305,29 @@ impl AnimationWindow {
     inner_rect: &Rect,
     opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
-    COM_INIT.with(|_| {
-      #[allow(clippy::cast_precision_loss)]
-      unsafe {
-        self
-          .visual
-          .SetOffsetX2((inner_rect.x() - self.origin_x) as f32)?;
-        self
-          .visual
-          .SetOffsetY2((inner_rect.y() - self.origin_y) as f32)?;
-      }
+    #[allow(clippy::cast_precision_loss)]
+    unsafe {
+      self
+        .dcomp_visual
+        .SetOffsetX2((inner_rect.x() - self.origin_x) as f32)?;
+      self
+        .dcomp_visual
+        .SetOffsetY2((inner_rect.y() - self.origin_y) as f32)?;
+    }
 
-      update_scale(
-        &self.scale_transform,
-        inner_rect.width(),
-        inner_rect.height(),
-        self.src_width,
-        self.src_height,
-      )?;
+    update_scale(
+      &self.scale_transform,
+      inner_rect.width(),
+      inner_rect.height(),
+      self.src_width,
+      self.src_height,
+    )?;
 
-      if let Some(opacity) = opacity {
-        unsafe { self.visual.SetOpacity2(opacity.0)? };
-      }
+    if let Some(opacity) = opacity {
+      unsafe { self.dcomp_visual.SetOpacity2(opacity.0)? };
+    }
 
-      Ok(())
-    })
+    Ok(())
   }
 
   /// Tears down `DirectComposition` resources and destroys the overlay
@@ -353,20 +338,28 @@ impl AnimationWindow {
   pub(crate) fn destroy(self) -> crate::Result<()> {
     COM_INIT.with(|_| {
       unsafe {
-        let _ = self
-          .visual
-          .SetContent(None::<&windows::core::IUnknown>);
-        let _ = self.visual.SetTransform(
-          None::<&windows::Win32::Graphics::DirectComposition::IDCompositionTransform>,
-        );
-        let _ = self.dcomp_device.Commit();
+        if let Err(err) =
+          self.dcomp_visual.SetContent(None::<&windows::core::IUnknown>)
+        {
+          tracing::warn!("Failed to clear DComp visual content: {err}");
+        }
+        if let Err(err) = self.dcomp_visual.SetTransform(
+          None::<
+            &windows::Win32::Graphics::DirectComposition::IDCompositionTransform,
+          >,
+        ) {
+          tracing::warn!("Failed to clear DComp visual transform: {err}");
+        }
+        if let Err(err) = self.dcomp_device.Commit() {
+          tracing::warn!("Failed to commit DComp teardown: {err}");
+        }
       }
 
-      let hwnd = self.hwnd;
-      self.dispatcher.dispatch_sync(move || {
-        let _ = unsafe { DestroyWindow(HWND(hwnd)) };
-      })?;
-      Ok(())
+      self.dispatcher.dispatch_sync(|| {
+        if let Err(err) = unsafe { DestroyWindow(HWND(self.handle)) } {
+          tracing::warn!("Failed to destroy overlay HWND: {err}");
+        }
+      })
     })
   }
 
@@ -383,13 +376,7 @@ impl AnimationWindow {
 
 /// Creates the overlay HWND for a single animation, sized to the given
 /// rect and ordered just above `source_hwnd`.
-fn create_overlay_hwnd(
-  source_hwnd: isize,
-  x: i32,
-  y: i32,
-  width: i32,
-  height: i32,
-) -> crate::Result<isize> {
+fn create_window(source_hwnd: isize, rect: &Rect) -> crate::Result<isize> {
   OVERLAY_CLASS.get_or_init(|| {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("AnimationOverlay"),
@@ -405,10 +392,10 @@ fn create_overlay_hwnd(
       w!("AnimationOverlay"),
       w!(""),
       WS_POPUP,
-      x,
-      y,
-      width,
-      height,
+      rect.x(),
+      rect.y(),
+      rect.width(),
+      rect.height(),
       None,
       None,
       None,
@@ -488,6 +475,9 @@ fn capture_window_texture(
   )?;
 
   let session = frame_pool.CreateCaptureSession(&capture_item)?;
+
+  // Prevent the cursor from being shown in the capture.
+  let _ = session.SetIsCursorCaptureEnabled(false);
 
   // Disable the yellow capture border on Windows 11 (Build 22000+).
   let _ = session.SetIsBorderRequired(false);
