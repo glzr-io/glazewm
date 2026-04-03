@@ -372,6 +372,7 @@ fn redraw_containers(
           *hide_corner,
           &z_order,
           is_visible,
+          should_use_animations,
           config,
         ) {
           tracing::warn!("Failed to set window position: {}", err);
@@ -441,6 +442,11 @@ fn reposition_window(
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   z_order: &WindowZOrder,
   is_visible: bool,
+  // When true, `SWP_ASYNCWINDOWPOS` is omitted so that adjacent windows move
+  // synchronously with surrogate overlays (both hit DWM in the same frame),
+  // closing the blank gap caused by a one-frame position lag.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+  is_animating: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let rect = window
@@ -520,10 +526,15 @@ fn reposition_window(
         window.native().restore(Some(&rect))?;
       }
 
+      // During animation frames, omit `SWP_ASYNCWINDOWPOS` so that adjacent
+      // windows are repositioned synchronously. This keeps their on-screen
+      // position in lock-step with surrogate overlays (which update DWM
+      // directly via `UpdateLayeredWindow`), closing the blank gap that
+      // appears when async repositioning lags one frame behind the surrogate.
       let mut swp_flags = SWP_NOACTIVATE
         | SWP_NOCOPYBITS
         | SWP_NOSENDCHANGING
-        | SWP_ASYNCWINDOWPOS;
+        | if is_animating { Default::default() } else { SWP_ASYNCWINDOWPOS };
 
       match &window.state() {
         WindowState::Minimized => {
