@@ -9,7 +9,7 @@ use windows::{
       DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE,
     },
     UI::WindowsAndMessaging::{
-      CreateWindowExW, DestroyWindow, SetLayeredWindowAttributes,
+      CreateWindowExW, DestroyWindow, IsWindow, SetLayeredWindowAttributes,
       SetWindowPos, LWA_ALPHA, SWP_NOACTIVATE, SWP_NOCOPYBITS,
       SWP_NOMOVE, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
       SWP_SHOWWINDOW, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
@@ -53,6 +53,13 @@ impl NativeCloseOverlay {
     source_hwnd: HWND,
     source_rect: &Rect,
   ) -> crate::Result<Self> {
+    // SAFETY: `IsWindow` is safe to call with any `HWND` value.
+    if !unsafe { IsWindow(source_hwnd).as_bool() } {
+      return Err(crate::Error::Platform(
+        "Source window no longer exists.".to_string(),
+      ));
+    }
+
     ensure_class_registered();
 
     let src_w = source_rect.width();
