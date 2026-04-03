@@ -317,7 +317,7 @@ impl AnimationWindow {
   pub(crate) fn update(
     &self,
     inner_rect: &Rect,
-    opacity: Option<OpacityValue>,
+    opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
     COM_INIT.with(|_| {
       #[allow(clippy::cast_precision_loss)]

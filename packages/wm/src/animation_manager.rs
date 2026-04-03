@@ -261,10 +261,9 @@ impl AnimationManager {
   ) -> anyhow::Result<()> {
     let existing_animation = self.animations.get(&window.id());
 
-    let frame_rate = monitor_properties
-      .refresh_rate
-      .unwrap_or(config.value.animations.max_frame_rate)
-      .min(config.value.animations.max_frame_rate);
+    // Sync the frame rate to the monitor's refresh rate. Since ticks are
+    // skipped if the animation is behind, the frame rate is variable.
+    let frame_rate = monitor_properties.refresh_rate.unwrap_or(60);
 
     let animation = if is_opening {
       WindowAnimationState::new(
