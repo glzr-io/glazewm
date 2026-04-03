@@ -13,12 +13,13 @@ use crate::animation::engine::{
 pub enum AnimationType {
   Movement,
   Open,
+  Close,
 }
 
 /// State of an individual window animation.
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct WindowAnimationState {
-  #[allow(dead_code)]
   pub animation_type: AnimationType,
   pub start_time: Instant,
   pub duration: Duration,
@@ -31,13 +32,10 @@ pub struct WindowAnimationState {
   // Opacity animation
   pub start_opacity: Option<OpacityValue>,
   pub target_opacity: Option<OpacityValue>,
-  #[allow(dead_code)]
   pub fade_enabled: bool,
 
   // Scale animation
-  #[allow(dead_code)]
   pub scale_enabled: bool,
-  #[allow(dead_code)]
   pub slide_enabled: bool,
 }
 
@@ -68,10 +66,21 @@ impl WindowAnimationState {
     target_rect: Rect,
     config: &AnimationEffectsConfig,
   ) -> Self {
-    let start_rect = if config.animation_type.has_scale() {
+    let scaled = if config.animation_type.has_scale() {
       scale_rect_from_center(&target_rect, 0.9)
     } else {
       target_rect.clone()
+    };
+
+    let start_rect = if config.animation_type.has_slide() {
+      Rect::from_xy(
+        scaled.x(),
+        scaled.y() - config.slide_offset_px,
+        scaled.width(),
+        scaled.height(),
+      )
+    } else {
+      scaled
     };
 
     Self {
@@ -88,6 +97,54 @@ impl WindowAnimationState {
       },
       target_opacity: if config.animation_type.has_fade() {
         Some(OpacityValue::from_alpha(255))
+      } else {
+        None
+      },
+      fade_enabled: config.animation_type.has_fade(),
+      scale_enabled: config.animation_type.has_scale(),
+      slide_enabled: config.animation_type.has_slide(),
+    }
+  }
+
+  /// Creates a new close animation.
+  ///
+  /// The animation shrinks/fades the window from `current_rect` toward a
+  /// contracted, offset target, mirroring the open animation in reverse.
+  pub fn new_close(
+    current_rect: &Rect,
+    config: &AnimationEffectsConfig,
+  ) -> Self {
+    let scaled = if config.animation_type.has_scale() {
+      scale_rect_from_center(current_rect, 0.9)
+    } else {
+      current_rect.clone()
+    };
+
+    let target_rect = if config.animation_type.has_slide() {
+      Rect::from_xy(
+        scaled.x(),
+        scaled.y() - config.slide_offset_px,
+        scaled.width(),
+        scaled.height(),
+      )
+    } else {
+      scaled
+    };
+
+    Self {
+      animation_type: AnimationType::Close,
+      start_time: Instant::now(),
+      duration: Duration::from_millis(u64::from(config.duration_ms)),
+      easing: config.easing.clone(),
+      start_rect: current_rect.clone(),
+      target_rect,
+      start_opacity: if config.animation_type.has_fade() {
+        Some(OpacityValue::from_alpha(255))
+      } else {
+        None
+      },
+      target_opacity: if config.animation_type.has_fade() {
+        Some(OpacityValue::from_alpha(0))
       } else {
         None
       },

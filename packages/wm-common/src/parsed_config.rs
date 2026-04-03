@@ -482,6 +482,9 @@ pub struct AnimationsConfig {
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,
   pub window_open: AnimationEffectsConfig,
+  /// Animation settings for window close/unmanage events.
+  #[serde(default = "AnimationEffectsConfig::default_close")]
+  pub window_close: AnimationEffectsConfig,
   /// Maximum frame rate for animations in Hz. The animation timer will
   /// not exceed this rate even if the monitor supports higher refresh rates.
   /// Default: 120 Hz
@@ -494,6 +497,7 @@ impl Default for AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
       window_resize: AnimationTypeConfig::default(),
       window_open: AnimationEffectsConfig::default_open(),
+      window_close: AnimationEffectsConfig::default_close(),
       max_frame_rate: 120,
     }
   }
@@ -545,15 +549,37 @@ pub struct AnimationEffectsConfig {
   /// Type of animation effects to apply.
   /// Can be: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
   pub animation_type: AnimationEffectType,
+  /// Pixel offset used for slide animations. The window starts (on open) or
+  /// ends (on close) this many pixels above its final/initial position.
+  #[serde(default = "default_slide_offset_px")]
+  pub slide_offset_px: i32,
+}
+
+/// Default pixel offset for slide animations.
+fn default_slide_offset_px() -> i32 {
+  20
 }
 
 impl AnimationEffectsConfig {
-  fn default_open() -> Self {
+  /// Default configuration for window-open animations.
+  pub fn default_open() -> Self {
     AnimationEffectsConfig {
       enabled: true,
       duration_ms: 200,
       easing: EasingFunction::EaseOut,
       animation_type: AnimationEffectType::FadeSlideScale,
+      slide_offset_px: default_slide_offset_px(),
+    }
+  }
+
+  /// Default configuration for window-close animations.
+  pub fn default_close() -> Self {
+    AnimationEffectsConfig {
+      enabled: true,
+      duration_ms: 150,
+      easing: EasingFunction::EaseIn,
+      animation_type: AnimationEffectType::FadeScale,
+      slide_offset_px: default_slide_offset_px(),
     }
   }
 }

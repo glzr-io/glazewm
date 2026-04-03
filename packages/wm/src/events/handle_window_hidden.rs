@@ -46,6 +46,16 @@ pub fn handle_window_hidden(
       || window.display_state() == DisplayState::Shown)
       && !window.native().is_visible().unwrap_or(false)
     {
+      // Before unmanaging, start a close animation overlay so the window
+      // appears to fade/scale out after disappearing.
+      #[cfg(target_os = "windows")]
+      if config.value.animations.window_close.enabled {
+        let rect = window.native_properties().frame;
+        state
+          .animation_manager
+          .start_close_session(&window.native(), &rect, config);
+      }
+
       unmanage_window(window, state)?;
     }
   }
