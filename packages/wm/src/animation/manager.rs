@@ -393,11 +393,17 @@ impl AnimationManager {
         );
         self.start_animation(window_id, animation);
 
-        // Create a surrogate session if configured and one does not already
-        // exist for this window. On cancel-and-replace the existing session
-        // (and its captured snapshot) are reused.
+        // Create a surrogate session if configured, one does not already
+        // exist, and the window is actually being resized (not just moved).
+        // For pure translation moves the real window can be animated directly
+        // frame-by-frame without the capture + cloak overhead, which is both
+        // smoother and avoids unnecessary flicker.
+        #[cfg(target_os = "windows")]
+        let has_size_change = start_rect.width() != target_rect.width()
+          || start_rect.height() != target_rect.height();
         #[cfg(target_os = "windows")]
         if anim_config.use_surrogate
+          && has_size_change
           && !self.resize_sessions.contains_key(&window_id)
         {
           let strategy = SurrogateStrategy::SolidColor;
