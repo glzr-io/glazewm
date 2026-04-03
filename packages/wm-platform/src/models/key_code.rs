@@ -258,7 +258,6 @@ mod tests {
       Key::S,
       Key::D,
       Key::F,
-      Key::Cmd,
       Key::LAlt,
       Key::RCtrl,
       Key::LShift,
