@@ -3,7 +3,13 @@ use std::{ffi::c_void, sync::OnceLock};
 use windows::{
   core::{s, w},
   Win32::{
-    Foundation::{HWND, LPARAM, LRESULT, WPARAM},
+    Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
+    Graphics::Dwm::{
+      DwmRegisterThumbnail, DwmUnregisterThumbnail,
+      DwmUpdateThumbnailProperties, DWM_THUMBNAIL_PROPERTIES,
+      DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_SOURCECLIENTAREAONLY,
+      DWM_TNP_VISIBLE,
+    },
     System::LibraryLoader::{GetModuleHandleW, GetProcAddress},
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
@@ -69,8 +75,8 @@ fn ensure_class_registered() {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("GlazeWM_Surrogate"),
       lpfnWndProc: Some(default_wnd_proc),
-      // Null background brush: DWM renders the acrylic; GDI never touches
-      // the client area.
+      // Null background brush: DWM renders acrylic; GDI never touches the
+      // client area.
       ..Default::default()
     };
 
@@ -88,8 +94,7 @@ fn get_set_wca() -> Option<SetWindowCompositionAttributeFn> {
   *SET_WCA.get_or_init(|| {
     // SAFETY: user32.dll is always loaded in every Win32 process.
     // `GetModuleHandleW` does not increment the reference count.
-    let module =
-      unsafe { GetModuleHandleW(w!("user32.dll")).ok()? };
+    let module = unsafe { GetModuleHandleW(w!("user32.dll")).ok()? };
 
     // SAFETY: `module` is a valid handle. The ASCII string is
     // null-terminated via the `s!` macro.
@@ -97,8 +102,8 @@ fn get_set_wca() -> Option<SetWindowCompositionAttributeFn> {
       GetProcAddress(module, s!("SetWindowCompositionAttribute"))
     }?;
 
-    // SAFETY: `proc` is a valid export with the expected calling
-    // convention and parameter layout.
+    // SAFETY: `proc` is a valid export with the expected calling convention
+    // and parameter layout.
     Some(unsafe {
       std::mem::transmute::<
         unsafe extern "system" fn() -> isize,
@@ -112,7 +117,7 @@ fn get_set_wca() -> Option<SetWindowCompositionAttributeFn> {
 /// `SetWindowCompositionAttribute` API (Windows 10 1803+).
 ///
 /// On older Windows versions or when the API is unavailable this is a no-op;
-/// the surrogate window will still appear and animate, just without the blur.
+/// the surrogate window will appear and animate without a blur backdrop.
 fn apply_acrylic(hwnd: HWND) {
   let Some(set_wca) = get_set_wca() else {
     return;
@@ -133,27 +138,83 @@ fn apply_acrylic(hwnd: HWND) {
   };
 
   // SAFETY: `hwnd` is a valid window handle. `data` and `policy` are
-  // stack-allocated and remain live for the duration of the call. The struct
-  // layout matches the undocumented Win32 ABI for `WCA_ACCENT_POLICY`.
+  // stack-allocated and remain live for the duration of this call. The
+  // struct layout matches the undocumented Win32 ABI for `WCA_ACCENT_POLICY`.
   unsafe { set_wca(hwnd, std::ptr::addr_of_mut!(data)) };
+}
+
+/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd` and makes it
+/// immediately visible, scaled to fill `width × height`.
+///
+/// Returns the opaque thumbnail handle, or `None` if registration fails (e.g.
+/// same-window, invalid handle). The caller is responsible for calling
+/// [`DwmUnregisterThumbnail`] when done.
+fn register_thumbnail(
+  dest_hwnd: HWND,
+  source_hwnd: HWND,
+  width: i32,
+  height: i32,
+) -> Option<isize> {
+  // SAFETY: Both handles are valid top-level windows.
+  let thumbnail =
+    unsafe { DwmRegisterThumbnail(dest_hwnd, source_hwnd).ok()? };
+
+  let props = DWM_THUMBNAIL_PROPERTIES {
+    dwFlags: DWM_TNP_RECTDESTINATION
+      | DWM_TNP_OPACITY
+      | DWM_TNP_VISIBLE
+      | DWM_TNP_SOURCECLIENTAREAONLY,
+    rcDestination: RECT {
+      left: 0,
+      top: 0,
+      right: width,
+      bottom: height,
+    },
+    opacity: 255,
+    fVisible: true.into(),
+    fSourceClientAreaOnly: true.into(),
+    ..Default::default()
+  };
+
+  // SAFETY: `thumbnail` is a valid handle returned by `DwmRegisterThumbnail`.
+  if unsafe {
+    DwmUpdateThumbnailProperties(thumbnail, &raw const props)
+  }
+  .is_err()
+  {
+    // SAFETY: Same handle; unregister on failure.
+    unsafe { let _ = DwmUnregisterThumbnail(thumbnail); };
+    return None;
+  }
+
+  Some(thumbnail)
 }
 
 /// Lightweight overlay window used during move/resize animations.
 ///
 /// At animation start the overlay is placed over the real app window at the
-/// source rect with Windows Acrylic blur-behind applied. Each frame the
-/// overlay is moved/resized via `SetWindowPos` — no GDI allocations at any
-/// point. GlazeWM cloaks the real window while the overlay is active so only
-/// the surrogate is visible. When the animation finishes the real window is
-/// repositioned, uncloaked, and this surrogate is dropped.
+/// source rect. Windows Acrylic blur-behind is applied as the backdrop, and a
+/// DWM thumbnail of the real window is rendered on top — showing the window's
+/// live content scaled to the current animation rect. GlazeWM cloaks the real
+/// window while the overlay is active.
+///
+/// Per-frame cost is one [`SetWindowPos`] call to animate position/size and
+/// one [`DwmUpdateThumbnailProperties`] call to scale the thumbnail. No GDI
+/// allocations occur at any point.
+///
+/// When the animation finishes the real window is repositioned, uncloaked, and
+/// this surrogate is dropped, which unregisters the thumbnail and destroys the
+/// overlay window.
 ///
 /// # Platform-specific
 ///
-/// Only available on Windows. Requires Windows 10 1803+ for Acrylic; on
-/// older versions the backdrop degrades gracefully (no blur).
+/// Only available on Windows. Acrylic requires Windows 10 1803+; on older
+/// versions the backdrop degrades gracefully (no blur, thumbnail still shown).
 pub struct NativeSurrogate {
   /// Handle to the overlay window.
   hwnd: isize,
+  /// DWM thumbnail handle, or `0` if registration failed.
+  thumbnail: isize,
 
   /// Position of the real app window at the moment the animation started.
   pub frozen_rect: Rect,
@@ -163,14 +224,18 @@ impl NativeSurrogate {
   /// Creates an acrylic surrogate overlay and positions it above
   /// `source_hwnd`.
   ///
-  /// The overlay is shown without activating it and without taking focus.
-  /// Returns an error if window creation fails.
+  /// The overlay is shown without activating it. A DWM thumbnail of
+  /// `source_hwnd` is registered to display the window's live content inside
+  /// the surrogate. Returns an error if window creation fails.
   pub fn create(
     source_hwnd: HWND,
     source_rect: &Rect,
     _target_rect: &Rect,
   ) -> crate::Result<Self> {
     ensure_class_registered();
+
+    let src_w = source_rect.width();
+    let src_h = source_rect.height();
 
     // SAFETY: Class name is the static literal registered above.
     let hwnd = unsafe {
@@ -181,8 +246,8 @@ impl NativeSurrogate {
         WS_POPUP,
         source_rect.x(),
         source_rect.y(),
-        source_rect.width(),
-        source_rect.height(),
+        src_w,
+        src_h,
         None,
         None,
         None,
@@ -196,7 +261,16 @@ impl NativeSurrogate {
       ));
     }
 
+    // Apply acrylic as the background. When the thumbnail is opaque this is
+    // only visible in areas the thumbnail doesn't cover (i.e. when the
+    // surrogate grows beyond the source window's dimensions).
     apply_acrylic(hwnd);
+
+    // Register a DWM thumbnail of the source window so its live content is
+    // rendered inside the surrogate, scaled to fill the current animation
+    // rect. Failure is non-fatal: the surrogate falls back to acrylic-only.
+    let thumbnail =
+      register_thumbnail(hwnd, source_hwnd, src_w, src_h).unwrap_or(0);
 
     // Place the surrogate immediately above `source_hwnd` in the Z-order
     // and show it without activating it.
@@ -216,18 +290,17 @@ impl NativeSurrogate {
 
     Ok(Self {
       hwnd: hwnd.0,
+      thumbnail,
       frozen_rect: source_rect.clone(),
     })
   }
 
-  /// Moves and resizes the surrogate overlay to `rect`.
-  ///
-  /// Only calls `SetWindowPos` — no GDI or DWM attribute updates are needed
-  /// per frame since DWM redraws the acrylic backdrop automatically.
+  /// Moves and resizes the surrogate overlay to `rect` and scales the DWM
+  /// thumbnail to fill the new client area.
   pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
     // SAFETY: `HWND(self.hwnd)` is the overlay window created in `create`
     // and remains valid until `drop`. With `SWP_NOZORDER` set,
-    // `hWndInsertAfter` (`HWND(0)`) is ignored per the Win32 documentation.
+    // `hWndInsertAfter` is ignored per the Win32 documentation.
     unsafe {
       SetWindowPos(
         HWND(self.hwnd),
@@ -240,14 +313,41 @@ impl NativeSurrogate {
       )
     }?;
 
+    if self.thumbnail != 0 {
+      let props = DWM_THUMBNAIL_PROPERTIES {
+        dwFlags: DWM_TNP_RECTDESTINATION,
+        rcDestination: RECT {
+          left: 0,
+          top: 0,
+          right: rect.width(),
+          bottom: rect.height(),
+        },
+        ..Default::default()
+      };
+
+      // SAFETY: `self.thumbnail` is a valid handle obtained in `create`.
+      // Failure here is non-fatal; the surrogate continues to animate.
+      if let Err(err) = unsafe {
+        DwmUpdateThumbnailProperties(self.thumbnail, &raw const props)
+      } {
+        tracing::warn!("DwmUpdateThumbnailProperties failed: {err}.");
+        self.thumbnail = 0;
+      }
+    }
+
     Ok(())
   }
 }
 
 impl Drop for NativeSurrogate {
   fn drop(&mut self) {
-    // SAFETY: `HWND(self.hwnd)` is valid and was created in `create`.
+    // SAFETY: `self.thumbnail` and `self.hwnd` are valid handles created in
+    // `create`. Thumbnail must be unregistered before the destination window
+    // is destroyed.
     unsafe {
+      if self.thumbnail != 0 {
+        let _ = DwmUnregisterThumbnail(self.thumbnail);
+      }
       let _ = DestroyWindow(HWND(self.hwnd));
     }
   }
