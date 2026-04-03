@@ -375,6 +375,7 @@ impl AnimationManager {
           match NativeSurrogate::create(
             native_window.hwnd(),
             &start_rect,
+            &target_rect,
           ) {
             Ok(surrogate) => {
               self.surrogates.insert(window_id, surrogate);
@@ -398,7 +399,7 @@ impl AnimationManager {
       // If a surrogate is active, update it to the current interpolated
       // rect and tell the caller to leave the real window untouched.
       #[cfg(target_os = "windows")]
-      if let Some(surrogate) = self.surrogates.get(&window_id) {
+      if let Some(surrogate) = self.surrogates.get_mut(&window_id) {
         if let Err(err) = surrogate.update(&current_rect) {
           tracing::warn!(
             "Failed to update surrogate for window {window_id}: {err}."
