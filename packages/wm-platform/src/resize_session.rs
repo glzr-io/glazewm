@@ -1,8 +1,8 @@
 use windows::Win32::{
   Foundation::HWND,
   UI::WindowsAndMessaging::{
-    IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
-    SWP_NOCOPYBITS, SWP_NOSENDCHANGING, SWP_NOZORDER,
+    IsWindow, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+    SWP_NOSENDCHANGING, SWP_NOZORDER,
   },
 };
 
@@ -82,33 +82,6 @@ impl ResizeSession {
     } else {
       None
     };
-
-    // With a surrogate active, immediately move the real window to its final
-    // position. The window is cloaked by the caller right after this returns,
-    // so the repositioning is invisible. `SWP_ASYNCWINDOWPOS` posts the resize
-    // to the app's message queue rather than blocking, which keeps heavy apps
-    // (Chrome, Explorer) from stalling the animation thread.
-    if surrogate.is_some() {
-      let r = target_rect;
-
-      // SAFETY: `hwnd` was validated by the caller; `SWP_NOZORDER` makes the
-      // `hWndInsertAfter` argument (`HWND(0)`) irrelevant per Win32 docs.
-      let _ = unsafe {
-        SetWindowPos(
-          hwnd,
-          HWND(0),
-          r.x(),
-          r.y(),
-          r.width(),
-          r.height(),
-          SWP_NOACTIVATE
-            | SWP_NOCOPYBITS
-            | SWP_NOSENDCHANGING
-            | SWP_NOZORDER
-            | SWP_ASYNCWINDOWPOS,
-        )
-      };
-    }
 
     Ok(Self {
       hwnd: hwnd.0,

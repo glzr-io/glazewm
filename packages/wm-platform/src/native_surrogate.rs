@@ -275,7 +275,7 @@ impl NativeSurrogate {
       ));
     }
 
-    let mut surrogate = Self {
+    let surrogate = Self {
       hwnd: hwnd.0,
       capture_dc: capture_dc.0,
       capture_bitmap: capture_bitmap.0,
@@ -291,8 +291,12 @@ impl NativeSurrogate {
       frozen_rect: source_rect.clone(),
     };
 
+    // Pre-render the frame buffer once. `update` only calls
+    // `UpdateLayeredWindow` from this point on — no per-frame GDI blits.
+    surrogate.render_frame_buffer();
+
     // Paint the initial frame before making the window visible.
-    surrogate.update(source_rect)?;
+    surrogate.apply_update(source_rect)?;
 
     // Place the surrogate immediately above `source_hwnd` in the Z-order
     // and show it without activating it.
@@ -313,26 +317,19 @@ impl NativeSurrogate {
     Ok(surrogate)
   }
 
-  /// Updates the surrogate's position and size.
+  /// Moves and resizes the surrogate overlay to `rect`.
   ///
-  /// The frame is filled with the background color, then the captured snapshot
-  /// is drawn at its natural (unscaled) size from the top-left corner. Areas
-  /// not covered by the snapshot (when the surrogate is larger than the
-  /// original window) show the background color. `UpdateLayeredWindow`
-  /// repositions and repaints the overlay atomically with no GDI allocations.
+  /// The frame buffer content was rendered once in [`NativeSurrogate::create`]
+  /// (or after a rare buffer expansion). This method only calls
+  /// `UpdateLayeredWindow` — no per-frame GDI pixel copies — so multiple
+  /// concurrent surrogates impose minimal CPU cost.
   pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
-    let new_w = rect.width();
-    let new_h = rect.height();
-
-    if new_w <= 0 || new_h <= 0 {
-      return Ok(());
-    }
-
-    // If the visible size exceeds the pre-allocated frame buffer (can only
-    // happen on cancel-and-replace to a significantly larger target), expand
-    // it. This is a rare path and involves one reallocation.
-    if new_w > self.frame_width || new_h > self.frame_height {
-      if let Err(err) = self.expand_frame_buffer(new_w, new_h) {
+    // Expand pre-allocated buffer if needed (cancel-and-replace to a larger
+    // target). This re-renders the frame buffer content automatically.
+    if rect.width() > self.frame_width || rect.height() > self.frame_height {
+      if let Err(err) =
+        self.expand_frame_buffer(rect.width(), rect.height())
+      {
         tracing::warn!(
           "Surrogate frame buffer too small and reallocation failed: {err}. \
            Clamping to pre-allocated size."
@@ -340,31 +337,38 @@ impl NativeSurrogate {
       }
     }
 
-    let draw_w = new_w.min(self.frame_width);
-    let draw_h = new_h.min(self.frame_height);
+    self.apply_update(rect)
+  }
 
-    // Fill the visible area with the background color to clear any
-    // leftover content from a previous (larger) frame.
+  /// Writes the frame buffer content (background fill + screenshot overlay).
+  ///
+  /// Called once at creation and once after each buffer expansion. The result
+  /// persists for the entire animation; [`NativeSurrogate::update`] reads from
+  /// this buffer every frame without re-rendering it.
+  fn render_frame_buffer(&self) {
+    // Fill the entire pre-allocated area with the background color. Regions
+    // beyond the captured snapshot will show this color when the surrogate
+    // expands beyond the source size.
     let fill = RECT {
       left: 0,
       top: 0,
-      right: draw_w,
-      bottom: draw_h,
+      right: self.frame_width,
+      bottom: self.frame_height,
     };
     // SAFETY: `frame_dc` is a valid DC with `frame_bitmap` selected;
     // `background_brush` is a valid pre-created solid brush.
-    unsafe { FillRect(HDC(self.frame_dc), &fill, HBRUSH(self.background_brush)) };
+    unsafe {
+      FillRect(HDC(self.frame_dc), &fill, HBRUSH(self.background_brush))
+    };
 
-    // Overlay the captured snapshot at its natural size, clipped to the
-    // visible area. Any region beyond the snapshot dimensions is already
-    // filled with the background color above. This keeps the window content
-    // stable (no stretching) as the surrogate animates.
-    let copy_w = self.capture_width.min(draw_w);
-    let copy_h = self.capture_height.min(draw_h);
+    // Draw the captured snapshot at its natural size from the top-left
+    // corner. Areas beyond the snapshot remain as the background fill above.
+    let copy_w = self.capture_width.min(self.frame_width);
+    let copy_h = self.capture_height.min(self.frame_height);
 
     if copy_w > 0 && copy_h > 0 {
       // SAFETY: All DC/bitmap handles are valid; dimensions are positive.
-      unsafe {
+      let _ = unsafe {
         BitBlt(
           HDC(self.frame_dc),
           0,
@@ -376,13 +380,22 @@ impl NativeSurrogate {
           0,
           SRCCOPY,
         )
-      }?;
+      };
+    }
+  }
+
+  /// Submits the current frame buffer to DWM at the given position/size.
+  ///
+  /// `UpdateLayeredWindow` with `ULW_ALPHA` and `SourceConstantAlpha = 255`
+  /// renders the window fully opaque (no per-pixel alpha required).
+  fn apply_update(&self, rect: &Rect) -> crate::Result<()> {
+    let draw_w = rect.width().min(self.frame_width).max(0);
+    let draw_h = rect.height().min(self.frame_height).max(0);
+
+    if draw_w == 0 || draw_h == 0 {
+      return Ok(());
     }
 
-    // `UpdateLayeredWindow` repositions the overlay and applies the new
-    // frame content atomically. `ULW_ALPHA` with `SourceConstantAlpha = 255`
-    // and `AlphaFormat = 0` renders the window fully opaque (no per-pixel
-    // alpha channel required in the source bitmap).
     let blend = BLENDFUNCTION {
       BlendOp: 0, // AC_SRC_OVER
       BlendFlags: 0,
@@ -399,10 +412,10 @@ impl NativeSurrogate {
       cy: draw_h,
     };
 
-    // SAFETY: `HWND(self.hwnd)` is a valid layered window; `screen_dc` and
-    // all structs are properly initialized.
+    // SAFETY: `HWND(self.hwnd)` is a valid layered window; all structs are
+    // properly initialized.
     let screen_dc = unsafe { GetDC(HWND(0)) };
-    let update_result = unsafe {
+    let result = unsafe {
       UpdateLayeredWindow(
         HWND(self.hwnd),
         screen_dc,
@@ -417,7 +430,7 @@ impl NativeSurrogate {
     };
     unsafe { ReleaseDC(HWND(0), screen_dc) };
 
-    update_result?;
+    result?;
     Ok(())
   }
 
@@ -458,6 +471,10 @@ impl NativeSurrogate {
     self.frame_bitmap = new_bitmap.0;
     self.frame_width = new_w;
     self.frame_height = new_h;
+
+    // Re-render into the newly allocated buffer so the expanded area is
+    // filled with the background color and the captured screenshot.
+    self.render_frame_buffer();
 
     Ok(())
   }

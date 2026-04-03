@@ -359,13 +359,6 @@ fn redraw_containers(
         let _ = window.native().set_cloaked(true);
       }
       AnimationPositionResult::Apply(rect_to_use) => {
-        // Uncloak in case the window was hidden by a surrogate on a previous
-        // frame. No-op for windows that were never cloaked.
-        #[cfg(target_os = "windows")]
-        if is_visible {
-          let _ = window.native().set_cloaked(false);
-        }
-
         if let Err(err) = reposition_window(
           window,
           &rect_to_use,
@@ -376,6 +369,15 @@ fn redraw_containers(
           config,
         ) {
           tracing::warn!("Failed to set window position: {}", err);
+        }
+
+        // Uncloak after repositioning so the window is revealed at the correct
+        // position. This undoes `set_cloaked(true)` from the `Frozen` branch
+        // for non-`HideMethod::Cloak` configurations (that method already
+        // calls `set_cloaked` internally inside `reposition_window`).
+        #[cfg(target_os = "windows")]
+        if is_visible {
+          let _ = window.native().set_cloaked(false);
         }
 
         // Apply opacity if there's an animation with fade.
