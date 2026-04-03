@@ -8,7 +8,7 @@ use uuid::Uuid;
 use wm_common::WindowState;
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
-use wm_platform::{NativeCloseOverlay, NativeWindowWindowsExt, ResizeSession};
+use wm_platform::{NativeWindowWindowsExt, ResizeSession};
 
 use crate::{
   animation::state::WindowAnimationState,
@@ -48,11 +48,6 @@ pub struct AnimationManager {
   /// that repositions the real window.
   #[cfg(target_os = "windows")]
   pub(crate) pending_session_cleanup: Vec<ResizeSession>,
-  /// Active close animations. Each entry holds the animation state and the
-  /// overlay window that plays the fade-out/scale-down effect after the real
-  /// window has been unmanaged.
-  #[cfg(target_os = "windows")]
-  pub(crate) close_sessions: Vec<(WindowAnimationState, NativeCloseOverlay)>,
 }
 
 impl AnimationManager {
@@ -66,8 +61,6 @@ impl AnimationManager {
       resize_sessions: HashMap::new(),
       #[cfg(target_os = "windows")]
       pending_session_cleanup: Vec::new(),
-      #[cfg(target_os = "windows")]
-      close_sessions: Vec::new(),
     }
   }
 
@@ -123,17 +116,9 @@ impl AnimationManager {
     completed_ids
   }
 
-  /// Whether there are any active animations (window move/resize/open or close overlays).
+  /// Whether there are any active animations.
   pub fn has_active_animations(&self) -> bool {
-    if !self.animations.is_empty() {
-      return true;
-    }
-    #[cfg(target_os = "windows")]
-    {
-      !self.close_sessions.is_empty()
-    }
-    #[cfg(not(target_os = "windows"))]
-    false
+    !self.animations.is_empty()
   }
 
   /// Returns all active animation window IDs.
@@ -149,7 +134,6 @@ impl AnimationManager {
     {
       self.resize_sessions.clear();
       self.pending_session_cleanup.clear();
-      self.close_sessions.clear();
     }
   }
 
@@ -163,42 +147,6 @@ impl AnimationManager {
       self.resize_sessions.drain().map(|(_, s)| s).collect();
     sessions.extend(self.pending_session_cleanup.drain(..));
     sessions
-  }
-
-  /// Starts a close animation overlay for a window that is being unmanaged.
-  ///
-  /// Creates a [`NativeCloseOverlay`] at `source_rect` showing live content
-  /// from `native_window` and schedules it to animate out. If overlay creation
-  /// fails (e.g. the window is already destroyed) this is silently skipped.
-  #[cfg(target_os = "windows")]
-  pub fn start_close_session(
-    &mut self,
-    native_window: &NativeWindow,
-    source_rect: &Rect,
-    config: &UserConfig,
-  ) {
-    let anim_config = &config.value.animations.window_close;
-
-    if !anim_config.enabled {
-      return;
-    }
-
-    let animation =
-      crate::animation::state::WindowAnimationState::new_close(
-        source_rect,
-        anim_config,
-      );
-
-    match NativeCloseOverlay::begin(native_window.hwnd(), source_rect) {
-      Ok(overlay) => {
-        self.close_sessions.push((animation, overlay));
-      }
-      Err(err) => {
-        tracing::warn!(
-          "Failed to begin close overlay for window: {err}."
-        );
-      }
-    }
   }
 
   /// Starts the animation timer if it is not already running.
@@ -324,28 +272,6 @@ impl AnimationManager {
     // surrogate overlay.
     #[cfg(target_os = "windows")]
     state.animation_manager.pending_session_cleanup.clear();
-
-    // Tick all active close overlays. Completed ones are dropped, which
-    // destroys their overlay window and unregisters the DWM thumbnail.
-    #[cfg(target_os = "windows")]
-    state
-      .animation_manager
-      .close_sessions
-      .retain_mut(|(anim, overlay)| {
-        if anim.is_complete() {
-          return false;
-        }
-        let rect = anim.current_rect();
-        let alpha = anim
-          .current_opacity()
-          .map(|o| o.to_alpha())
-          .unwrap_or(255);
-        if let Err(err) = overlay.update(&rect, alpha) {
-          tracing::warn!("Close overlay update failed: {err}.");
-          return false;
-        }
-        true
-      });
 
     // Keep the timer running while animations are active; stop it otherwise
     // so the background thread exits cleanly.

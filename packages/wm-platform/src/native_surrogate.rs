@@ -71,7 +71,7 @@ unsafe extern "system" fn default_wnd_proc(
   unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
 }
 
-pub(crate) fn ensure_class_registered() {
+fn ensure_class_registered() {
   SURROGATE_CLASS_REGISTERED.get_or_init(|| {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("GlazeWM_Surrogate"),

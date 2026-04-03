@@ -34,10 +34,6 @@ mod native_surrogate;
 #[cfg(target_os = "windows")]
 pub use native_surrogate::NativeSurrogate;
 #[cfg(target_os = "windows")]
-mod native_close_overlay;
-#[cfg(target_os = "windows")]
-pub use native_close_overlay::NativeCloseOverlay;
-#[cfg(target_os = "windows")]
 mod resize_session;
 #[cfg(target_os = "windows")]
 pub use resize_session::ResizeSession;
