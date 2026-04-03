@@ -306,13 +306,6 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     ) && previous_target.is_none();
 
-    // A resize is any operation that changes the window's dimensions. Pure
-    // moves only change position.
-    let is_resize = previous_target.as_ref().map_or(false, |prev| {
-      prev.width() != target_rect.width()
-        || prev.height() != target_rect.height()
-    });
-
     // Always record the latest target position.
     state
       .window_target_positions
@@ -321,15 +314,13 @@ fn redraw_containers(
     // Floating windows are never animated — they should respond immediately.
     let is_floating = matches!(window.state(), WindowState::Floating(_));
 
+    // Tiling layout changes almost always change both position and size
+    // simultaneously, so window_move config governs all non-opening
+    // animations. window_resize config is reserved for future use.
     let should_use_animations = !is_floating
       && !state.pending_sync.should_skip_animations()
-      && (is_opening && config.value.animations.window_open.enabled
-        || (!is_opening
-          && is_resize
-          && config.value.animations.window_resize.enabled)
-        || (!is_opening
-          && !is_resize
-          && config.value.animations.window_move.enabled));
+      && ((is_opening && config.value.animations.window_open.enabled)
+        || (!is_opening && config.value.animations.window_move.enabled));
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -342,7 +333,7 @@ fn redraw_containers(
       state.animation_manager.start_animation_if_needed(
         window.id(),
         is_opening,
-        is_resize,
+        false, // is_resize: always use window_move config for now
         target_rect.clone(),
         previous_target,
         #[cfg(target_os = "windows")]
