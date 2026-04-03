@@ -19,13 +19,34 @@ impl AnimationContext {
   /// Executes `update_fn` inside a compositor transaction, committing all
   /// pending changes once `update_fn` returns.
   ///
-  /// On macOS, `update_fn` runs inside a single `CATransaction` on the
-  /// main thread. On Windows, `update_fn` runs followed by a
-  /// `DirectComposition` commit.
+  /// # Platform-specific
+  ///
+  /// - **macOS**: `update_fn` runs inside a single `CATransaction` on the
+  ///   main thread, so `F: Send` and `R: Send` are required.
+  /// - **Windows**: `update_fn` runs inline on the calling thread followed
+  ///   by a `DirectComposition` commit.
+  #[cfg(target_os = "macos")]
   pub fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
     R: Send,
+  {
+    self.inner.transaction(update_fn)
+  }
+
+  /// Executes `update_fn` inside a compositor transaction, committing all
+  /// pending changes once `update_fn` returns.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **macOS**: `update_fn` runs inside a single `CATransaction` on the
+  ///   main thread, so `F: Send` and `R: Send` are required.
+  /// - **Windows**: `update_fn` runs inline on the calling thread followed
+  ///   by a `DirectComposition` commit.
+  #[cfg(target_os = "windows")]
+  pub fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
+  where
+    F: FnOnce() -> R,
   {
     self.inner.transaction(update_fn)
   }

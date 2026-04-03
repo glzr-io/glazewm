@@ -107,8 +107,7 @@ impl AnimationContext {
   /// changes to the compositor in a single batch.
   pub(crate) fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
   where
-    F: FnOnce() -> R + Send,
-    R: Send,
+    F: FnOnce() -> R,
   {
     COM_INIT.with(|_| {
       let result = update_fn();
