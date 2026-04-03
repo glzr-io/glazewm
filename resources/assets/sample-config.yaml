@@ -169,13 +169,9 @@ binding_modes:
         bindings: ['k', 'up']
       - commands: ['resize --height -2%']
         bindings: ['j', 'down']
-      # Press enter/escape to return to default keybindings.
+      # Press escape/enter/alt+r to return to default keybindings.
       - commands: ['wm-disable-binding-mode --name resize']
-        bindings: [
-          'escape',
-          'enter',
-          'alt+r' # Mirror the default keybind used to enter resizing to exit.
-        ]
+        bindings: ['escape', 'enter', 'alt+r']
 
 keybindings:
   # Shift focus in a given direction.
