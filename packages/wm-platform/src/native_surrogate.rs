@@ -16,9 +16,10 @@ use windows::{
       Controls::MARGINS,
       WindowsAndMessaging::{
         CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
-        SetWindowPos, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
-        SWP_SHOWWINDOW, WNDCLASSW, WM_NCCALCSIZE, WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_THICKFRAME,
+        SetWindowPos, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE,
+        SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, WNDCLASSW, WM_NCCALCSIZE,
+        WM_NCHITTEST, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP,
+        WS_THICKFRAME,
       },
     },
   },
@@ -31,33 +32,28 @@ static SURROGATE_CLASS_REGISTERED: OnceLock<()> = OnceLock::new();
 
 /// Window procedure for the surrogate overlay.
 ///
-/// Handles `WM_NCCALCSIZE` by returning 0, which removes all non-client
-/// borders while preserving `WS_THICKFRAME`'s side-effect of enabling
-/// DWM system-backdrop rendering on the window.
+/// - `WM_NCCALCSIZE` → 0: removes visible border while keeping `WS_THICKFRAME`
+///   present for DWM backdrop activation.
+/// - `WM_NCHITTEST` → `HTTRANSPARENT`: mouse events pass through to the window
+///   below (replaces `WS_EX_TRANSPARENT`, which blocks DWM compositing).
 unsafe extern "system" fn surrogate_wnd_proc(
   hwnd: HWND,
   msg: u32,
   wparam: WPARAM,
   lparam: LPARAM,
 ) -> LRESULT {
-  // Returning 0 for WM_NCCALCSIZE (when wParam is non-zero) removes all
-  // non-client chrome. WS_THICKFRAME is still present in the window style,
-  // which satisfies DWM's requirement for system-backdrop activation, but
-  // no visible border or shadow is rendered.
-  if msg == WM_NCCALCSIZE && wparam.0 != 0 {
-    return LRESULT(0);
+  match msg {
+    WM_NCCALCSIZE if wparam.0 != 0 => LRESULT(0),
+    WM_NCHITTEST => LRESULT(-1), // HTTRANSPARENT — pass mouse through
+    _ => unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) },
   }
-
-  // SAFETY: All parameters are passed through unchanged.
-  unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
 }
 
 fn ensure_class_registered() {
   SURROGATE_CLASS_REGISTERED.get_or_init(|| {
-    // Black background brush: `DwmExtendFrameIntoClientArea` with all-negative
-    // margins maps GDI black (0, 0, 0) to transparent, allowing the Acrylic
-    // backdrop to fill the window. NULL brush would leave uninitialized pixels
-    // that block the effect.
+    // Black background: DwmExtendFrameIntoClientArea maps GDI (0,0,0) to
+    // transparent. NULL brush leaves uninitialized pixels that block the
+    // backdrop from rendering.
     //
     // SAFETY: `GetStockObject(BLACK_BRUSH)` always succeeds.
     let black_brush =
@@ -70,8 +66,7 @@ fn ensure_class_registered() {
       ..Default::default()
     };
 
-    // SAFETY: `wnd_class` is a properly initialized `WNDCLASSW` with a
-    // static class name and a valid window procedure.
+    // SAFETY: `wnd_class` is properly initialized with a static class name.
     unsafe { RegisterClassW(&raw const wnd_class) };
   });
 }
@@ -79,17 +74,17 @@ fn ensure_class_registered() {
 /// Lightweight Acrylic-blur overlay window used during move/resize animations.
 ///
 /// Uses `DWMSBT_TRANSIENTWINDOW` (Windows 11 22H2+) to render a frosted-glass
-/// backdrop via DWM. No GDI rendering or screenshot capture is involved; DWM
-/// composites the blur entirely on the GPU.
+/// backdrop via DWM entirely on the GPU. Falls back gracefully on older systems.
 ///
-/// The recipe: `WS_POPUP | WS_THICKFRAME` (DWM requires a frame style for
-/// backdrop activation), `WM_NCCALCSIZE → 0` (strips the visible border),
-/// black background (mapped to transparent by `DwmExtendFrameIntoClientArea`),
-/// `DWMWA_USE_HOSTBACKDROPBRUSH = TRUE` (required for Desktop Acrylic on
-/// Win32), then `DWMSBT_TRANSIENTWINDOW`.
-///
-/// Falls back to direct per-frame `SetWindowPos` animation on systems where
-/// `DWMSBT_TRANSIENTWINDOW` is not supported (pre-22H2).
+/// Key recipe:
+/// - `WS_POPUP | WS_THICKFRAME` — DWM requires a frame style for backdrop.
+/// - No `WS_EX_TRANSPARENT` — that flag blocks DWM compositing; click-through
+///   is achieved via `WM_NCHITTEST → HTTRANSPARENT` in the window procedure.
+/// - `WM_NCCALCSIZE → 0` — strips the visible resize border.
+/// - Black background brush — mapped to transparent by `DwmExtendFrameIntoClientArea`.
+/// - Window shown **before** DWM attributes are set, then `SWP_FRAMECHANGED`
+///   forces a non-client recalculation that triggers backdrop attachment.
+/// - `DWMWA_USE_HOSTBACKDROPBRUSH = TRUE` then `DWMSBT_TRANSIENTWINDOW`.
 ///
 /// # Platform-specific
 ///
@@ -103,7 +98,8 @@ impl NativeSurrogate {
   /// Creates and displays an Acrylic surrogate at `source_rect`.
   ///
   /// Returns an error if the system does not support `DWMSBT_TRANSIENTWINDOW`
-  /// or if window creation fails, so the caller can fall back gracefully.
+  /// or window creation fails, allowing the caller to fall back to direct
+  /// per-frame animation.
   pub fn create(
     source_hwnd: HWND,
     source_rect: &Rect,
@@ -111,12 +107,9 @@ impl NativeSurrogate {
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
-    // `WS_THICKFRAME` is required for DWM to activate system-backdrop
-    // rendering. The visible resize border it normally adds is stripped
-    // by the `WM_NCCALCSIZE` handler above.
-    // Neither `WS_EX_LAYERED` nor `WS_EX_NOREDIRECTIONBITMAP` are used:
-    // the DWM standard redirection surface must be present for the backdrop.
-    let ex_style = WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
+    // No WS_EX_TRANSPARENT — that flag prevents DWM from compositing the
+    // backdrop. Click-through is handled by WM_NCHITTEST in the wnd proc.
+    let ex_style = WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
 
     // SAFETY: Class name is the static literal registered above.
     let hwnd = unsafe {
@@ -142,65 +135,8 @@ impl NativeSurrogate {
       ));
     }
 
-    // Extend the DWM non-client frame over the entire client area. GDI black
-    // in the client area is treated as transparent, so the Acrylic backdrop
-    // fills the whole window surface.
-    let margins = MARGINS {
-      cxLeftWidth: -1,
-      cxRightWidth: -1,
-      cyTopHeight: -1,
-      cyBottomHeight: -1,
-    };
-
-    // SAFETY: `hwnd` is a valid top-level window.
-    if let Err(err) =
-      unsafe { DwmExtendFrameIntoClientArea(hwnd, &margins) }
-    {
-      unsafe { let _ = DestroyWindow(hwnd); }
-      return Err(crate::Error::Platform(format!(
-        "DwmExtendFrameIntoClientArea failed: {err}."
-      )));
-    }
-
-    // Required for Desktop Acrylic (`DWMSBT_TRANSIENTWINDOW`) on Win32.
-    // Without this, the backdrop type alone has no effect.
-    let use_host_backdrop: BOOL = BOOL(1);
-
-    // SAFETY: pointer and size are correct for a `BOOL`.
-    if let Err(err) = unsafe {
-      DwmSetWindowAttribute(
-        hwnd,
-        DWMWA_USE_HOSTBACKDROPBRUSH,
-        &use_host_backdrop as *const BOOL as *const std::ffi::c_void,
-        std::mem::size_of::<BOOL>() as u32,
-      )
-    } {
-      unsafe { let _ = DestroyWindow(hwnd); }
-      return Err(crate::Error::Platform(format!(
-        "DWMWA_USE_HOSTBACKDROPBRUSH failed: {err}."
-      )));
-    }
-
-    // Request Acrylic blur backdrop. Requires Windows 11 22H2 (Build 22621)+.
-    let backdrop = DWMSBT_TRANSIENTWINDOW.0;
-
-    // SAFETY: `backdrop` is an `i32`; pointer and size are valid.
-    if let Err(err) = unsafe {
-      DwmSetWindowAttribute(
-        hwnd,
-        DWMWA_SYSTEMBACKDROP_TYPE,
-        &backdrop as *const i32 as *const std::ffi::c_void,
-        std::mem::size_of::<i32>() as u32,
-      )
-    } {
-      unsafe { let _ = DestroyWindow(hwnd); }
-      return Err(crate::Error::Platform(format!(
-        "DWMSBT_TRANSIENTWINDOW not supported: {err}."
-      )));
-    }
-
-    // Place the surrogate immediately above `source_hwnd` in Z-order and
-    // show it without activating it.
+    // Show the window first — DWM may require the window to be visible
+    // before backdrop attributes take effect.
     //
     // SAFETY: Both handles are valid.
     if let Err(err) = unsafe {
@@ -220,13 +156,88 @@ impl NativeSurrogate {
       )));
     }
 
+    // Extend DWM non-client frame over the entire client area. GDI black
+    // is treated as transparent so the Acrylic fills the whole surface.
+    let margins = MARGINS {
+      cxLeftWidth: -1,
+      cxRightWidth: -1,
+      cyTopHeight: -1,
+      cyBottomHeight: -1,
+    };
+
+    // SAFETY: `hwnd` is a valid top-level window.
+    if let Err(err) =
+      unsafe { DwmExtendFrameIntoClientArea(hwnd, &margins) }
+    {
+      unsafe { let _ = DestroyWindow(hwnd); }
+      return Err(crate::Error::Platform(format!(
+        "DwmExtendFrameIntoClientArea failed: {err}."
+      )));
+    }
+
+    // Required for Desktop Acrylic on plain Win32 windows.
+    let use_host_backdrop: BOOL = BOOL(1);
+
+    // SAFETY: pointer and size match `BOOL`.
+    if let Err(err) = unsafe {
+      DwmSetWindowAttribute(
+        hwnd,
+        DWMWA_USE_HOSTBACKDROPBRUSH,
+        &use_host_backdrop as *const BOOL as *const std::ffi::c_void,
+        std::mem::size_of::<BOOL>() as u32,
+      )
+    } {
+      unsafe { let _ = DestroyWindow(hwnd); }
+      return Err(crate::Error::Platform(format!(
+        "DWMWA_USE_HOSTBACKDROPBRUSH failed: {err}."
+      )));
+    }
+
+    // Request Acrylic blur backdrop (Windows 11 22H2+).
+    let backdrop = DWMSBT_TRANSIENTWINDOW.0;
+
+    // SAFETY: `backdrop` is an `i32`; pointer and size are valid.
+    if let Err(err) = unsafe {
+      DwmSetWindowAttribute(
+        hwnd,
+        DWMWA_SYSTEMBACKDROP_TYPE,
+        &backdrop as *const i32 as *const std::ffi::c_void,
+        std::mem::size_of::<i32>() as u32,
+      )
+    } {
+      unsafe { let _ = DestroyWindow(hwnd); }
+      return Err(crate::Error::Platform(format!(
+        "DWMSBT_TRANSIENTWINDOW not supported: {err}."
+      )));
+    }
+
+    // Force a non-client area recalculation. This triggers WM_NCCALCSIZE
+    // (returning 0 removes the frame) and prompts DWM to attach the
+    // backdrop to the window.
+    //
+    // SAFETY: `hwnd` is valid.
+    let _ = unsafe {
+      SetWindowPos(
+        hwnd,
+        HWND(0),
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE
+          | SWP_NOSIZE
+          | SWP_NOZORDER
+          | SWP_NOACTIVATE
+          | SWP_FRAMECHANGED,
+      )
+    };
+
     Ok(Self { hwnd: hwnd.0 })
   }
 
   /// Moves and resizes the surrogate overlay to `rect`.
   ///
-  /// DWM re-renders the Acrylic backdrop at the new geometry on the GPU;
-  /// no application-level painting is required.
+  /// DWM re-renders the Acrylic backdrop at the new geometry on the GPU.
   pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
     // SAFETY: `hwnd` is a valid window handle obtained in `create`.
     unsafe {
