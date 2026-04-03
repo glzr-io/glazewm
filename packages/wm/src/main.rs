@@ -178,6 +178,8 @@ async fn start_wm(
 
   // Create an interval for periodically cleaning up invalid windows.
   let mut cleanup_interval = tokio::time::interval(Duration::from_secs(5));
+  cleanup_interval
+    .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
   loop {
     let res = tokio::select! {
