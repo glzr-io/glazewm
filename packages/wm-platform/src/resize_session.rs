@@ -1,8 +1,8 @@
 use windows::Win32::{
   Foundation::HWND,
   UI::WindowsAndMessaging::{
-    IsWindow, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS,
-    SWP_NOSENDCHANGING, SWP_NOZORDER,
+    IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
+    SWP_NOCOPYBITS, SWP_NOSENDCHANGING, SWP_NOZORDER,
   },
 };
 
@@ -50,9 +50,18 @@ pub struct ResizeSession {
 impl ResizeSession {
   /// Creates a resize session, optionally with a surrogate overlay.
   ///
-  /// When `strategy` is [`SurrogateStrategy::SolidColor`] and surrogate
-  /// creation fails, the session is returned without a surrogate — the
-  /// animation falls back to direct window repositioning every frame.
+  /// When `strategy` is [`SurrogateStrategy::SolidColor`] and a surrogate is
+  /// successfully created, the real window is immediately repositioned to
+  /// `target_rect` via an async `SetWindowPos`. This mirrors Hyprland's
+  /// approach: the real window occupies its final position for the entire
+  /// animation while the surrogate plays the visual transition. Benefits:
+  /// - The app begins rendering at the correct final size right away.
+  /// - At animation end, no final `SetWindowPos` is needed, eliminating the
+  ///   end-of-animation flicker caused by a sync reposition after uncloak.
+  ///
+  /// When surrogate creation fails the session is returned without a
+  /// surrogate — the animation falls back to direct window repositioning every
+  /// frame.
   pub fn begin(
     hwnd: HWND,
     source_rect: &Rect,
@@ -73,6 +82,33 @@ impl ResizeSession {
     } else {
       None
     };
+
+    // With a surrogate active, immediately move the real window to its final
+    // position. The window is cloaked by the caller right after this returns,
+    // so the repositioning is invisible. `SWP_ASYNCWINDOWPOS` posts the resize
+    // to the app's message queue rather than blocking, which keeps heavy apps
+    // (Chrome, Explorer) from stalling the animation thread.
+    if surrogate.is_some() {
+      let r = target_rect;
+
+      // SAFETY: `hwnd` was validated by the caller; `SWP_NOZORDER` makes the
+      // `hWndInsertAfter` argument (`HWND(0)`) irrelevant per Win32 docs.
+      let _ = unsafe {
+        SetWindowPos(
+          hwnd,
+          HWND(0),
+          r.x(),
+          r.y(),
+          r.width(),
+          r.height(),
+          SWP_NOACTIVATE
+            | SWP_NOCOPYBITS
+            | SWP_NOSENDCHANGING
+            | SWP_NOZORDER
+            | SWP_ASYNCWINDOWPOS,
+        )
+      };
+    }
 
     Ok(Self {
       hwnd: hwnd.0,
