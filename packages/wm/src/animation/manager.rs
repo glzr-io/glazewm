@@ -8,7 +8,7 @@ use uuid::Uuid;
 use wm_common::WindowState;
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, ResizeSession, SurrogateStrategy};
+use wm_platform::{NativeWindowWindowsExt, ResizeSession};
 
 use crate::{
   animation::state::WindowAnimationState,
@@ -406,12 +406,10 @@ impl AnimationManager {
           && has_size_change
           && !self.resize_sessions.contains_key(&window_id)
         {
-          let strategy = SurrogateStrategy::SolidColor;
           match ResizeSession::begin(
             native_window.hwnd(),
             &start_rect,
             &target_rect,
-            strategy,
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);

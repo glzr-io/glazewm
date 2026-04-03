@@ -1,29 +1,15 @@
 use windows::Win32::{
   Foundation::HWND,
   UI::WindowsAndMessaging::{
-    IsWindow, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+    IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE, SWP_NOCOPYBITS,
     SWP_NOSENDCHANGING, SWP_NOZORDER,
   },
 };
 
 use crate::{NativeSurrogate, Rect};
 
-/// Strategy for creating a surrogate overlay during a resize/move animation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SurrogateStrategy {
-  /// No surrogate; the real window receives all `SetWindowPos` calls during
-  /// the animation.
-  None,
-  /// Solid-color surrogate with a frozen [`PrintWindow`] screenshot.
-  ///
-  /// GlazeWM captures a snapshot of the window at animation start and
-  /// animates a lightweight layered overlay. The real window receives only
-  /// one final `SetWindowPos` call when the animation completes.
-  SolidColor,
-}
-
-/// Tracks a single window's resize/move animation and manages its optional
-/// surrogate overlay.
+/// Tracks a single window's resize/move animation and manages its surrogate
+/// overlay.
 ///
 /// `ResizeSession` ensures the surrogate always outlives the final
 /// `SetWindowPos` sent to the real window. On `WmState` drop, [`commit`] is
@@ -42,34 +28,34 @@ pub struct ResizeSession {
   hwnd: isize,
   /// Final target rect for the real window.
   target_rect: Rect,
-  /// Surrogate overlay; `None` when strategy is [`SurrogateStrategy::None`]
-  /// or when surrogate creation failed.
+  /// Surrogate overlay; `None` if creation failed.
   surrogate: Option<NativeSurrogate>,
 }
 
 impl ResizeSession {
-  /// Creates a resize session, optionally with a surrogate overlay.
+  /// Creates a resize session with a DWM surrogate overlay.
   ///
-  /// When `strategy` is [`SurrogateStrategy::SolidColor`] and a surrogate is
-  /// successfully created, the real window is immediately repositioned to
-  /// `target_rect` via an async `SetWindowPos`. This mirrors Hyprland's
-  /// approach: the real window occupies its final position for the entire
-  /// animation while the surrogate plays the visual transition. Benefits:
-  /// - The app begins rendering at the correct final size right away.
-  /// - At animation end, no final `SetWindowPos` is needed, eliminating the
-  ///   end-of-animation flicker caused by a sync reposition after uncloak.
+  /// The surrogate displays the real window's live content via a
+  /// `DwmRegisterThumbnail` with a pinned `rcSource` equal to the original
+  /// window size, so the thumbnail is never scaled regardless of how the
+  /// source window is resized underneath. Acrylic fills the area around it as
+  /// the surrogate grows toward `target_rect`.
   ///
-  /// When surrogate creation fails the session is returned without a
-  /// surrogate — the animation falls back to direct window repositioning every
-  /// frame.
+  /// When the surrogate is successfully created the real window is immediately
+  /// repositioned to `target_rect` while hidden beneath the overlay. Because
+  /// `rcSource` is pinned, this does not affect the thumbnail content. The
+  /// window renders at the correct final size for the entire animation so
+  /// uncloaking at animation end requires no repaint and produces no flicker.
+  ///
+  /// When surrogate creation fails the session is returned without one — the
+  /// animation falls back to direct window repositioning every frame.
   pub fn begin(
     hwnd: HWND,
     source_rect: &Rect,
     target_rect: &Rect,
-    strategy: SurrogateStrategy,
   ) -> crate::Result<Self> {
-    let surrogate = if strategy == SurrogateStrategy::SolidColor {
-      match NativeSurrogate::create(hwnd, source_rect, target_rect) {
+    let surrogate =
+      match NativeSurrogate::create(hwnd, source_rect) {
         Ok(s) => Some(s),
         Err(err) => {
           tracing::warn!(
@@ -78,10 +64,30 @@ impl ResizeSession {
           );
           None
         }
+      };
+
+    // Pre-position the real window at the target rect while it is covered by
+    // the surrogate. The pinned `rcSource` on the thumbnail means this resize
+    // does not affect the displayed content. By animation end the window will
+    // have already rendered at the correct size, making uncloak flicker-free.
+    if surrogate.is_some() {
+      let r = target_rect;
+
+      // SAFETY: `hwnd` is a valid top-level window handle. `SWP_NOZORDER`
+      // makes `hWndInsertAfter` irrelevant. `SWP_ASYNCWINDOWPOS` posts to
+      // the window's message queue without blocking our thread.
+      unsafe {
+        let _ = SetWindowPos(
+          hwnd,
+          HWND(0),
+          r.x(),
+          r.y(),
+          r.width(),
+          r.height(),
+          SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
+        );
       }
-    } else {
-      None
-    };
+    }
 
     Ok(Self {
       hwnd: hwnd.0,
@@ -104,12 +110,12 @@ impl ResizeSession {
     }
   }
 
-  /// Positions the surrogate at the final target rect in preparation for
-  /// `platform_sync` to move the real window.
+  /// Snaps the surrogate to the final target rect in preparation for
+  /// `platform_sync` to uncloak the real window.
   ///
-  /// Checks `IsWindow` and nullifies the stored handle if the window has
-  /// been destroyed mid-animation, so that [`commit`] skips the
-  /// `SetWindowPos` call.
+  /// Checks `IsWindow` and nullifies the stored handle if the window has been
+  /// destroyed mid-animation, so that [`commit`] skips the `SetWindowPos`
+  /// call.
   ///
   /// [`commit`]: ResizeSession::commit
   pub fn pre_commit(&mut self) {

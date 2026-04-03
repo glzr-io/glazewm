@@ -359,13 +359,25 @@ fn redraw_containers(
         let _ = window.native().set_cloaked(true);
       }
       AnimationPositionResult::Apply(rect_to_use) => {
+        // Only omit `SWP_ASYNCWINDOWPOS` when a surrogate is active for this
+        // window — adjacent windows must stay in lock-step with the overlay.
+        // For pure moves (no surrogate) async is correct and avoids blocking
+        // on the target process's message queue each frame.
+        #[cfg(target_os = "windows")]
+        let has_surrogate = state
+          .animation_manager
+          .resize_sessions
+          .contains_key(&window.id());
+        #[cfg(not(target_os = "windows"))]
+        let has_surrogate = false;
+
         if let Err(err) = reposition_window(
           window,
           &rect_to_use,
           *hide_corner,
           &z_order,
           is_visible,
-          should_use_animations,
+          has_surrogate,
           config,
         ) {
           tracing::warn!("Failed to set window position: {}", err);
@@ -445,10 +457,10 @@ fn reposition_window(
   z_order: &WindowZOrder,
   is_visible: bool,
   // When true, `SWP_ASYNCWINDOWPOS` is omitted so that adjacent windows move
-  // synchronously with surrogate overlays (both hit DWM in the same frame),
-  // closing the blank gap caused by a one-frame position lag.
+  // synchronously with the surrogate overlay (both hit DWM in the same frame),
+  // preventing a one-frame gap between the overlay and its neighbours.
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
-  is_animating: bool,
+  has_surrogate: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let rect = window
@@ -536,7 +548,7 @@ fn reposition_window(
       let mut swp_flags = SWP_NOACTIVATE
         | SWP_NOCOPYBITS
         | SWP_NOSENDCHANGING
-        | if is_animating { Default::default() } else { SWP_ASYNCWINDOWPOS };
+        | if has_surrogate { Default::default() } else { SWP_ASYNCWINDOWPOS };
 
       match &window.state() {
         WindowState::Minimized => {

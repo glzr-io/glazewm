@@ -7,15 +7,16 @@ use windows::{
     Graphics::Dwm::{
       DwmRegisterThumbnail, DwmUnregisterThumbnail,
       DwmUpdateThumbnailProperties, DWM_THUMBNAIL_PROPERTIES,
-      DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_SOURCECLIENTAREAONLY,
-      DWM_TNP_VISIBLE,
+      DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_RECTSOURCE,
+      DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE,
     },
     System::LibraryLoader::{GetModuleHandleW, GetProcAddress},
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
-      SetWindowPos, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
-      SWP_SHOWWINDOW, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-      WS_EX_TRANSPARENT, WS_POPUP,
+      SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+      SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW,
+      WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
+      WS_POPUP,
     },
   },
 };
@@ -143,8 +144,13 @@ fn apply_acrylic(hwnd: HWND) {
   unsafe { set_wca(hwnd, std::ptr::addr_of_mut!(data)) };
 }
 
-/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd` and makes it
-/// immediately visible, scaled to fill `width × height`.
+/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd`, pinned to
+/// `width × height` with no scaling.
+///
+/// Both `rcSource` and `rcDestination` are set to `{0, 0, width, height}` so
+/// DWM captures exactly that region of the source window and renders it 1:1
+/// into the destination — no upscaling or downscaling occurs even if the
+/// source window is later resized to a different size.
 ///
 /// Returns the opaque thumbnail handle, or `None` if registration fails (e.g.
 /// same-window, invalid handle). The caller is responsible for calling
@@ -159,17 +165,21 @@ fn register_thumbnail(
   let thumbnail =
     unsafe { DwmRegisterThumbnail(dest_hwnd, source_hwnd).ok()? };
 
+  let pinned_rect = RECT {
+    left: 0,
+    top: 0,
+    right: width,
+    bottom: height,
+  };
+
   let props = DWM_THUMBNAIL_PROPERTIES {
     dwFlags: DWM_TNP_RECTDESTINATION
+      | DWM_TNP_RECTSOURCE
       | DWM_TNP_OPACITY
       | DWM_TNP_VISIBLE
       | DWM_TNP_SOURCECLIENTAREAONLY,
-    rcDestination: RECT {
-      left: 0,
-      top: 0,
-      right: width,
-      bottom: height,
-    },
+    rcDestination: pinned_rect,
+    rcSource: pinned_rect,
     opacity: 255,
     fVisible: true.into(),
     fSourceClientAreaOnly: true.into(),
@@ -195,16 +205,14 @@ fn register_thumbnail(
 /// At animation start the overlay is placed over the real app window at the
 /// source rect. Windows Acrylic blur-behind is applied as the backdrop, and a
 /// DWM thumbnail of the real window is rendered on top — showing the window's
-/// live content scaled to the current animation rect. GlazeWM cloaks the real
-/// window while the overlay is active.
+/// original content at its original size via a pinned `rcSource` rect.
+/// GlazeWM cloaks the real window while the overlay is active.
 ///
-/// Per-frame cost is one [`SetWindowPos`] call to animate position/size and
-/// one [`DwmUpdateThumbnailProperties`] call to scale the thumbnail. No GDI
-/// allocations occur at any point.
+/// Per-frame cost is one [`SetWindowPos`] call. No GDI allocations occur and
+/// the thumbnail properties are never updated after creation.
 ///
-/// When the animation finishes the real window is repositioned, uncloaked, and
-/// this surrogate is dropped, which unregisters the thumbnail and destroys the
-/// overlay window.
+/// When the animation finishes the real window is uncloaked and this surrogate
+/// is dropped, which unregisters the thumbnail and destroys the overlay window.
 ///
 /// # Platform-specific
 ///
@@ -215,9 +223,6 @@ pub struct NativeSurrogate {
   hwnd: isize,
   /// DWM thumbnail handle, or `0` if registration failed.
   thumbnail: isize,
-
-  /// Position of the real app window at the moment the animation started.
-  pub frozen_rect: Rect,
 }
 
 impl NativeSurrogate {
@@ -230,7 +235,6 @@ impl NativeSurrogate {
   pub fn create(
     source_hwnd: HWND,
     source_rect: &Rect,
-    _target_rect: &Rect,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
@@ -291,12 +295,17 @@ impl NativeSurrogate {
     Ok(Self {
       hwnd: hwnd.0,
       thumbnail,
-      frozen_rect: source_rect.clone(),
     })
   }
 
-  /// Moves and resizes the surrogate overlay to `rect` and scales the DWM
-  /// thumbnail to fill the new client area.
+  /// Moves and resizes the surrogate overlay to `rect`.
+  ///
+  /// The DWM thumbnail remains pinned at the original source window size set
+  /// during [`create`]; only the acrylic backdrop animates. The thumbnail
+  /// fills the surrogate exactly when it matches the source size and reveals
+  /// the acrylic as the surrogate grows beyond it.
+  ///
+  /// [`create`]: NativeSurrogate::create
   pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
     // SAFETY: `HWND(self.hwnd)` is the overlay window created in `create`
     // and remains valid until `drop`. With `SWP_NOZORDER` set,
@@ -309,31 +318,9 @@ impl NativeSurrogate {
         rect.y(),
         rect.width(),
         rect.height(),
-        SWP_NOACTIVATE | SWP_NOZORDER,
+        SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_NOZORDER,
       )
     }?;
-
-    if self.thumbnail != 0 {
-      let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: DWM_TNP_RECTDESTINATION,
-        rcDestination: RECT {
-          left: 0,
-          top: 0,
-          right: rect.width(),
-          bottom: rect.height(),
-        },
-        ..Default::default()
-      };
-
-      // SAFETY: `self.thumbnail` is a valid handle obtained in `create`.
-      // Failure here is non-fatal; the surrogate continues to animate.
-      if let Err(err) = unsafe {
-        DwmUpdateThumbnailProperties(self.thumbnail, &raw const props)
-      } {
-        tracing::warn!("DwmUpdateThumbnailProperties failed: {err}.");
-        self.thumbnail = 0;
-      }
-    }
 
     Ok(())
   }

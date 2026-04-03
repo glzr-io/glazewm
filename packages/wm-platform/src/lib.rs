@@ -36,7 +36,7 @@ pub use native_surrogate::NativeSurrogate;
 #[cfg(target_os = "windows")]
 mod resize_session;
 #[cfg(target_os = "windows")]
-pub use resize_session::{ResizeSession, SurrogateStrategy};
+pub use resize_session::ResizeSession;
 
 /// Waits for the DWM compositor to finish compositing the current frame,
 /// providing a vsync-synchronized animation tick.
