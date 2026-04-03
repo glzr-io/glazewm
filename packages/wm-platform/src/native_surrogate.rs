@@ -199,10 +199,11 @@ impl NativeSurrogate {
 
     // --- Screen capture ---
     //
-    // Copy visible pixels from the DWM-composited screen at the source
-    // window's position. Reading from the screen DC captures all rendering
-    // technologies (GDI, Direct2D, WebGL) because we read the compositor
-    // output rather than the window's own DC.
+    // Read from the DWM-composited screen at the source window's position.
+    // This captures all rendering technologies (GDI, Direct2D, DirectX,
+    // WebGL) because it reads the compositor output rather than asking the
+    // window to repaint. `PrintWindow` would be preferable for occluded
+    // windows, but it is not exposed in windows-rs 0.52.
     //
     // SAFETY: `screen_dc` is valid; coordinates are in screen space;
     // `capture_dc` has an appropriately sized bitmap selected.

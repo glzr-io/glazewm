@@ -693,6 +693,17 @@ impl WmState {
 
 impl Drop for WmState {
   fn drop(&mut self) {
+    // Commit all active resize sessions before cleaning up windows so that
+    // surrogate overlays are destroyed and windows are moved to their target
+    // positions. This prevents invisible or mispositioned windows after a
+    // crash or forced exit.
+    #[cfg(target_os = "windows")]
+    for session in self.animation_manager.drain_all_sessions() {
+      if let Err(err) = session.commit() {
+        warn!("Failed to commit resize session on shutdown: {:?}", err);
+      }
+    }
+
     let managed_windows = self.windows();
 
     for window in &managed_windows {

@@ -295,29 +295,41 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    // Get the previous target position before updating
-    let previous_target = state.window_target_positions.get(&window.id()).cloned();
+    // Get the previous target position before updating.
+    let previous_target =
+      state.window_target_positions.get(&window.id()).cloned();
 
-    // Determine if this window is opening for the first time
-    // A window is opening if:
-    // 1. It's showing or shown (not hidden)
-    // 2. It has no previous target position (first time being positioned)
-    // This correctly detects new windows that are being positioned for the first time.
-    // Windows transitioning from hidden to shown during workspace switches will have
-    // a previous target position, so they won't trigger opening animations.
+    // A window is opening if it is being shown for the first time (no
+    // previous target position has been recorded for it).
     let is_opening = matches!(
       window.display_state(),
       DisplayState::Showing | DisplayState::Shown
     ) && previous_target.is_none();
 
-    // Update the stored target position (always do this, even if animations are skipped)
-    state.window_target_positions.insert(window.id(), target_rect.clone());
+    // A resize is any operation that changes the window's dimensions. Pure
+    // moves only change position.
+    let is_resize = previous_target.as_ref().map_or(false, |prev| {
+      prev.width() != target_rect.width()
+        || prev.height() != target_rect.height()
+    });
 
-    // Determine if animations should be used for this window based on type
-    let should_use_animations = !state.pending_sync.should_skip_animations() && (
-      (is_opening && config.value.animations.window_open.enabled) ||
-      (!is_opening && config.value.animations.window_move.enabled)
-    );
+    // Always record the latest target position.
+    state
+      .window_target_positions
+      .insert(window.id(), target_rect.clone());
+
+    // Floating windows are never animated — they should respond immediately.
+    let is_floating = matches!(window.state(), WindowState::Floating(_));
+
+    let should_use_animations = !is_floating
+      && !state.pending_sync.should_skip_animations()
+      && (is_opening && config.value.animations.window_open.enabled
+        || (!is_opening
+          && is_resize
+          && config.value.animations.window_resize.enabled)
+        || (!is_opening
+          && !is_resize
+          && config.value.animations.window_move.enabled));
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -325,11 +337,12 @@ fn redraw_containers(
     #[cfg(target_os = "windows")]
     let native_ref = window.native();
 
-    // Determine the rect and opacity to use.
+    // Determine the rect and opacity to use for this frame.
     let (position_result, opacity_override) = if should_use_animations {
       state.animation_manager.start_animation_if_needed(
         window.id(),
         is_opening,
+        is_resize,
         target_rect.clone(),
         previous_target,
         #[cfg(target_os = "windows")]

@@ -5,20 +5,21 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
+use wm_common::WindowState;
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
-use wm_platform::{NativeSurrogate, NativeWindowWindowsExt};
+use wm_platform::{NativeWindowWindowsExt, ResizeSession, SurrogateStrategy};
 
 use crate::{
   animation::state::WindowAnimationState,
   commands::general::platform_sync,
-  traits::CommonGetters,
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
 
 /// Result of [`AnimationManager::start_animation_if_needed`], describing
-/// what the caller should do with the real app window's position.
+/// what the caller should do with the real app window's position this frame.
 pub enum AnimationPositionResult {
   /// Apply this rect to the real window via `reposition_window`.
   Apply(Rect),
@@ -33,36 +34,37 @@ pub struct AnimationManager {
   animations: HashMap<Uuid, WindowAnimationState>,
   /// Sender for animation tick events.
   animation_tick_tx: mpsc::UnboundedSender<()>,
-  /// Whether the animation timer is currently running.
+  /// Whether the animation timer thread is currently running.
   animation_timer_running: Arc<AtomicBool>,
-  /// Active surrogate overlay windows, keyed by window ID.
+  /// Active resize sessions keyed by window ID.
   ///
-  /// A surrogate is created when a movement animation starts with
+  /// A session is created when a movement/resize animation starts with
   /// `use_surrogate = true` and is destroyed once the animation completes
   /// and the real window has been moved to its final position.
   #[cfg(target_os = "windows")]
-  surrogates: HashMap<Uuid, NativeSurrogate>,
-  /// Surrogates that have been removed from `surrogates` after their
-  /// animation completed, but must stay alive until after the final
-  /// `platform_sync` call has repositioned the real window.
+  pub(crate) resize_sessions: HashMap<Uuid, ResizeSession>,
+  /// Sessions that have been removed from `resize_sessions` after their
+  /// animation completed but must outlive the final `platform_sync` call
+  /// that repositions the real window.
   #[cfg(target_os = "windows")]
-  pending_surrogate_cleanup: Vec<NativeSurrogate>,
+  pub(crate) pending_session_cleanup: Vec<ResizeSession>,
 }
 
 impl AnimationManager {
+  /// Creates a new `AnimationManager`.
   pub fn new(animation_tick_tx: mpsc::UnboundedSender<()>) -> Self {
     Self {
       animations: HashMap::new(),
       animation_tick_tx,
       animation_timer_running: Arc::new(AtomicBool::new(false)),
       #[cfg(target_os = "windows")]
-      surrogates: HashMap::new(),
+      resize_sessions: HashMap::new(),
       #[cfg(target_os = "windows")]
-      pending_surrogate_cleanup: Vec::new(),
+      pending_session_cleanup: Vec::new(),
     }
   }
 
-  /// Starts a new animation for a window.
+  /// Inserts or replaces the animation state for a window.
   pub fn start_animation(
     &mut self,
     window_id: Uuid,
@@ -71,25 +73,29 @@ impl AnimationManager {
     self.animations.insert(window_id, animation);
   }
 
-  /// Gets the current state of a window's animation.
-  pub fn get_animation(&self, window_id: &Uuid) -> Option<&WindowAnimationState> {
+  /// Returns the current animation state for a window, if any.
+  pub fn get_animation(
+    &self,
+    window_id: &Uuid,
+  ) -> Option<&WindowAnimationState> {
     self.animations.get(window_id)
   }
 
-  /// Removes a window's animation and any associated surrogate.
+  /// Removes a window's animation and any associated resize session.
   #[allow(dead_code)]
   pub fn remove_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
     #[cfg(target_os = "windows")]
-    self.surrogates.remove(window_id);
+    self.resize_sessions.remove(window_id);
   }
 
-  /// Removes all completed animations and returns the list of window IDs
-  /// that had animations complete.
+  /// Removes all completed animations and returns their window IDs.
   ///
-  /// Surrogates for completed animations are moved to
-  /// `pending_surrogate_cleanup` so they remain visible until after the
-  /// final `platform_sync` call has repositioned the real windows.
+  /// Sessions for completed animations are moved to `pending_session_cleanup`
+  /// so they remain visible until after the final `platform_sync` call has
+  /// repositioned the real windows. `pre_commit` is called on each session
+  /// at this point to snapshot the window's liveness and position the
+  /// surrogate at the final target rect.
   pub fn remove_completed_animations(&mut self) -> Vec<Uuid> {
     let completed_ids: Vec<Uuid> = self
       .animations
@@ -101,8 +107,9 @@ impl AnimationManager {
     for id in &completed_ids {
       self.animations.remove(id);
       #[cfg(target_os = "windows")]
-      if let Some(surrogate) = self.surrogates.remove(id) {
-        self.pending_surrogate_cleanup.push(surrogate);
+      if let Some(mut session) = self.resize_sessions.remove(id) {
+        session.pre_commit();
+        self.pending_session_cleanup.push(session);
       }
     }
 
@@ -114,26 +121,45 @@ impl AnimationManager {
     !self.animations.is_empty()
   }
 
-  /// Gets all active animation window IDs.
+  /// Returns all active animation window IDs.
   pub fn active_window_ids(&self) -> Vec<Uuid> {
     self.animations.keys().copied().collect()
   }
 
-  /// Clears all animations and any associated surrogates.
+  /// Clears all animations and any associated sessions.
   #[allow(dead_code)]
   pub fn clear(&mut self) {
     self.animations.clear();
     #[cfg(target_os = "windows")]
     {
-      self.surrogates.clear();
-      self.pending_surrogate_cleanup.clear();
+      self.resize_sessions.clear();
+      self.pending_session_cleanup.clear();
     }
   }
 
-  /// Ensures the animation timer is running if there are active animations.
+  /// Drains all active and pending resize sessions and returns them.
+  ///
+  /// Used by `WmState::Drop` to commit sessions during shutdown or crash so
+  /// that no window is left at an intermediate animation position.
+  #[cfg(target_os = "windows")]
+  pub fn drain_all_sessions(&mut self) -> Vec<ResizeSession> {
+    let mut sessions: Vec<ResizeSession> =
+      self.resize_sessions.drain().map(|(_, s)| s).collect();
+    sessions.extend(self.pending_session_cleanup.drain(..));
+    sessions
+  }
+
+  /// Starts the animation timer thread if it is not already running.
+  ///
+  /// On Windows, the thread calls `wm_platform::dwm_flush()` each iteration
+  /// to synchronize ticks to the display's vertical sync. On other platforms,
+  /// it sleeps for the calculated frame interval.
   pub fn ensure_timer_running(
     &self,
-    state: &crate::wm_state::WmState,
+    // Used only on non-Windows to calculate the monitor refresh rate.
+    #[cfg_attr(target_os = "windows", allow(unused_variables))]
+    state: &WmState,
+    #[cfg_attr(target_os = "windows", allow(unused_variables))]
     config: &UserConfig,
   ) {
     if self.has_active_animations()
@@ -143,39 +169,37 @@ impl AnimationManager {
       let tx = self.animation_tick_tx.clone();
       let timer_flag = self.animation_timer_running.clone();
 
-      // Calculate frame time based on monitor refresh rate, capped by
-      // config max_frame_rate. Default to 60 FPS if refresh rate
-      // cannot be determined.
-      let mut frame_time_ms = 16u32;
+      // On non-Windows, pace the thread with a calculated sleep interval.
+      #[cfg(not(target_os = "windows"))]
+      let frame_time_ms: u32 = {
+        let mut ms = 16u32;
 
-      if let Some(container) = state.focused_container() {
-        if let Some(monitor) = CommonGetters::monitor(&container) {
-          // Default to 60Hz if refresh rate cannot be determined.
-          let refresh_rate =
-            monitor.native_properties().refresh_rate.unwrap_or(60);
-          // Cap refresh rate at configured max_frame_rate.
-          let capped_rate =
-            refresh_rate.min(config.value.animations.max_frame_rate);
-          // Enforce 60 Hz minimum for safety.
-          let final_rate = capped_rate.max(60);
-          // Convert refresh rate to milliseconds per frame.
-          frame_time_ms = 1000 / final_rate;
+        if let Some(container) = state.focused_container() {
+          if let Some(monitor) = CommonGetters::monitor(&container) {
+            let refresh_rate =
+              monitor.native_properties().refresh_rate.unwrap_or(60);
+            let capped_rate =
+              refresh_rate.min(config.value.animations.max_frame_rate);
+            ms = 1000 / capped_rate.max(60);
+          }
+        } else {
+          ms = 1000 / config.value.animations.max_frame_rate.max(60);
         }
-      } else {
-        // If no monitor found, use max_frame_rate from config (capped at
-        // 60Hz minimum).
-        let final_rate = config.value.animations.max_frame_rate.max(60);
-        frame_time_ms = 1000 / final_rate;
-      }
 
-      tokio::spawn(async move {
-        let mut interval = tokio::time::interval(
-          tokio::time::Duration::from_millis(frame_time_ms as u64)
-        );
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        ms
+      };
 
-        loop {
-          interval.tick().await;
+      std::thread::spawn(move || {
+        while timer_flag.load(Ordering::Relaxed) {
+          // On Windows, block until the DWM compositor signals the next
+          // vsync. On other platforms, sleep for the calculated interval.
+          #[cfg(target_os = "windows")]
+          wm_platform::dwm_flush();
+          #[cfg(not(target_os = "windows"))]
+          std::thread::sleep(std::time::Duration::from_millis(
+            frame_time_ms as u64,
+          ));
+
           if tx.send(()).is_err() {
             break;
           }
@@ -187,7 +211,7 @@ impl AnimationManager {
   }
 
   /// Updates all active animations and redraws windows that are animating.
-  #[allow(dead_code)] // Public API method, may be used externally.
+  #[allow(dead_code)]
   pub fn update(
     &mut self,
     state: &mut WmState,
@@ -196,7 +220,7 @@ impl AnimationManager {
     Self::update_internal(state, config)
   }
 
-  /// Internal update method that accesses `animation_manager` through state.
+  /// Internal update, accessed through `WmState` to avoid double-borrow.
   pub(crate) fn update_internal(
     state: &mut WmState,
     config: &UserConfig,
@@ -205,13 +229,22 @@ impl AnimationManager {
       return Ok(());
     }
 
-    // Collect windows whose animations are still in progress.
+    // Queue in-progress windows for redraw, skipping floating windows (they
+    // are never animated).
     let active_window_ids: Vec<_> = state
       .animation_manager
       .active_window_ids()
       .into_iter()
       .filter(|id| {
-        state.animation_manager
+        if let Some(container) = state.container_by_id(*id) {
+          if let Ok(window) = container.as_window_container() {
+            if matches!(window.state(), WindowState::Floating(_)) {
+              return false;
+            }
+          }
+        }
+        state
+          .animation_manager
           .get_animation(id)
           .map(|anim| !anim.is_complete())
           .unwrap_or(false)
@@ -226,15 +259,14 @@ impl AnimationManager {
       }
     }
 
-    // Remove completed animations. Their surrogates are moved to
-    // `pending_surrogate_cleanup` and must outlive the `platform_sync`
-    // call below so the real window is repositioned before the overlay
-    // disappears.
+    // Remove completed animations. Their sessions are moved to
+    // `pending_session_cleanup` and must outlive the `platform_sync` call
+    // below so the real window is repositioned before surrogates disappear.
     let completed_ids =
       state.animation_manager.remove_completed_animations();
 
-    // Queue completed animations for final redraw so the real window is
-    // moved to its target position.
+    // Queue completed animations for a final redraw so `platform_sync` moves
+    // the real window to its target position.
     for window_id in &completed_ids {
       if let Some(container) = state.container_by_id(*window_id) {
         if let Ok(window) = container.as_window_container() {
@@ -243,19 +275,26 @@ impl AnimationManager {
       }
     }
 
-    // Sync platform if there are changes.
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
 
-    // Drop surrogates now that the real windows have been repositioned by
-    // `platform_sync`. This ensures the overlay never disappears before
-    // the underlying window is in its final position.
+    // Clear pending sessions now that `platform_sync` has moved the real
+    // windows to their final positions. Dropping each session destroys its
+    // surrogate overlay.
     #[cfg(target_os = "windows")]
-    state.animation_manager.pending_surrogate_cleanup.clear();
+    state.animation_manager.pending_session_cleanup.clear();
 
-    // Continue timer if there are still active animations.
-    state.animation_manager.ensure_timer_running(state, config);
+    // Keep the timer running while animations are active; stop it otherwise
+    // so the background thread exits cleanly.
+    if state.animation_manager.has_active_animations() {
+      state.animation_manager.ensure_timer_running(state, config);
+    } else {
+      state
+        .animation_manager
+        .animation_timer_running
+        .store(false, Ordering::Relaxed);
+    }
 
     Ok(())
   }
@@ -265,42 +304,43 @@ impl AnimationManager {
     &self,
     window_id: &Uuid,
     is_opening: bool,
+    is_resize: bool,
     target_rect: &Rect,
     previous_target: Option<&Rect>,
-    threshold: i32,
     config: &UserConfig,
   ) -> bool {
     let existing_animation = self.get_animation(window_id);
 
+    let anim_config = if is_resize {
+      &config.value.animations.window_resize
+    } else {
+      &config.value.animations.window_move
+    };
+    let threshold = anim_config.threshold_px as i32;
+
     if is_opening && config.value.animations.window_open.enabled {
       existing_animation.is_none()
-    } else if !is_opening && config.value.animations.window_move.enabled {
+    } else if !is_opening && anim_config.enabled {
       if let Some(anim) = existing_animation {
-        // Don't restart animations that are completing or already at
-        // target.
         if anim.is_complete() {
           false
         } else {
-          // Check if target has changed significantly from the animation's
-          // current target. Use a reasonable threshold to avoid
-          // creating animations for every tiny change.
-          let target_distance = (anim.target_rect.x() - target_rect.x())
-            .abs()
-            + (anim.target_rect.y() - target_rect.y()).abs()
-            + (anim.target_rect.width() - target_rect.width()).abs()
-            + (anim.target_rect.height() - target_rect.height()).abs();
+          // Check whether the target has changed enough from the current
+          // animation target to warrant a cancel-and-replace.
+          let target_distance =
+            (anim.target_rect.x() - target_rect.x()).abs()
+              + (anim.target_rect.y() - target_rect.y()).abs()
+              + (anim.target_rect.width() - target_rect.width()).abs()
+              + (anim.target_rect.height() - target_rect.height()).abs();
           target_distance > threshold
         }
       } else if let Some(prev_target) = previous_target {
-        // Compare previous target to new target, not current position to
-        // target.
         let distance = (prev_target.x() - target_rect.x()).abs()
           + (prev_target.y() - target_rect.y()).abs()
           + (prev_target.width() - target_rect.width()).abs()
           + (prev_target.height() - target_rect.height()).abs();
         distance > threshold
       } else {
-        // First time seeing this window, no animation needed.
         false
       }
     } else {
@@ -308,37 +348,32 @@ impl AnimationManager {
     }
   }
 
-  /// Starts an animation if needed and returns how the caller should handle
-  /// the real window's position this frame.
+  /// Determines the rect and opacity to use for a window this frame.
   ///
-  /// When a surrogate overlay is active the real window must not be
-  /// repositioned (returns [`AnimationPositionResult::Frozen`]). Only when
-  /// the animation has been removed from the map (i.e. the animation
-  /// completed and `remove_completed_animations` was already called) does
-  /// the caller receive [`AnimationPositionResult::Apply`] with the final
-  /// target rect so the real window can be moved exactly once.
+  /// Starts a new animation when movement or resize crosses the configured
+  /// threshold. Returns [`AnimationPositionResult::Frozen`] while a
+  /// surrogate overlay is active so the caller does not reposition the real
+  /// window on intermediate frames.
   pub fn start_animation_if_needed(
     &mut self,
     window_id: Uuid,
     is_opening: bool,
+    is_resize: bool,
     target_rect: Rect,
     previous_target: Option<Rect>,
-    // Only used on Windows to capture the source window for the surrogate.
+    // Only used on Windows to capture the window for the surrogate.
     #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
     native_window: &NativeWindow,
     config: &UserConfig,
   ) -> (AnimationPositionResult, Option<OpacityValue>) {
-    let threshold =
-      config.value.animations.window_move.threshold_px as i32;
-
     let existing_animation = self.get_animation(&window_id).cloned();
 
     let should_start = self.should_start_new_animation(
       &window_id,
       is_opening,
+      is_resize,
       &target_rect,
       previous_target.as_ref(),
-      threshold,
       config,
     );
 
@@ -350,40 +385,47 @@ impl AnimationManager {
         );
         self.start_animation(window_id, animation);
       } else if let Some(prev_target) = previous_target {
-        // Start from the current animated position if an animation is
-        // already in progress (cancel-and-replace).
-        let start_rect = if let Some(existing_anim) = &existing_animation {
-          existing_anim.current_rect()
+        // Start from the current animated position on cancel-and-replace so
+        // the animation does not jump back to the original start.
+        let start_rect = existing_animation
+          .as_ref()
+          .map(|a| a.current_rect())
+          .unwrap_or_else(|| prev_target.clone());
+
+        let anim_config = if is_resize {
+          &config.value.animations.window_resize
         } else {
-          prev_target
+          &config.value.animations.window_move
         };
 
         let animation = WindowAnimationState::new_movement(
           start_rect.clone(),
           target_rect.clone(),
-          &config.value.animations.window_move,
+          anim_config,
         );
         self.start_animation(window_id, animation);
 
-        // Create a surrogate if configured and one doesn't already exist
-        // for this window. On cancel-and-replace the existing surrogate is
-        // reused so we avoid a redundant capture.
+        // Create a surrogate session if configured and one does not already
+        // exist for this window. On cancel-and-replace the existing session
+        // (and its captured snapshot) are reused.
         #[cfg(target_os = "windows")]
-        if config.value.animations.window_move.use_surrogate
-          && !self.surrogates.contains_key(&window_id)
+        if anim_config.use_surrogate
+          && !self.resize_sessions.contains_key(&window_id)
         {
-          match NativeSurrogate::create(
+          let strategy = SurrogateStrategy::SolidColor;
+          match ResizeSession::begin(
             native_window.hwnd(),
             &start_rect,
             &target_rect,
+            strategy,
           ) {
-            Ok(surrogate) => {
-              self.surrogates.insert(window_id, surrogate);
+            Ok(session) => {
+              self.resize_sessions.insert(window_id, session);
             }
             Err(err) => {
               tracing::warn!(
-                "Failed to create surrogate for window {window_id}: \
-                 {err}. Falling back to direct animation."
+                "Failed to begin resize session for window {window_id}: \
+                 {err}."
               );
             }
           }
@@ -396,26 +438,19 @@ impl AnimationManager {
       let current_rect = animation.current_rect();
       let opacity = animation.current_opacity();
 
-      // If a surrogate is active, update it to the current interpolated
-      // rect and tell the caller to leave the real window untouched.
+      // If a surrogate session is active, update its overlay and tell the
+      // caller to leave the real window untouched this frame.
       #[cfg(target_os = "windows")]
-      if let Some(surrogate) = self.surrogates.get_mut(&window_id) {
-        if let Err(err) = surrogate.update(&current_rect) {
-          tracing::warn!(
-            "Failed to update surrogate for window {window_id}: {err}."
-          );
-        }
-        return (
-          AnimationPositionResult::Frozen,
-          None,
-        );
+      if let Some(session) = self.resize_sessions.get_mut(&window_id) {
+        session.update(&current_rect);
+        return (AnimationPositionResult::Frozen, None);
       }
 
       (AnimationPositionResult::Apply(current_rect), opacity)
     } else {
-      // No animation in the map — animation has completed and
-      // `remove_completed_animations` was already called. Apply the final
-      // target rect to the real window.
+      // No animation in the map — either the animation completed and
+      // `remove_completed_animations` was already called, or animations are
+      // disabled. Apply the final target rect directly.
       (AnimationPositionResult::Apply(target_rect), None)
     }
   }
