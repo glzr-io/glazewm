@@ -3,11 +3,15 @@ use std::sync::OnceLock;
 use windows::{
   core::w,
   Win32::{
-    Foundation::{COLORREF, HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM},
-    Graphics::Gdi::{
-      BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreateSolidBrush,
-      DeleteDC, DeleteObject, FillRect, GetDC, GetPixel, ReleaseDC,
-      SelectObject, BLENDFUNCTION, HBRUSH, HDC, HGDIOBJ, SRCCOPY,
+    Foundation::{BOOL, COLORREF, HWND, LPARAM, LRESULT, POINT, SIZE, WPARAM},
+    Graphics::{
+      Dwm::{DwmEnableBlurBehindWindow, DWM_BB_ENABLE, DWM_BLURBEHIND},
+      Gdi::{
+        BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreateDIBSection,
+        DeleteDC, DeleteObject, GetDC, ReleaseDC, SelectObject, BITMAPINFO,
+        BITMAPINFOHEADER, BI_RGB, BLENDFUNCTION, DIB_RGB_COLORS, HDC, HGDIOBJ,
+        HRGN, SRCCOPY,
+      },
     },
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
@@ -53,20 +57,17 @@ fn ensure_class_registered() {
 
 /// Lightweight overlay window used during move/resize animations.
 ///
-/// At animation start, the app window's on-screen content is captured and its
-/// dominant background color is sampled. Each frame the overlay is filled with
-/// the background color and then the captured snapshot is drawn at its natural
-/// (unscaled) size from the top-left corner. This keeps the window content
-/// visually stable while the overlay animates to the target rect.
+/// At animation start, the app window's on-screen content is captured into a
+/// 32-bit BGRA frame buffer. Screenshot pixels are fully opaque (alpha = 255);
+/// all other pixels are fully transparent (alpha = 0). `DwmEnableBlurBehindWindow`
+/// is applied so transparent regions show a DWM blur of whatever is behind the
+/// overlay — giving a Hyprland-style effect where the window content stays
+/// visible at its captured size and the expanding region shows a blurred
+/// background.
 ///
-/// GlazeWM cloaks the real app window while the overlay is active so the real
-/// window is invisible. When the animation finishes the real window is moved to
-/// its final position, uncloaked, and the surrogate is dropped.
-///
-/// To avoid per-frame GDI allocation (the primary source of lag), the
-/// frame buffer is pre-allocated at `max(source, target)` size in
-/// [`NativeSurrogate::create`] and reused for every [`NativeSurrogate::update`]
-/// call.
+/// The frame buffer is pre-allocated at `max(source, target)` size in
+/// [`NativeSurrogate::create`] so [`NativeSurrogate::update`] never allocates
+/// GDI objects at runtime.
 ///
 /// # Platform-specific
 ///
@@ -87,22 +88,16 @@ pub struct NativeSurrogate {
   // --- Reusable frame buffer (written each frame) ---
   /// Memory DC used to compose each animation frame.
   frame_dc: isize,
-  /// Bitmap selected into `frame_dc`; pre-allocated at the maximum size
-  /// required across the entire animation so no allocation happens per frame.
+  /// 32-bit BGRA `DIBSection` selected into `frame_dc`.
   frame_bitmap: isize,
   default_frame_bitmap: isize,
+  /// Direct pointer to the `DIBSection` pixel data.
+  ///
+  /// Owned by GDI; invalidated when `frame_bitmap` is deleted.
+  frame_bits: isize,
   /// Pre-allocated dimensions of `frame_bitmap`.
   frame_width: i32,
   frame_height: i32,
-
-  /// Pre-created solid-color brush used to fill areas of the frame not
-  /// covered by the captured snapshot.
-  background_brush: isize,
-
-  /// Position of the real app window at the moment the animation started.
-  /// The real window is kept at this rect for the entire animation so that
-  /// it never receives intermediate resize messages.
-  pub frozen_rect: Rect,
 }
 
 impl NativeSurrogate {
@@ -136,10 +131,9 @@ impl NativeSurrogate {
     let frame_w = src_w.max(target_rect.width()).max(1);
     let frame_h = src_h.max(target_rect.height()).max(1);
 
-    // --- Screen DC (needed to create compatible bitmaps) ---
+    // --- Screen DC ---
     //
-    // SAFETY: `GetDC(HWND(0))` returns the screen DC; valid until
-    // released with `ReleaseDC`.
+    // SAFETY: `GetDC(HWND(0))` returns the screen DC; valid until released.
     let screen_dc = unsafe { GetDC(HWND(0)) };
 
     // --- Capture DC + bitmap ---
@@ -170,30 +164,57 @@ impl NativeSurrogate {
     let default_capture_bitmap =
       unsafe { SelectObject(capture_dc, HGDIOBJ(capture_bitmap.0)) };
 
-    // --- Frame DC + bitmap ---
+    // --- Frame DC + 32-bit DIBSection ---
     //
-    // SAFETY: `screen_dc` is valid and dimensions are positive.
-    let frame_dc = unsafe { CreateCompatibleDC(screen_dc) };
-    let frame_bitmap =
-      unsafe { CreateCompatibleBitmap(screen_dc, frame_w, frame_h) };
+    // A `DIBSection` (top-down, 32bpp BGRA) is used so we can access the pixel
+    // data directly. This lets `render_frame_buffer` set alpha=255 for the
+    // screenshot region and leave alpha=0 (transparent) everywhere else.
 
-    if frame_dc.0 == 0 || frame_bitmap.0 == 0 {
+    // SAFETY: `screen_dc` is valid.
+    let frame_dc = unsafe { CreateCompatibleDC(screen_dc) };
+    if frame_dc.0 == 0 {
       unsafe {
         ReleaseDC(HWND(0), screen_dc);
         SelectObject(capture_dc, default_capture_bitmap);
         DeleteObject(HGDIOBJ(capture_bitmap.0));
         DeleteDC(capture_dc);
-        if frame_dc.0 != 0 {
-          DeleteDC(frame_dc);
-        }
-        if frame_bitmap.0 != 0 {
-          DeleteObject(HGDIOBJ(frame_bitmap.0));
-        }
       }
       return Err(crate::Error::Platform(
-        "Failed to create frame DC/bitmap.".to_string(),
+        "Failed to create frame DC.".to_string(),
       ));
     }
+
+    let mut frame_bits: *mut std::ffi::c_void = std::ptr::null_mut();
+    let bmi = Self::make_bitmapinfo(frame_w, frame_h);
+
+    // SAFETY: `screen_dc` is valid; `bmi` is a correctly-initialized
+    // `BITMAPINFO`; `frame_bits` receives a pointer to the pixel data.
+    let frame_bitmap = unsafe {
+      CreateDIBSection(
+        screen_dc,
+        &bmi,
+        DIB_RGB_COLORS,
+        &mut frame_bits,
+        None,
+        0,
+      )
+    };
+    unsafe { ReleaseDC(HWND(0), screen_dc) };
+
+    let frame_bitmap = match frame_bitmap {
+      Ok(bmp) if bmp.0 != 0 => bmp,
+      _ => {
+        unsafe {
+          SelectObject(capture_dc, default_capture_bitmap);
+          DeleteObject(HGDIOBJ(capture_bitmap.0));
+          DeleteDC(capture_dc);
+          DeleteDC(frame_dc);
+        }
+        return Err(crate::Error::Platform(
+          "Failed to create frame DIBSection.".to_string(),
+        ));
+      }
+    };
 
     // SAFETY: Objects are valid.
     let default_frame_bitmap =
@@ -202,13 +223,10 @@ impl NativeSurrogate {
     // --- Screen capture ---
     //
     // Read from the DWM-composited screen at the source window's position.
-    // This captures all rendering technologies (GDI, Direct2D, DirectX,
-    // WebGL) because it reads the compositor output rather than asking the
-    // window to repaint. `PrintWindow` would be preferable for occluded
-    // windows, but it is not exposed in windows-rs 0.52.
-    //
-    // SAFETY: `screen_dc` is valid; coordinates are in screen space;
-    // `capture_dc` has an appropriately sized bitmap selected.
+    // SAFETY: `screen_dc` was released above; re-acquire for the capture.
+    let screen_dc = unsafe { GetDC(HWND(0)) };
+
+    // SAFETY: `screen_dc` is valid; coordinates are in screen space.
     let _ = unsafe {
       BitBlt(
         capture_dc,
@@ -223,16 +241,7 @@ impl NativeSurrogate {
       )
     };
 
-    let background_color =
-      Self::sample_background_color(capture_dc, src_w, src_h);
-
     unsafe { ReleaseDC(HWND(0), screen_dc) };
-
-    // --- Background brush (reused every frame) ---
-    //
-    // SAFETY: `CreateSolidBrush` is safe for any valid `COLORREF`.
-    let background_brush =
-      unsafe { CreateSolidBrush(COLORREF(background_color)) };
 
     // --- Surrogate window ---
     //
@@ -268,7 +277,6 @@ impl NativeSurrogate {
         SelectObject(frame_dc, default_frame_bitmap);
         DeleteObject(HGDIOBJ(frame_bitmap.0));
         DeleteDC(frame_dc);
-        DeleteObject(background_brush);
       }
       return Err(crate::Error::Platform(
         "Failed to create surrogate window.".to_string(),
@@ -285,10 +293,9 @@ impl NativeSurrogate {
       frame_dc: frame_dc.0,
       frame_bitmap: frame_bitmap.0,
       default_frame_bitmap: default_frame_bitmap.0,
+      frame_bits: frame_bits as isize,
       frame_width: frame_w,
       frame_height: frame_h,
-      background_brush: background_brush.0,
-      frozen_rect: source_rect.clone(),
     };
 
     // Pre-render the frame buffer once. `update` only calls
@@ -298,8 +305,21 @@ impl NativeSurrogate {
     // Paint the initial frame before making the window visible.
     surrogate.apply_update(source_rect)?;
 
-    // Place the surrogate immediately above `source_hwnd` in the Z-order
-    // and show it without activating it.
+    // Enable DWM blur behind the layered window. Transparent pixels (alpha=0)
+    // in the frame buffer will show a blurred view of whatever is behind the
+    // surrogate. Screenshot pixels (alpha=255) show the frozen content.
+    //
+    // SAFETY: `hwnd` is a valid layered window.
+    let blur_behind = DWM_BLURBEHIND {
+      dwFlags: DWM_BB_ENABLE,
+      fEnable: BOOL(1),
+      hRgnBlur: HRGN(0), // Entire window region.
+      fTransitionOnMaximized: BOOL(0),
+    };
+    let _ = unsafe { DwmEnableBlurBehindWindow(hwnd, &blur_behind) };
+
+    // Place the surrogate immediately above `source_hwnd` in Z-order and
+    // show it without activating it.
     //
     // SAFETY: Both handles are valid.
     unsafe {
@@ -321,8 +341,7 @@ impl NativeSurrogate {
   ///
   /// The frame buffer content was rendered once in [`NativeSurrogate::create`]
   /// (or after a rare buffer expansion). This method only calls
-  /// `UpdateLayeredWindow` — no per-frame GDI pixel copies — so multiple
-  /// concurrent surrogates impose minimal CPU cost.
+  /// `UpdateLayeredWindow` — no per-frame GDI pixel copies.
   pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
     // Expand pre-allocated buffer if needed (cancel-and-replace to a larger
     // target). This re-renders the frame buffer content automatically.
@@ -340,29 +359,32 @@ impl NativeSurrogate {
     self.apply_update(rect)
   }
 
-  /// Writes the frame buffer content (background fill + screenshot overlay).
+  /// Builds the `BITMAPINFO` descriptor for a top-down 32bpp BGRA `DIBSection`.
+  fn make_bitmapinfo(width: i32, height: i32) -> BITMAPINFO {
+    BITMAPINFO {
+      bmiHeader: BITMAPINFOHEADER {
+        biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+        biWidth: width,
+        // Negative height = top-down bitmap, matching screen coordinates.
+        biHeight: -height,
+        biPlanes: 1,
+        biBitCount: 32,
+        biCompression: BI_RGB.0,
+        ..Default::default()
+      },
+      ..Default::default()
+    }
+  }
+
+  /// Writes the frame buffer content: screenshot pixels are fully opaque,
+  /// background pixels are fully transparent (alpha = 0 → shows DWM blur).
   ///
   /// Called once at creation and once after each buffer expansion. The result
   /// persists for the entire animation; [`NativeSurrogate::update`] reads from
   /// this buffer every frame without re-rendering it.
   fn render_frame_buffer(&self) {
-    // Fill the entire pre-allocated area with the background color. Regions
-    // beyond the captured snapshot will show this color when the surrogate
-    // expands beyond the source size.
-    let fill = RECT {
-      left: 0,
-      top: 0,
-      right: self.frame_width,
-      bottom: self.frame_height,
-    };
-    // SAFETY: `frame_dc` is a valid DC with `frame_bitmap` selected;
-    // `background_brush` is a valid pre-created solid brush.
-    unsafe {
-      FillRect(HDC(self.frame_dc), &fill, HBRUSH(self.background_brush))
-    };
-
-    // Draw the captured snapshot at its natural size from the top-left
-    // corner. Areas beyond the snapshot remain as the background fill above.
+    // Copy the screenshot into the frame DC. `BitBlt` writes RGB values but
+    // leaves the alpha channel at 0 in the DIBSection.
     let copy_w = self.capture_width.min(self.frame_width);
     let copy_h = self.capture_height.min(self.frame_height);
 
@@ -382,12 +404,24 @@ impl NativeSurrogate {
         )
       };
     }
+
+    // Set alpha=255 for screenshot pixels so they are fully opaque.
+    // Background pixels remain at alpha=0 (transparent), which lets
+    // `DwmEnableBlurBehindWindow` show the blurred desktop behind them.
+    //
+    // SAFETY: `frame_bits` points to the `DIBSection` pixel array; the loop
+    // stays within `[0, copy_w) × [0, copy_h)`, well within the allocated
+    // `frame_width × frame_height` buffer.
+    let bits = self.frame_bits as *mut u32;
+    let stride = self.frame_width as usize;
+    for y in 0..copy_h as usize {
+      for x in 0..copy_w as usize {
+        unsafe { *bits.add(y * stride + x) |= 0xFF00_0000 };
+      }
+    }
   }
 
   /// Submits the current frame buffer to DWM at the given position/size.
-  ///
-  /// `UpdateLayeredWindow` with `ULW_ALPHA` and `SourceConstantAlpha = 255`
-  /// renders the window fully opaque (no per-pixel alpha required).
   fn apply_update(&self, rect: &Rect) -> crate::Result<()> {
     let draw_w = rect.width().min(self.frame_width).max(0);
     let draw_h = rect.height().min(self.frame_height).max(0);
@@ -396,11 +430,13 @@ impl NativeSurrogate {
       return Ok(());
     }
 
+    // Per-pixel alpha: screenshot region is opaque (alpha=255), background
+    // region is transparent (alpha=0) and shows the DWM blur behind.
     let blend = BLENDFUNCTION {
-      BlendOp: 0, // AC_SRC_OVER
+      BlendOp: 0,    // AC_SRC_OVER
       BlendFlags: 0,
       SourceConstantAlpha: 255,
-      AlphaFormat: 0,
+      AlphaFormat: 1, // AC_SRC_ALPHA — use per-pixel alpha from DIBSection
     };
     let pt_src = POINT { x: 0, y: 0 };
     let pt_dst = POINT {
@@ -436,8 +472,8 @@ impl NativeSurrogate {
 
   /// Expands the frame buffer to at least `needed_w × needed_h`.
   ///
-  /// Called at most once per animation (only when cancel-and-replace
-  /// targets a size larger than the original pre-allocation).
+  /// Called at most once per animation (only when cancel-and-replace targets
+  /// a size larger than the original pre-allocation).
   fn expand_frame_buffer(
     &mut self,
     needed_w: i32,
@@ -446,18 +482,28 @@ impl NativeSurrogate {
     let new_w = needed_w.max(self.frame_width);
     let new_h = needed_h.max(self.frame_height);
 
-    // SAFETY: `GetDC(HWND(0))` returns the screen DC.
+    let mut new_bits: *mut std::ffi::c_void = std::ptr::null_mut();
+    let bmi = Self::make_bitmapinfo(new_w, new_h);
+
+    // SAFETY: `frame_dc` is valid; `bmi` is correctly initialized.
     let screen_dc = unsafe { GetDC(HWND(0)) };
-    // SAFETY: `screen_dc` is valid and dimensions are positive.
-    let new_bitmap =
-      unsafe { CreateCompatibleBitmap(screen_dc, new_w, new_h) };
+    let new_bitmap = unsafe {
+      CreateDIBSection(
+        screen_dc,
+        &bmi,
+        DIB_RGB_COLORS,
+        &mut new_bits,
+        None,
+        0,
+      )
+    };
     unsafe { ReleaseDC(HWND(0), screen_dc) };
 
-    if new_bitmap.0 == 0 {
-      return Err(crate::Error::Platform(
-        "Failed to reallocate frame bitmap.".to_string(),
-      ));
-    }
+    let new_bitmap = new_bitmap.map_err(|e| {
+      crate::Error::Platform(format!(
+        "Failed to reallocate frame DIBSection: {e}."
+      ))
+    })?;
 
     // Swap the bitmap in the frame DC.
     //
@@ -469,56 +515,14 @@ impl NativeSurrogate {
     }
 
     self.frame_bitmap = new_bitmap.0;
+    self.frame_bits = new_bits as isize;
     self.frame_width = new_w;
     self.frame_height = new_h;
 
-    // Re-render into the newly allocated buffer so the expanded area is
-    // filled with the background color and the captured screenshot.
+    // Re-render into the newly allocated buffer.
     self.render_frame_buffer();
 
     Ok(())
-  }
-
-  /// Samples a representative background color from the captured bitmap.
-  ///
-  /// Reads pixels at a 3×3 grid, filters out `CLR_INVALID` results, and
-  /// returns the median value. Falls back to black if all samples fail.
-  fn sample_background_color(
-    capture_dc: HDC,
-    width: i32,
-    height: i32,
-  ) -> u32 {
-    let margin = (width.min(height) / 10).max(2);
-    let mid_x = width / 2;
-    let mid_y = height / 2;
-
-    let positions = [
-      (margin, margin),
-      (mid_x, margin),
-      (width - margin, margin),
-      (margin, mid_y),
-      (mid_x, mid_y),
-      (width - margin, mid_y),
-      (margin, height - margin),
-      (mid_x, height - margin),
-      (width - margin, height - margin),
-    ];
-
-    let mut colors: Vec<u32> = positions
-      .iter()
-      .map(|(x, y)| {
-        // SAFETY: `capture_dc` is a valid memory DC with a bitmap selected.
-        unsafe { GetPixel(capture_dc, *x, *y).0 }
-      })
-      .filter(|&c| c != 0xFFFF_FFFF) // CLR_INVALID
-      .collect();
-
-    if colors.is_empty() {
-      return 0; // Fallback to black.
-    }
-
-    colors.sort_unstable();
-    colors[colors.len() / 2]
   }
 }
 
@@ -534,8 +538,6 @@ impl Drop for NativeSurrogate {
       SelectObject(HDC(self.frame_dc), HGDIOBJ(self.default_frame_bitmap));
       DeleteObject(HGDIOBJ(self.frame_bitmap));
       DeleteDC(HDC(self.frame_dc));
-
-      DeleteObject(HGDIOBJ(self.background_brush));
 
       let _ = DestroyWindow(HWND(self.hwnd));
     }
