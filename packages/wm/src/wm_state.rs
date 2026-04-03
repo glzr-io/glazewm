@@ -656,15 +656,6 @@ impl WmState {
       .cloned()
   }
 
-  /// Returns whether the given native window has been explicitly ignored
-  /// via the `ignore` command.
-  pub fn is_ignored_window(&self, native_window: &NativeWindow) -> bool {
-    self
-      .ignored_windows
-      .iter()
-      .any(|w| w.id() == native_window.id())
-  }
-
   /// Cleans up windows that are no longer alive.
   ///
   /// This addresses the "ghost window" issue where applications may
@@ -673,10 +664,6 @@ impl WmState {
   ///
   /// See: <https://github.com/glzr-io/glazewm/issues/1219>
   pub fn cleanup_invalid_windows(&mut self) -> anyhow::Result<()> {
-    // Also prune stale handles from the ignored-window list (windows that
-    // have since been destroyed), so the list doesn't grow unboundedly.
-    self.ignored_windows.retain(NativeWindow::is_valid);
-
     let invalid_windows = self
       .windows()
       .into_iter()
@@ -686,6 +673,9 @@ impl WmState {
       tracing::info!("Removing invalid window: {}", window);
       unmanage_window(window, self)?;
     }
+
+    // Prune ignored windows that are no longer valid.
+    self.ignored_windows.retain(NativeWindow::is_valid);
 
     Ok(())
   }
