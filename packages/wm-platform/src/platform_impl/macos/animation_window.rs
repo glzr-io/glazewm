@@ -70,7 +70,7 @@ pub(crate) struct AnimationWindow {
   outer_rect: Rect,
 
   /// Height of the primary display.
-  primary_height: i32,
+  display_height: i32,
 }
 
 impl AnimationWindow {
@@ -93,20 +93,22 @@ impl AnimationWindow {
 
     let cg_image = window.screen_capture()?;
 
-    let (ns_window, layer, primary_height) =
+    let (ns_window, layer, display_height) =
       dispatcher.dispatch_sync(|| -> DispatchResult {
         // SAFETY: `Dispatcher::dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
-        let primary = dispatcher.primary_display()?;
-        let primary_height = primary.bounds()?.height();
-        let scale_factor = f64::from(primary.scale_factor()?);
+        // Get height and scale factor of the primary display.
+        let (display_height, scale_factor) = {
+          let display = dispatcher.primary_display()?;
+          (display.bounds()?.height(), display.scale_factor()?)
+        };
 
         let ns_window = unsafe {
           NSWindow::initWithContentRect_styleMask_backing_defer(
             NSWindow::alloc(mtm),
             // `NSWindow` expects AppKit coordinates (bottom-left origin).
-            outer_rect.flip_y(primary_height).into(),
+            outer_rect.flip_y(display_height).into(),
             NSWindowStyleMask::Borderless,
             NSBackingStoreType::Buffered,
             false,
@@ -147,10 +149,10 @@ impl AnimationWindow {
 
         #[allow(clippy::cast_precision_loss)]
         let image_width =
-          CGImage::width(Some(&cg_image)) as f64 / scale_factor;
+          CGImage::width(Some(&cg_image)) as f32 / scale_factor;
         #[allow(clippy::cast_precision_loss)]
         let image_height =
-          CGImage::height(Some(&cg_image)) as f64 / scale_factor;
+          CGImage::height(Some(&cg_image)) as f32 / scale_factor;
 
         CATransaction::begin();
         CATransaction::setDisableActions(true);
@@ -182,14 +184,14 @@ impl AnimationWindow {
         Ok((
           ThreadBound::new(ns_window, dispatcher.clone()),
           ThreadBound::new(layer, dispatcher.clone()),
-          primary_height,
+          display_height,
         ))
       })??;
 
     Ok(Self {
       ns_window,
       layer,
-      primary_height,
+      display_height,
       outer_rect: outer_rect.clone(),
     })
   }
@@ -204,7 +206,7 @@ impl AnimationWindow {
 
     self.ns_window.with(|ns_window| {
       ns_window.setFrame_display(
-        self.outer_rect.flip_y(self.primary_height).into(),
+        self.outer_rect.flip_y(self.display_height).into(),
         false,
       );
     })
