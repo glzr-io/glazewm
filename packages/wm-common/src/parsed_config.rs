@@ -506,6 +506,19 @@ pub struct AnimationTypeConfig {
   /// Helps prevent animations from starting on very small position changes.
   /// Increase this value on high-DPI displays to reduce sensitivity.
   pub threshold_px: u32,
+  /// Whether to use a surrogate overlay window during move/resize
+  /// animations.
+  ///
+  /// When enabled, GlazeWM captures a snapshot of the app window at the
+  /// start of each animation and animates a lightweight overlay instead of
+  /// the real window. The app is only resized once — at the very end of the
+  /// animation — eliminating per-frame relayout work in expensive apps such
+  /// as browsers and file explorers.
+  ///
+  /// # Platform-specific
+  ///
+  /// Only has an effect on Windows; ignored on macOS.
+  pub use_surrogate: bool,
 }
 
 impl Default for AnimationTypeConfig {
@@ -515,6 +528,7 @@ impl Default for AnimationTypeConfig {
       duration_ms: 150,
       easing: EasingFunction::EaseInOut,
       threshold_px: 10,
+      use_surrogate: false,
     }
   }
 }

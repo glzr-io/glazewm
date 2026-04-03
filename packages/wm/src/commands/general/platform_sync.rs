@@ -14,6 +14,7 @@ use wm_platform::{CornerStyle, OpacityValue};
 use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
+  animation::AnimationPositionResult,
   models::{Container, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -318,36 +319,52 @@ fn redraw_containers(
       (!is_opening && config.value.animations.window_move.enabled)
     );
 
-    // Determine the rect and opacity to use
-    let (rect_to_use, opacity_override) = if should_use_animations {
+    // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
+    // duration of the `start_animation_if_needed` call on Windows so we can
+    // take a reference to the inner value.
+    #[cfg(target_os = "windows")]
+    let native_ref = window.native();
+
+    // Determine the rect and opacity to use.
+    let (position_result, opacity_override) = if should_use_animations {
       state.animation_manager.start_animation_if_needed(
         window.id(),
         is_opening,
         target_rect.clone(),
         previous_target,
+        #[cfg(target_os = "windows")]
+        &*native_ref,
         config,
       )
     } else {
-      (target_rect.clone(), None)
+      (AnimationPositionResult::Apply(target_rect.clone()), None)
     };
 
     debug!("Updating window position: {window}");
 
-    if let Err(err) = window.native().set_position(
-      &window.state(),
-      &rect_to_use,
-      &z_order,
-      is_visible,
-      &config.value.general.hide_method,
-      window.has_pending_dpi_adjustment(),
-    ) {
-      warn!("Failed to set window position: {}", err);
-    }
+    // When a surrogate overlay is active the real window must not receive
+    // any intermediate resize messages; the overlay handles all visuals.
+    if let AnimationPositionResult::Apply(rect_to_use) = position_result {
+      if let Err(err) = reposition_window(
+        window,
+        &rect_to_use,
+        *hide_corner,
+        &z_order,
+        is_visible,
+        config,
+      ) {
+        tracing::warn!("Failed to set window position: {}", err);
+      }
 
-    // Apply opacity if there's an animation with fade
-    if let Some(opacity) = opacity_override {
-      if let Err(err) = window.native().set_transparency(&opacity) {
-        warn!("Failed to set window opacity during animation: {}", err);
+      // Apply opacity if there's an animation with fade.
+      #[cfg(target_os = "windows")]
+      if let Some(opacity) = opacity_override {
+        if let Err(err) = window.native().set_transparency(&opacity) {
+          tracing::warn!(
+            "Failed to set window opacity during animation: {}",
+            err
+          );
+        }
       }
     }
 

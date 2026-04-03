@@ -29,6 +29,10 @@ pub use keybinding_listener::*;
 pub use models::*;
 pub use mouse_listener::*;
 pub use native_window::*;
+#[cfg(target_os = "windows")]
+mod native_surrogate;
+#[cfg(target_os = "windows")]
+pub use native_surrogate::NativeSurrogate;
 pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;

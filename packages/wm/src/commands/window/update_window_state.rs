@@ -1,6 +1,8 @@
 use anyhow::Context;
 use tracing::{info, warn};
 use wm_common::WindowState;
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 
 use crate::{
   commands::container::{
