@@ -149,17 +149,12 @@ impl AnimationManager {
     sessions
   }
 
-  /// Starts the animation timer thread if it is not already running.
+  /// Starts the animation timer if it is not already running.
   ///
-  /// On Windows, the thread calls `wm_platform::dwm_flush()` each iteration
-  /// to synchronize ticks to the display's vertical sync. On other platforms,
-  /// it sleeps for the calculated frame interval.
+  /// Fires ticks at the monitor refresh rate, capped by `max_frame_rate`.
   pub fn ensure_timer_running(
     &self,
-    // Used only on non-Windows to calculate the monitor refresh rate.
-    #[cfg_attr(target_os = "windows", allow(unused_variables))]
     state: &WmState,
-    #[cfg_attr(target_os = "windows", allow(unused_variables))]
     config: &UserConfig,
   ) {
     if self.has_active_animations()
@@ -169,38 +164,31 @@ impl AnimationManager {
       let tx = self.animation_tick_tx.clone();
       let timer_flag = self.animation_timer_running.clone();
 
-      // On non-Windows, pace the thread with a calculated sleep interval.
-      #[cfg(not(target_os = "windows"))]
-      let frame_time_ms: u32 = {
-        let mut ms = 16u32;
+      let mut frame_time_ms = 16u32;
 
-        if let Some(container) = state.focused_container() {
-          if let Some(monitor) = CommonGetters::monitor(&container) {
-            let refresh_rate =
-              monitor.native_properties().refresh_rate.unwrap_or(60);
-            let capped_rate =
-              refresh_rate.min(config.value.animations.max_frame_rate);
-            ms = 1000 / capped_rate.max(60);
-          }
-        } else {
-          ms = 1000 / config.value.animations.max_frame_rate.max(60);
+      if let Some(container) = state.focused_container() {
+        if let Some(monitor) = CommonGetters::monitor(&container) {
+          let refresh_rate =
+            monitor.native_properties().refresh_rate.unwrap_or(60);
+          let capped_rate =
+            refresh_rate.min(config.value.animations.max_frame_rate);
+          frame_time_ms = 1000 / capped_rate.max(60);
         }
+      } else {
+        frame_time_ms =
+          1000 / config.value.animations.max_frame_rate.max(60);
+      }
 
-        ms
-      };
+      tokio::spawn(async move {
+        let mut interval = tokio::time::interval(
+          tokio::time::Duration::from_millis(frame_time_ms as u64),
+        );
+        interval
+          .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
-      std::thread::spawn(move || {
-        while timer_flag.load(Ordering::Relaxed) {
-          // On Windows, block until the DWM compositor signals the next
-          // vsync. On other platforms, sleep for the calculated interval.
-          #[cfg(target_os = "windows")]
-          wm_platform::dwm_flush();
-          #[cfg(not(target_os = "windows"))]
-          std::thread::sleep(std::time::Duration::from_millis(
-            frame_time_ms as u64,
-          ));
-
-          if tx.send(()).is_err() {
+        loop {
+          interval.tick().await;
+          if !timer_flag.load(Ordering::Relaxed) || tx.send(()).is_err() {
             break;
           }
         }
