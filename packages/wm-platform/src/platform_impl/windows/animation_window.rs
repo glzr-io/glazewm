@@ -39,8 +39,8 @@ use windows::{
     },
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
-      SetWindowPos, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
-      SWP_SHOWWINDOW, WNDCLASSW, WS_EX_NOACTIVATE,
+      SetWindowPos, HTTRANSPARENT, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+      SWP_SHOWWINDOW, WM_NCHITTEST, WNDCLASSW, WS_EX_NOACTIVATE,
       WS_EX_NOREDIRECTIONBITMAP, WS_EX_TRANSPARENT, WS_POPUP,
     },
   },
@@ -444,6 +444,10 @@ impl AnimationWindow {
     wparam: WPARAM,
     lparam: LPARAM,
   ) -> LRESULT {
+    // Route all mouse inputs to the window below.
+    if msg == WM_NCHITTEST {
+      return LRESULT(HTTRANSPARENT as isize);
+    }
     DefWindowProcW(hwnd, msg, wparam, lparam)
   }
 
