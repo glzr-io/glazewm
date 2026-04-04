@@ -191,7 +191,7 @@ impl AnimationWindow {
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     COM_INIT.with(|_| {
-      let captured = capture_window_texture(window.inner.hwnd(), context)?;
+      let captured = CapturedFrame::new(window.inner.hwnd(), context)?;
 
       let mut desc = D3D11_TEXTURE2D_DESC::default();
       unsafe { captured.texture.GetDesc(&raw mut desc) };
@@ -200,8 +200,11 @@ impl AnimationWindow {
       let origin_y = outer_rect.y();
       let source_hwnd = window.inner.hwnd().0;
 
-      let handle = dispatcher
-        .dispatch_sync(|| create_window(source_hwnd, outer_rect))??;
+      // Window is spawned on the main thread to avoid having to create a
+      // new message loop.
+      let handle = dispatcher.dispatch_sync(|| {
+        Self::create_window(source_hwnd, outer_rect)
+      })??;
 
       let dcomp_device = &context.dcomp_device;
       let dcomp_target =
@@ -216,13 +219,11 @@ impl AnimationWindow {
         )?
       };
 
-      copy_texture_to_surface(
+      Self::copy_texture_to_surface(
         &context.d3d_context,
         &captured.texture,
         &dcomp_surface,
       )?;
-
-      captured.close()?;
 
       let dcomp_visual: IDCompositionVisual3 =
         unsafe { dcomp_device.CreateVisual()?.cast()? };
@@ -232,28 +233,21 @@ impl AnimationWindow {
         dcomp_target.SetRoot(&dcomp_visual)?;
       }
 
-      #[allow(clippy::cast_precision_loss)]
-      unsafe {
-        dcomp_visual.SetOffsetX2((inner_rect.x() - origin_x) as f32)?;
-        dcomp_visual.SetOffsetY2((inner_rect.y() - origin_y) as f32)?;
-      }
-
       let scale_transform =
         unsafe { dcomp_device.CreateScaleTransform()? };
 
       unsafe { dcomp_visual.SetTransform(&scale_transform)? };
 
-      update_scale(
+      Self::update_visual(
+        &dcomp_visual,
         &scale_transform,
-        inner_rect.width(),
-        inner_rect.height(),
+        inner_rect,
+        origin_x,
+        origin_y,
         desc.Width,
         desc.Height,
+        opacity.as_ref(),
       )?;
-
-      if let Some(opacity) = opacity {
-        unsafe { dcomp_visual.SetOpacity2(opacity.0)? };
-      }
 
       unsafe { dcomp_device.Commit()? };
 
@@ -305,26 +299,52 @@ impl AnimationWindow {
     inner_rect: &Rect,
     opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
-    #[allow(clippy::cast_precision_loss)]
-    unsafe {
-      self
-        .dcomp_visual
-        .SetOffsetX2((inner_rect.x() - self.origin_x) as f32)?;
-      self
-        .dcomp_visual
-        .SetOffsetY2((inner_rect.y() - self.origin_y) as f32)?;
-    }
-
-    update_scale(
+    Self::update_visual(
+      &self.dcomp_visual,
       &self.scale_transform,
-      inner_rect.width(),
-      inner_rect.height(),
+      inner_rect,
+      self.origin_x,
+      self.origin_y,
       self.src_width,
       self.src_height,
-    )?;
+      opacity,
+    )
+  }
+
+  /// Repositions the `DirectComposition` visual to `inner_rect` relative
+  /// to `(origin_x, origin_y)`, scales it to fill the target dimensions,
+  /// and optionally sets opacity.
+  ///
+  /// Shared by [`AnimationWindow::new`] and [`AnimationWindow::update`].
+  /// Must be called inside `AnimationContext::transaction`.
+  fn update_visual(
+    dcomp_visual: &IDCompositionVisual3,
+    scale_transform: &IDCompositionScaleTransform,
+    inner_rect: &Rect,
+    origin_x: i32,
+    origin_y: i32,
+    src_width: u32,
+    src_height: u32,
+    opacity: Option<&OpacityValue>,
+  ) -> crate::Result<()> {
+    #[allow(clippy::cast_precision_loss)]
+    unsafe {
+      dcomp_visual.SetOffsetX2((inner_rect.x() - origin_x) as f32)?;
+      dcomp_visual.SetOffsetY2((inner_rect.y() - origin_y) as f32)?;
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    let scale_x = inner_rect.width() as f32 / src_width as f32;
+    #[allow(clippy::cast_precision_loss)]
+    let scale_y = inner_rect.height() as f32 / src_height as f32;
+
+    unsafe {
+      scale_transform.SetScaleX2(scale_x)?;
+      scale_transform.SetScaleY2(scale_y)?;
+    }
 
     if let Some(opacity) = opacity {
-      unsafe { self.dcomp_visual.SetOpacity2(opacity.0)? };
+      unsafe { dcomp_visual.SetOpacity2(opacity.0)? };
     }
 
     Ok(())
@@ -363,6 +383,60 @@ impl AnimationWindow {
     })
   }
 
+  /// Creates the overlay HWND for a single animation, sized to the given
+  /// rect and ordered just above `source_hwnd`.
+  fn create_window(
+    source_hwnd: isize,
+    rect: &Rect,
+  ) -> crate::Result<isize> {
+    OVERLAY_CLASS.get_or_init(|| {
+      let wnd_class = WNDCLASSW {
+        lpszClassName: w!("AnimationOverlay"),
+        lpfnWndProc: Some(AnimationWindow::overlay_wnd_proc),
+        ..Default::default()
+      };
+      unsafe { RegisterClassW(&raw const wnd_class) };
+    });
+
+    let hwnd = unsafe {
+      CreateWindowExW(
+        WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
+        w!("AnimationOverlay"),
+        w!(""),
+        WS_POPUP,
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
+        None,
+        None,
+        None,
+        None,
+      )
+    };
+
+    if hwnd.0 == 0 {
+      return Err(crate::Error::Platform(
+        "Failed to create overlay window.".to_string(),
+      ));
+    }
+
+    // Order the overlay just above the source window and show it.
+    unsafe {
+      SetWindowPos(
+        hwnd,
+        HWND(source_hwnd),
+        0,
+        0,
+        0,
+        0,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+      )?;
+    }
+
+    Ok(hwnd.0)
+  }
+
   /// Window procedure for the overlay class.
   unsafe extern "system" fn overlay_wnd_proc(
     hwnd: HWND,
@@ -372,57 +446,41 @@ impl AnimationWindow {
   ) -> LRESULT {
     DefWindowProcW(hwnd, msg, wparam, lparam)
   }
-}
 
-/// Creates the overlay HWND for a single animation, sized to the given
-/// rect and ordered just above `source_hwnd`.
-fn create_window(source_hwnd: isize, rect: &Rect) -> crate::Result<isize> {
-  OVERLAY_CLASS.get_or_init(|| {
-    let wnd_class = WNDCLASSW {
-      lpszClassName: w!("AnimationOverlay"),
-      lpfnWndProc: Some(AnimationWindow::overlay_wnd_proc),
-      ..Default::default()
-    };
-    unsafe { RegisterClassW(&raw const wnd_class) };
-  });
+  /// Copies the contents of `src_texture` into a DComp `surface` via
+  /// `BeginDraw`/`EndDraw`.
+  ///
+  /// `BeginDraw` may return an atlas texture larger than the surface, so
+  /// `CopySubresourceRegion` is used with the returned offset rather than
+  /// `CopyResource` (which requires matching dimensions).
+  fn copy_texture_to_surface(
+    context: &ID3D11DeviceContext,
+    src_texture: &ID3D11Texture2D,
+    surface: &IDCompositionSurface,
+  ) -> crate::Result<()> {
+    let mut offset = POINT::default();
 
-  let hwnd = unsafe {
-    CreateWindowExW(
-      WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
-      w!("AnimationOverlay"),
-      w!(""),
-      WS_POPUP,
-      rect.x(),
-      rect.y(),
-      rect.width(),
-      rect.height(),
-      None,
-      None,
-      None,
-      None,
-    )
-  };
+    let update_texture: ID3D11Texture2D =
+      unsafe { surface.BeginDraw(None, &raw mut offset)? };
 
-  if hwnd.0 == 0 {
-    return Err(crate::Error::Platform(
-      "Failed to create overlay window.".to_string(),
-    ));
+    #[allow(clippy::cast_sign_loss)]
+    unsafe {
+      context.CopySubresourceRegion(
+        &update_texture,
+        0,
+        offset.x as u32,
+        offset.y as u32,
+        0,
+        src_texture,
+        0,
+        None,
+      );
+    }
+
+    unsafe { surface.EndDraw()? };
+
+    Ok(())
   }
-
-  // Order the overlay just above the source window and show it.
-  unsafe {
-    SetWindowPos(
-      hwnd,
-      HWND(source_hwnd),
-      0,
-      0,
-      0,
-      0,
-      SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
-    )?;
-  }
-
-  Ok(hwnd.0)
 }
 
 /// Captured WGC frame with its underlying texture.
@@ -437,9 +495,87 @@ struct CapturedFrame {
 }
 
 impl CapturedFrame {
+  /// Captures a single frame of `hwnd` via Windows.Graphics.Capture.
+  ///
+  /// Reuses the cached interop factory and WinRT device from
+  /// `AnimationContext`. A fresh frame pool is created per capture
+  /// because WGC pools cannot be reliably reused across sessions.
+  ///
+  /// Perf: ~35-60ms. Single-frame captures require waiting for DWM to
+  /// produce the next composed frame (i.e. up to 16.7ms at 60Hz).
+  fn new(hwnd: HWND, context: &AnimationContext) -> crate::Result<Self> {
+    // SAFETY: HWND is valid per the caller's contract.
+    let capture_item: GraphicsCaptureItem =
+      unsafe { context.capture_interop.CreateForWindow(hwnd)? };
+
+    let item_size = capture_item.Size()?;
+
+    let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
+      &context.winrt_device,
+      DirectXPixelFormat::B8G8R8A8UIntNormalized,
+      1,
+      item_size,
+    )?;
+
+    let session = frame_pool.CreateCaptureSession(&capture_item)?;
+
+    // Prevent the cursor from being shown in the capture.
+    let _ = session.SetIsCursorCaptureEnabled(false);
+
+    // Disable the yellow capture border on Windows 11 (Build 22000+).
+    let _ = session.SetIsBorderRequired(false);
+
+    session.StartCapture()?;
+
+    let frame = Self::wait_for_frame(&frame_pool)?;
+
+    let surface = frame.Surface()?;
+    let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
+
+    // SAFETY: The WGC surface wraps a valid D3D11 texture.
+    let texture: ID3D11Texture2D = unsafe { access.GetInterface()? };
+
+    Ok(Self {
+      texture,
+      frame,
+      session,
+      frame_pool,
+    })
+  }
+
+  /// Waits for the next WGC frame using an event-based approach.
+  ///
+  /// Registers a `FrameArrived` handler that signals a channel, then
+  /// blocks until the frame arrives or the timeout expires.
+  fn wait_for_frame(
+    pool: &Direct3D11CaptureFramePool,
+  ) -> crate::Result<Direct3D11CaptureFrame> {
+    let (tx, rx) = std::sync::mpsc::sync_channel::<()>(1);
+
+    pool.FrameArrived(&TypedEventHandler::new(
+      move |_: &Option<Direct3D11CaptureFramePool>, _| {
+        let _ = tx.send(());
+        Ok(())
+      },
+    ))?;
+
+    // Frame arrived before the handler was registered.
+    if let Ok(frame) = pool.TryGetNextFrame() {
+      return Ok(frame);
+    }
+
+    rx.recv_timeout(std::time::Duration::from_secs(1))
+      .map_err(|_| {
+        crate::Error::Platform("WGC capture timed out.".into())
+      })?;
+
+    pool.TryGetNextFrame().map_err(|err| {
+      crate::Error::Platform(format!("Failed to get WGC frame: {err}"))
+    })
+  }
+
   /// Releases WGC resources in dependency order.
-  fn close(self) -> crate::Result<()> {
-    drop(self.texture);
+  fn close(&self) -> crate::Result<()> {
     self.frame.Close()?;
     self.session.Close()?;
     self.frame_pool.Close()?;
@@ -447,147 +583,8 @@ impl CapturedFrame {
   }
 }
 
-/// Captures a single frame of a window via Windows.Graphics.Capture
-/// and returns a `CapturedFrame` whose texture can be read until
-/// `close()` is called.
-///
-/// Reuses the cached interop factory and WinRT device from
-/// `AnimationContext`. A fresh frame pool is created per capture
-/// because WGC pools cannot be reliably reused across sessions.
-///
-/// Perf: ~35-60ms. Single frame snapshots require waiting for DWM to
-/// produce the next composed frame (~16.7ms at 60Hz).
-fn capture_window_texture(
-  hwnd: HWND,
-  context: &AnimationContext,
-) -> crate::Result<CapturedFrame> {
-  // SAFETY: HWND is valid per the caller's contract.
-  let capture_item: GraphicsCaptureItem =
-    unsafe { context.capture_interop.CreateForWindow(hwnd)? };
-
-  let item_size = capture_item.Size()?;
-
-  let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
-    &context.winrt_device,
-    DirectXPixelFormat::B8G8R8A8UIntNormalized,
-    1,
-    item_size,
-  )?;
-
-  let session = frame_pool.CreateCaptureSession(&capture_item)?;
-
-  // Prevent the cursor from being shown in the capture.
-  let _ = session.SetIsCursorCaptureEnabled(false);
-
-  // Disable the yellow capture border on Windows 11 (Build 22000+).
-  let _ = session.SetIsBorderRequired(false);
-
-  session.StartCapture()?;
-
-  let frame = wait_for_frame(&frame_pool)?;
-
-  let surface = frame.Surface()?;
-  let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
-
-  // SAFETY: The WGC surface wraps a valid D3D11 texture.
-  let texture: ID3D11Texture2D = unsafe { access.GetInterface()? };
-
-  Ok(CapturedFrame {
-    texture,
-    frame,
-    session,
-    frame_pool,
-  })
-}
-
-/// Waits for the next WGC frame using an event-based approach.
-///
-/// Registers a `FrameArrived` handler that signals a channel, then
-/// blocks until the frame arrives or the timeout expires.
-fn wait_for_frame(
-  pool: &Direct3D11CaptureFramePool,
-) -> crate::Result<Direct3D11CaptureFrame> {
-  let (tx, rx) = std::sync::mpsc::sync_channel::<()>(1);
-
-  pool.FrameArrived(&TypedEventHandler::new(
-    move |_: &Option<Direct3D11CaptureFramePool>, _| {
-      let _ = tx.send(());
-      Ok(())
-    },
-  ))?;
-
-  // Frame arrived before the handler was registered.
-  if let Ok(frame) = pool.TryGetNextFrame() {
-    return Ok(frame);
+impl Drop for CapturedFrame {
+  fn drop(&mut self) {
+    let _ = self.close();
   }
-
-  rx.recv_timeout(std::time::Duration::from_secs(1))
-    .map_err(|_| {
-      crate::Error::Platform("WGC capture timed out.".into())
-    })?;
-
-  pool.TryGetNextFrame().map_err(|err| {
-    crate::Error::Platform(format!("Failed to get WGC frame: {err}"))
-  })
-}
-
-/// Copies the contents of `src_texture` into a DComp `surface` via
-/// `BeginDraw`/`EndDraw`.
-///
-/// `BeginDraw` may return an atlas texture larger than the surface, so
-/// `CopySubresourceRegion` is used with the returned offset rather than
-/// `CopyResource` (which requires matching dimensions).
-fn copy_texture_to_surface(
-  context: &ID3D11DeviceContext,
-  src_texture: &ID3D11Texture2D,
-  surface: &IDCompositionSurface,
-) -> crate::Result<()> {
-  let mut offset = POINT::default();
-
-  let update_texture: ID3D11Texture2D =
-    unsafe { surface.BeginDraw(None, &raw mut offset)? };
-
-  #[allow(clippy::cast_sign_loss)]
-  unsafe {
-    context.CopySubresourceRegion(
-      &update_texture,
-      0,
-      offset.x as u32,
-      offset.y as u32,
-      0,
-      src_texture,
-      0,
-      None,
-    );
-  }
-
-  unsafe { surface.EndDraw()? };
-
-  Ok(())
-}
-
-/// Updates the scale factors on an existing `IDCompositionScaleTransform`
-/// so the captured source is scaled to fill the target rect dimensions.
-fn update_scale(
-  transform: &IDCompositionScaleTransform,
-  target_width: i32,
-  target_height: i32,
-  src_width: u32,
-  src_height: u32,
-) -> crate::Result<()> {
-  if src_width == 0 || src_height == 0 {
-    return Ok(());
-  }
-
-  #[allow(clippy::cast_precision_loss)]
-  let scale_x = target_width as f32 / src_width as f32;
-  #[allow(clippy::cast_precision_loss)]
-  let scale_y = target_height as f32 / src_height as f32;
-
-  unsafe {
-    transform.SetScaleX2(scale_x)?;
-    transform.SetScaleY2(scale_y)?;
-  }
-
-  Ok(())
 }
