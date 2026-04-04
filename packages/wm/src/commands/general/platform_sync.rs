@@ -341,6 +341,10 @@ fn redraw_containers(
         config,
       )
     } else {
+      // Animations are skipped for this sync (e.g. workspace switch). Cancel
+      // any in-progress animation and its surrogate so subsequent ticks don't
+      // re-cloak this window.
+      state.animation_manager.remove_animation(&window.id());
       (AnimationPositionResult::Apply(target_rect.clone()), None)
     };
 

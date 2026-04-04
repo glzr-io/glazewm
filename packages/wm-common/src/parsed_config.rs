@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use wm_platform::{
-  Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue,
-  RectDelta,
+  Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue, RectDelta,
+  SurrogateBackdrop,
 };
 
 use crate::app_command::InvokeCommand;
@@ -522,18 +522,18 @@ pub struct AnimationTypeConfig {
   ///
   /// Only has an effect on Windows; ignored on macOS.
   pub use_surrogate: bool,
-  /// Optional solid-color backdrop for the surrogate overlay window.
+  /// Backdrop style for the surrogate overlay window.
   ///
-  /// When set, the surrogate uses a flat color fill instead of Windows
-  /// Acrylic blur-behind. Accepts an HTML hex color string with optional
-  /// alpha component (e.g. `"#1a1a1a"` or `"#1a1a1aCC"`).
-  ///
-  /// When unset (default), Acrylic blur-behind is used (Windows 10 1803+).
+  /// - `"acrylic"` (default): Windows Acrylic blur-behind.
+  /// - `"auto"`: samples the window's edge pixels at animation start and
+  ///   uses the average color, so the expanding sides blend naturally into
+  ///   the window content.
+  /// - `"#rrggbb"` / `"#rrggbbAA"`: explicit hex color with optional alpha.
   ///
   /// # Platform-specific
   ///
   /// Only has an effect on Windows; ignored on macOS.
-  pub surrogate_color: Option<Color>,
+  pub surrogate_backdrop: SurrogateBackdrop,
 }
 
 impl Default for AnimationTypeConfig {
@@ -544,7 +544,7 @@ impl Default for AnimationTypeConfig {
       easing: EasingFunction::EaseInOut,
       threshold_px: 10,
       use_surrogate: false,
-      surrogate_color: None,
+      surrogate_backdrop: SurrogateBackdrop::default(),
     }
   }
 }

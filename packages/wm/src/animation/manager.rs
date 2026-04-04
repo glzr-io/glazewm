@@ -306,6 +306,17 @@ impl AnimationManager {
     };
     let threshold = anim_config.threshold_px as i32;
 
+    // If a surrogate session is already active, don't cancel-and-replace.
+    // The real window has been pre-positioned to the target rect via
+    // `SWP_ASYNCWINDOWPOS`; interrupting the animation would leave it
+    // cloaked indefinitely. Let the current animation run to completion;
+    // any layout changes will be picked up on the next sync after the
+    // surrogate is gone.
+    #[cfg(target_os = "windows")]
+    if self.resize_sessions.contains_key(window_id) {
+      return false;
+    }
+
     if is_opening && config.value.animations.window_open.enabled {
       existing_animation.is_none()
     } else if !is_opening && anim_config.enabled {
@@ -422,7 +433,7 @@ impl AnimationManager {
             native_window.hwnd(),
             &start_rect,
             &target_rect,
-            anim_config.surrogate_color.as_ref(),
+            &anim_config.surrogate_backdrop,
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);
