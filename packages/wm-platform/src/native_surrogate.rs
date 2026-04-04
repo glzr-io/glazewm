@@ -1,5 +1,6 @@
 use std::{ffi::c_void, sync::OnceLock};
 
+use crate::Color;
 use windows::{
   core::{s, w},
   Win32::{
@@ -33,6 +34,8 @@ static SET_WCA: OnceLock<Option<SetWindowCompositionAttributeFn>> =
 type SetWindowCompositionAttributeFn =
   unsafe extern "system" fn(HWND, *mut WindowCompositionAttribData) -> i32;
 
+/// Accent state value for a solid-color fill.
+const ACCENT_ENABLE_GRADIENT: u32 = 1;
 /// Accent state value for Windows 10 1803+ Acrylic blur-behind.
 const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
 
@@ -114,21 +117,37 @@ fn get_set_wca() -> Option<SetWindowCompositionAttributeFn> {
   })
 }
 
-/// Applies Windows Acrylic blur-behind to `hwnd` via the undocumented
-/// `SetWindowCompositionAttribute` API (Windows 10 1803+).
+/// Applies a backdrop effect to `hwnd` via the undocumented
+/// `SetWindowCompositionAttribute` API (Windows 10 1607+).
 ///
-/// On older Windows versions or when the API is unavailable this is a no-op;
-/// the surrogate window will appear and animate without a blur backdrop.
-fn apply_acrylic(hwnd: HWND) {
+/// When `color` is `Some`, a solid-color fill (`ACCENT_ENABLE_GRADIENT`) is
+/// applied using the provided RGBA color. When `None`, Windows Acrylic
+/// blur-behind is used (requires Windows 10 1803+; degrades gracefully on
+/// older versions by showing no backdrop at all rather than an error).
+///
+/// This is a no-op when the API is unavailable (pre-Windows 10 1607).
+fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
   let Some(set_wca) = get_set_wca() else {
     return;
   };
 
+  let (accent_state, gradient_color) = match color {
+    Some(c) => {
+      // The undocumented `gradient_color` field uses ABGR byte order:
+      // alpha in the high byte, then blue, green, red in the low byte.
+      let abgr = (u32::from(c.a) << 24)
+        | (u32::from(c.b) << 16)
+        | (u32::from(c.g) << 8)
+        | u32::from(c.r);
+      (ACCENT_ENABLE_GRADIENT, abgr)
+    }
+    None => (ACCENT_ENABLE_ACRYLICBLURBEHIND, 0x0000_0000),
+  };
+
   let mut policy = AccentPolicy {
-    accent_state: ACCENT_ENABLE_ACRYLICBLURBEHIND,
+    accent_state,
     accent_flags: 0,
-    // Zero ARGB tint: no color overlay, pure blur effect.
-    gradient_color: 0x0000_0000,
+    gradient_color,
     animation_id: 0,
   };
 
@@ -226,15 +245,17 @@ pub struct NativeSurrogate {
 }
 
 impl NativeSurrogate {
-  /// Creates an acrylic surrogate overlay and positions it above
-  /// `source_hwnd`.
+  /// Creates a surrogate overlay and positions it above `source_hwnd`.
   ///
   /// The overlay is shown without activating it. A DWM thumbnail of
   /// `source_hwnd` is registered to display the window's live content inside
-  /// the surrogate. Returns an error if window creation fails.
+  /// the surrogate. When `surrogate_color` is `Some`, the backdrop is a
+  /// solid-color fill; when `None`, Windows Acrylic blur-behind is used.
+  /// Returns an error if window creation fails.
   pub fn create(
     source_hwnd: HWND,
     source_rect: &Rect,
+    surrogate_color: Option<&Color>,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
@@ -265,10 +286,10 @@ impl NativeSurrogate {
       ));
     }
 
-    // Apply acrylic as the background. When the thumbnail is opaque this is
-    // only visible in areas the thumbnail doesn't cover (i.e. when the
-    // surrogate grows beyond the source window's dimensions).
-    apply_acrylic(hwnd);
+    // Apply the backdrop. When the thumbnail is opaque this is only visible
+    // in areas the thumbnail doesn't cover (i.e. when the surrogate grows
+    // beyond the source window's dimensions).
+    apply_backdrop(hwnd, surrogate_color);
 
     // Register a DWM thumbnail of the source window so its live content is
     // rendered inside the surrogate, scaled to fill the current animation

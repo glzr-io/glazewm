@@ -11,7 +11,7 @@ use wm_platform::{NativeWindow, OpacityValue, Rect};
 use wm_platform::{NativeWindowWindowsExt, ResizeSession};
 
 use crate::{
-  animation::state::WindowAnimationState,
+  animation::state::{AnimationType, WindowAnimationState},
   commands::general::platform_sync,
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
@@ -398,18 +398,31 @@ impl AnimationManager {
         // For pure translation moves the real window can be animated directly
         // frame-by-frame without the capture + cloak overhead, which is both
         // smoother and avoids unnecessary flicker.
+        //
+        // Also skip when the animation being cancelled was an `Open`
+        // animation. The open animation runs at the window's final size, so
+        // its `start_rect` and `target_rect` are the same dimensions; the
+        // surrogate would immediately cloak the window and never uncloak it
+        // because the cancel-and-replace is a no-op resize (ghost window).
         #[cfg(target_os = "windows")]
         let has_size_change = start_rect.width() != target_rect.width()
           || start_rect.height() != target_rect.height();
         #[cfg(target_os = "windows")]
+        let is_replacing_open = existing_animation
+          .as_ref()
+          .map(|a| matches!(a.animation_type, AnimationType::Open))
+          .unwrap_or(false);
+        #[cfg(target_os = "windows")]
         if anim_config.use_surrogate
           && has_size_change
           && !self.resize_sessions.contains_key(&window_id)
+          && !is_replacing_open
         {
           match ResizeSession::begin(
             native_window.hwnd(),
             &start_rect,
             &target_rect,
+            anim_config.surrogate_color.as_ref(),
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);

@@ -68,6 +68,13 @@ impl WindowManager {
     let mut state = WmState::new(dispatcher, event_tx, exit_tx, animation_tick_tx);
     state.populate(config)?;
 
+    // Start animation timer if `populate` created any animations (e.g.
+    // window_open animations). This mirrors the `ensure_timer_running` call
+    // at the end of `process_event` for the initial population path.
+    state
+      .animation_manager
+      .ensure_timer_running(&state, config);
+
     Ok(Self {
       event_rx,
       exit_rx,
@@ -194,6 +201,15 @@ impl WindowManager {
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
+
+    // Start animation timer if animations were created by a command (e.g.
+    // startup commands or IPC commands). Without this, surrogate animations
+    // started outside of the platform event loop would never tick, leaving
+    // windows permanently cloaked.
+    self
+      .state
+      .animation_manager
+      .ensure_timer_running(&self.state, config);
 
     Ok(new_subject_container_id)
   }
