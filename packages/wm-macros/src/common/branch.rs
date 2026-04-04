@@ -141,7 +141,7 @@ impl_for_tuple!(T, U, V, W, X, Y | 0, 1, 2, 3, 4, 5);
 /// Parse [syn::Ident] and [syn::LitStr] from the stream, which are
 /// separated by a comma. E.g. `some_name, "some string"`. If the order is
 /// reversed, it will fail to parse.
-/// ```
+/// ```ignore
 /// fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
 ///   type T = (syn::Ident, syn::LitStr);
 ///
@@ -220,7 +220,7 @@ where
 /// Parse [syn::Ident] and [syn::LitStr] from the stream in any order,
 /// which are separated by a comma. E.g. `some_name, "some string"` or
 /// `"some string", some_name`.
-/// ```
+/// ```ignore
 /// fn example(stream: proc_macro::TokenStream) -> syn::Result<(syn::Ident, syn::LitStr)> {
 ///   type T = (syn::Ident, syn::LitStr);
 ///
@@ -281,7 +281,7 @@ where
 ///
 /// # Example
 /// Parse [syn::Ident] if it is present, otherwise parse [syn::LitStr].
-/// ```
+/// ```ignore
 /// type IfElseType = IfElse<syn::Ident, syn::LitStr>;
 ///
 /// fn example(stream: syn::parse::ParseStream) -> syn::Result<IfElseType> {
@@ -347,7 +347,7 @@ where
 ///
 /// # Example
 /// Parse [syn::Ident] if it is present, otherwise return None.
-/// ```
+/// ```ignore
 /// type OptionalType = Optional<syn::Ident>;
 /// fn example(stream: syn::parse::ParseStream) -> syn::Result<OptionalType> {
 ///   stream.parse::<OptionalType>()
@@ -366,7 +366,7 @@ where
 /// ```
 /// Used in combination with [Ordered] to parse a [syn::Ident] and
 /// optionally a [syn::LitStr]:
-/// ```
+/// ```ignore
 /// type OrderedOptionalType = Ordered<(syn::Ident, Optional<syn::LitStr>),
 /// syn::Token![,]>;
 ///
@@ -388,7 +388,7 @@ where
 /// ```
 /// Used in combination with [Unordered] it can be used to parse a
 /// [syn::Ident] and optionally a [syn::LitStr] in any order:
-/// ```
+/// ```ignore
 /// type UnorderedOptionalType = Unordered<(syn::Ident, Optional<syn::LitStr>), syn::Token![,]>;
 ///
 /// fn example(stream: syn::parse::ParseStream) -> syn::Result<UnorderedOptionalType> {
