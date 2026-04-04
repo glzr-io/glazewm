@@ -16,7 +16,7 @@ impl TilingDirection {
   ///
   /// Example:
   /// ```
-  /// # use wm_platform::TilingDirection;
+  /// # use wm_common::TilingDirection;
   /// let dir = TilingDirection::Horizontal.inverse();
   /// assert_eq!(dir, TilingDirection::Vertical);
   /// ```
@@ -33,7 +33,8 @@ impl TilingDirection {
   ///
   /// Example:
   /// ```
-  /// # use wm_platform::{Direction, TilingDirection};
+  /// # use wm_common::TilingDirection;
+  /// # use wm_platform::Direction;
   /// let dir = TilingDirection::from_direction(&Direction::Left);
   /// assert_eq!(dir, TilingDirection::Horizontal);
   /// ```
@@ -53,7 +54,7 @@ impl FromStr for TilingDirection {
   ///
   /// Example:
   /// ```
-  /// # use wm_platform::TilingDirection;
+  /// # use wm_common::TilingDirection;
   /// # use std::str::FromStr;
   /// let dir = TilingDirection::from_str("horizontal");
   /// assert_eq!(dir.unwrap(), TilingDirection::Horizontal);
