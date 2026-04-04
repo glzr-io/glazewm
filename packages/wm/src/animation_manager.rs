@@ -293,6 +293,21 @@ impl AnimationManager {
     if let Some(anim_window) = self.windows.get_mut(&window.id()) {
       anim_window
         .resize(&animation.start_rect.union(&animation.target_rect))?;
+
+      // On Windows, immediately redraw the animation after resizing. The
+      // animation is scaled relative to the window's frame, so it would be
+      // incorrect until the next tick.
+      #[cfg(target_os = "windows")]
+      self
+        .context
+        .as_ref()
+        .context("Animation context not initialized.")?
+        .transaction(|| {
+          anim_window.update(
+            &animation.current_rect(),
+            animation.current_opacity().as_ref(),
+          )
+        })??;
     } else {
       let context = match &self.context {
         Some(ctx) => ctx,
