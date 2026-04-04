@@ -168,12 +168,10 @@ pub(crate) struct AnimationWindow {
   _dcomp_target: IDCompositionTarget,
   dcomp_visual: IDCompositionVisual3,
   scale_transform: IDCompositionScaleTransform,
-  /// Captured source texture dimensions (for scale calculations).
-  src_width: u32,
-  src_height: u32,
-  /// Top-left of the overlay HWND in screen coordinates.
-  origin_x: i32,
-  origin_y: i32,
+  /// Rect of the captured source texture (for scale calculations).
+  src_inner_rect: Rect,
+  /// Frame of the overlay HWND in screen coordinates.
+  outer_rect: Rect,
   /// Dispatcher for running HWND operations on the event loop thread.
   dispatcher: Dispatcher,
 }
@@ -196,14 +194,12 @@ impl AnimationWindow {
       let mut desc = D3D11_TEXTURE2D_DESC::default();
       unsafe { captured.texture.GetDesc(&raw mut desc) };
 
-      let origin_x = outer_rect.x();
-      let origin_y = outer_rect.y();
-      let source_hwnd = window.inner.hwnd().0;
+      let source_handle = window.inner.hwnd().0;
 
       // Window is spawned on the main thread to avoid having to create a
       // new message loop.
       let handle = dispatcher.dispatch_sync(|| {
-        Self::create_window(source_hwnd, outer_rect)
+        Self::create_window(source_handle, outer_rect)
       })??;
 
       let dcomp_device = &context.dcomp_device;
@@ -238,18 +234,24 @@ impl AnimationWindow {
 
       unsafe { dcomp_visual.SetTransform(&scale_transform)? };
 
-      Self::update_visual(
-        &dcomp_visual,
-        &scale_transform,
-        inner_rect,
-        origin_x,
-        origin_y,
-        desc.Width,
-        desc.Height,
-        opacity.as_ref(),
-      )?;
+      #[allow(clippy::cast_possible_wrap)]
+      let src_inner_rect = Rect::from_xy(
+        0,
+        0,
+        desc.Width as i32,
+        desc.Height as i32,
+      );
 
-      unsafe { dcomp_device.Commit()? };
+      context.transaction(|| {
+        Self::update_visual(
+          &dcomp_visual,
+          &scale_transform,
+          inner_rect,
+          outer_rect,
+          &src_inner_rect,
+          opacity.as_ref(),
+        )
+      })??;
 
       Ok(Self {
         handle,
@@ -257,10 +259,8 @@ impl AnimationWindow {
         _dcomp_target: dcomp_target,
         dcomp_visual,
         scale_transform,
-        src_width: desc.Width,
-        src_height: desc.Height,
-        origin_x,
-        origin_y,
+        src_inner_rect,
+        outer_rect: outer_rect.clone(),
         dispatcher: dispatcher.clone(),
       })
     })
@@ -303,17 +303,15 @@ impl AnimationWindow {
       &self.dcomp_visual,
       &self.scale_transform,
       inner_rect,
-      self.origin_x,
-      self.origin_y,
-      self.src_width,
-      self.src_height,
+      &self.outer_rect,
+      &self.src_inner_rect,
       opacity,
     )
   }
 
   /// Repositions the `DirectComposition` visual to `inner_rect` relative
-  /// to `(origin_x, origin_y)`, scales it to fill the target dimensions,
-  /// and optionally sets opacity.
+  /// to `outer_rect`, scales it to fill the target dimensions, and
+  /// optionally sets opacity.
   ///
   /// Shared by [`AnimationWindow::new`] and [`AnimationWindow::update`].
   /// Must be called inside `AnimationContext::transaction`.
@@ -321,22 +319,20 @@ impl AnimationWindow {
     dcomp_visual: &IDCompositionVisual3,
     scale_transform: &IDCompositionScaleTransform,
     inner_rect: &Rect,
-    origin_x: i32,
-    origin_y: i32,
-    src_width: u32,
-    src_height: u32,
+    outer_rect: &Rect,
+    src_inner_rect: &Rect,
     opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
     #[allow(clippy::cast_precision_loss)]
     unsafe {
-      dcomp_visual.SetOffsetX2((inner_rect.x() - origin_x) as f32)?;
-      dcomp_visual.SetOffsetY2((inner_rect.y() - origin_y) as f32)?;
+      dcomp_visual.SetOffsetX2((inner_rect.x() - outer_rect.x()) as f32)?;
+      dcomp_visual.SetOffsetY2((inner_rect.y() - outer_rect.y()) as f32)?;
     }
 
     #[allow(clippy::cast_precision_loss)]
-    let scale_x = inner_rect.width() as f32 / src_width as f32;
+    let scale_x = inner_rect.width() as f32 / src_inner_rect.width() as f32;
     #[allow(clippy::cast_precision_loss)]
-    let scale_y = inner_rect.height() as f32 / src_height as f32;
+    let scale_y = inner_rect.height() as f32 / src_inner_rect.height() as f32;
 
     unsafe {
       scale_transform.SetScaleX2(scale_x)?;
@@ -512,13 +508,11 @@ impl CapturedFrame {
     let capture_item: GraphicsCaptureItem =
       unsafe { context.capture_interop.CreateForWindow(hwnd)? };
 
-    let item_size = capture_item.Size()?;
-
     let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
       &context.winrt_device,
       DirectXPixelFormat::B8G8R8A8UIntNormalized,
       1,
-      item_size,
+      capture_item.Size()?,
     )?;
 
     let session = frame_pool.CreateCaptureSession(&capture_item)?;
@@ -532,7 +526,6 @@ impl CapturedFrame {
     session.StartCapture()?;
 
     let frame = Self::wait_for_frame(&frame_pool)?;
-
     let surface = frame.Surface()?;
     let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
 
