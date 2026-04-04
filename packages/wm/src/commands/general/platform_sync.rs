@@ -280,9 +280,7 @@ fn redraw_containers(
       },
     );
 
-    let target_rect = window
-      .to_rect()?
-      .apply_delta(&window.total_border_delta()?, None);
+    let target_rect = window.to_rect()?;
 
     let is_visible = matches!(
       window.display_state(),
@@ -387,6 +385,8 @@ fn reposition_window(
   is_visible: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  let rect = rect.apply_delta(&window.total_border_delta()?, None);
+
   // For animations on macOS and `HideMethod::PlaceInCorner`, we need to
   // hide windows by repositioning them in the corner of the monitor.
   if (cfg!(target_os = "macos") && is_animation_start)
