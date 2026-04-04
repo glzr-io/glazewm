@@ -1,6 +1,5 @@
 mod color;
 mod corner_style;
-mod surrogate_backdrop;
 mod delta;
 mod direction;
 mod key;
@@ -13,7 +12,6 @@ mod rect_delta;
 
 pub use color::*;
 pub use corner_style::*;
-pub use surrogate_backdrop::*;
 pub use delta::*;
 pub use direction::*;
 pub use key::*;

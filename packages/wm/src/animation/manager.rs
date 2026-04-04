@@ -433,7 +433,7 @@ impl AnimationManager {
             native_window.hwnd(),
             &start_rect,
             &target_rect,
-            &anim_config.surrogate_backdrop,
+            anim_config.surrogate_color.as_ref(),
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);

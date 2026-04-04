@@ -6,7 +6,7 @@ use windows::Win32::{
   },
 };
 
-use crate::{NativeSurrogate, Rect, SurrogateBackdrop};
+use crate::{Color, NativeSurrogate, Rect};
 
 /// Tracks a single window's resize/move animation and manages its surrogate
 /// overlay.
@@ -53,10 +53,10 @@ impl ResizeSession {
     hwnd: HWND,
     source_rect: &Rect,
     target_rect: &Rect,
-    backdrop: &SurrogateBackdrop,
+    surrogate_color: Option<&Color>,
   ) -> crate::Result<Self> {
     let surrogate =
-      match NativeSurrogate::create(hwnd, source_rect, backdrop) {
+      match NativeSurrogate::create(hwnd, source_rect, surrogate_color) {
         Ok(s) => Some(s),
         Err(err) => {
           tracing::warn!(
