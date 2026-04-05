@@ -98,11 +98,10 @@ impl AnimationWindow {
         // SAFETY: `Dispatcher::dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
-        // Get height and scale factor of the primary display.
-        let (display_height, scale_factor) = {
-          let display = dispatcher.primary_display()?;
-          (display.bounds()?.height(), display.scale_factor()?)
-        };
+        // Get height of the primary display, needed for CG↔AppKit
+        // coordinate conversion.
+        let display_height =
+          dispatcher.primary_display()?.bounds()?.height();
 
         let ns_window = unsafe {
           NSWindow::initWithContentRect_styleMask_backing_defer(
@@ -147,6 +146,11 @@ impl AnimationWindow {
           ));
         };
 
+        let scale_factor =
+          dispatcher.nearest_display(window)?.scale_factor()?;
+
+        // Images need to be scaled by the scale factor of the display
+        // containing the window.
         #[allow(clippy::cast_precision_loss)]
         let image_width =
           CGImage::width(Some(&cg_image)) as f32 / scale_factor;

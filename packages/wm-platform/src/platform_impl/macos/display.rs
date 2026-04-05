@@ -392,8 +392,14 @@ pub(crate) fn primary_display(
     let mtm =
       MainThreadMarker::new().ok_or(crate::Error::NotMainThread)?;
 
+    // NOTE: `NSScreen::mainScreen` cannot be used as it returns the screen
+    // with keyboard focus. The first screen in `NSScreen::screens` is
+    // always the primary (i.e. the display containing the menu bar).
     let ns_screen = ThreadBound::new(
-      NSScreen::mainScreen(mtm).ok_or(crate::Error::DisplayNotFound)?,
+      NSScreen::screens(mtm)
+        .into_iter()
+        .next()
+        .ok_or(crate::Error::DisplayNotFound)?,
       dispatcher.clone(),
     );
 
