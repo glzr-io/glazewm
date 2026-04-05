@@ -129,6 +129,18 @@ impl Rect {
     )
   }
 
+  /// Returns a new `Rect` that is cropped to the bounds of the given
+  /// outer rectangle.
+  #[must_use]
+  pub fn crop(&self, outer_rect: &Rect) -> Self {
+    Self::from_ltrb(
+      self.left.clamp(outer_rect.left, outer_rect.right),
+      self.top.clamp(outer_rect.top, outer_rect.bottom),
+      self.right.clamp(outer_rect.left, outer_rect.right),
+      self.bottom.clamp(outer_rect.top, outer_rect.bottom),
+    )
+  }
+
   #[must_use]
   pub fn center_point(&self) -> Point {
     Point {

@@ -167,7 +167,12 @@ impl WindowManager {
         .filter(|window| completed_ids.contains(&window.id()));
 
       // Redraw windows with completed animations to their target position.
-      self.state.pending_sync.queue_containers_to_redraw(windows);
+      self
+        .state
+        .pending_sync
+        .queue_containers_to_redraw(windows)
+        .set_skip_animations(true);
+
       platform_sync(&mut self.state, config)?;
 
       // Briefly keep animation windows up to hide flicker during sync.

@@ -7,9 +7,11 @@ use anyhow::Context;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::AnimationEffectsConfig;
+#[cfg(target_os = "macos")]
+use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
-  AnimationContext, AnimationWindow, Dispatcher, DispatcherExtMacOs,
-  EasingFunction, OpacityValue, Rect,
+  AnimationContext, AnimationWindow, Dispatcher, EasingFunction,
+  OpacityValue, Rect,
 };
 
 use crate::{
@@ -123,7 +125,8 @@ pub struct AnimationManager {
   /// Handle to the running tick task, if any.
   tick_task: Option<tokio::task::JoinHandle<()>>,
 
-  /// Whether displays have separate spaces.
+  /// Whether "Displays have separate Spaces" setting is enabled.
+  #[cfg(target_os = "macos")]
   displays_have_separate_spaces: bool,
 }
 
@@ -140,6 +143,7 @@ impl AnimationManager {
       windows: HashMap::new(),
       context: None,
       tick_task: None,
+      #[cfg(target_os = "macos")]
       displays_have_separate_spaces,
     }
   }
@@ -294,15 +298,36 @@ impl AnimationManager {
 
     self.animations.insert(window.id(), animation.clone());
 
+    // On macOS, windows cannot span across multiple displays when
+    // "Displays have separate Spaces" is enabled. Attempting to position a
+    // window beyond the display bounds causes it to wrap around on the
+    // same display. We therefore crop the animation to only be shown on
+    // the source display.
+    let outer_rect = {
+      let outer_rect = animation.start_rect.union(&animation.target_rect);
+
+      #[cfg(target_os = "macos")]
+      if self.displays_have_separate_spaces {
+        let display_bounds =
+          dispatcher.nearest_display(&window.native())?.bounds()?;
+
+        outer_rect.crop(&display_bounds)
+      } else {
+        outer_rect
+      }
+
+      #[cfg(not(target_os = "macos"))]
+      outer_rect
+    };
+
     // Resize existing overlay to the new bounding box when the target
     // changes mid-flight, preserving the screenshot and z-order.
     if let Some(anim_window) = self.windows.get_mut(&window.id()) {
-      anim_window
-        .resize(&animation.start_rect.union(&animation.target_rect))?;
+      anim_window.resize(&outer_rect)?;
 
       // On Windows, immediately redraw the animation after resizing. The
-      // animation is scaled relative to the window's frame, so it would be
-      // incorrect until the next tick.
+      // animation is scaled relative to the window's frame, so it would
+      // otherwise be incorrect until the next tick.
       #[cfg(target_os = "windows")]
       self
         .context
@@ -326,7 +351,7 @@ impl AnimationManager {
         context,
         &window.native(),
         &animation.start_rect,
-        &animation.start_rect.union(&animation.target_rect),
+        &outer_rect,
         animation.current_opacity(),
         dispatcher,
       )?;
