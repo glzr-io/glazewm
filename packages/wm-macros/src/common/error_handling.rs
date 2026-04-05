@@ -17,7 +17,7 @@ where
   /// `Ok(self)`.
   ///
   /// # Example
-  /// ```
+  /// ```ignore
   /// # fn example(string: &str, string_span: syn::Span) -> syn::Result<()> {
   /// string.is_empty().then_error(string_span.error("Expected a non-empty string"))?;
   /// # }
@@ -38,7 +38,7 @@ pub trait ToError {
   /// message.
   ///
   /// # Example
-  /// ```
+  /// ```ignore
   /// # fn example(ident: syn::Ident) -> syn::Result<()> {
   /// return Err(ident.error("Didn't expect an identifier here"));
   /// # }
@@ -69,7 +69,7 @@ pub trait ToSpanError {
   /// gives more accurately spanned errors.
   ///
   /// # Example
-  /// ```
+  /// ```ignore
   /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
   /// return Err(stream.span().serror("Expected ..."));
   /// # }

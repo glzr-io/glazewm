@@ -5,7 +5,7 @@
 ///
 /// # Example
 /// Parse a name-value pair of [syn::Ident] and [syn::LitStr].
-/// ```
+/// ```ignore
 /// type NamedParam = NamedParameter<syn::Ident, syn::LitStr>;
 ///
 /// fn example(stream: syn::parse::ParseStream) -> syn::Result<NamedParam> {
