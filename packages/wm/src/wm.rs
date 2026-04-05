@@ -776,6 +776,24 @@ impl WindowManager {
         toggle_pause(state);
         Ok(())
       }
+      InvokeCommand::ToggleMonocle => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+        workspace.set_monocle(!workspace.is_monocle());
+        state
+          .pending_sync
+          .queue_container_to_redraw(workspace.clone());
+        Ok(())
+      }
+      InvokeCommand::SetMonocle => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+        workspace.set_monocle(true);
+        state
+          .pending_sync
+          .queue_container_to_redraw(workspace.clone());
+        Ok(())
+      }
     }
   }
 

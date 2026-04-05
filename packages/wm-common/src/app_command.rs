@@ -260,6 +260,8 @@ pub enum InvokeCommand {
   WmRedraw,
   WmReloadConfig,
   WmTogglePause,
+  ToggleMonocle,
+  SetMonocle,
 }
 
 impl<'de> Deserialize<'de> for InvokeCommand {
@@ -431,4 +433,7 @@ pub struct InvokeUpdateWorkspaceConfig {
 
   #[clap(long)]
   pub keep_alive: Option<bool>,
+
+  #[clap(long)]
+  pub monocle: Option<bool>,
 }
