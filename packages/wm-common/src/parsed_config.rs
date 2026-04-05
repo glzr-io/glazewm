@@ -388,23 +388,11 @@ pub struct WorkspaceConfig {
   pub keep_alive: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
   pub window_move: AnimationEffectsConfig,
   pub window_open: AnimationEffectsConfig,
-  /// Maximum frame rate for animations in Hz. Default is 60.
-  pub max_frame_rate: u32,
-}
-
-impl Default for AnimationsConfig {
-  fn default() -> Self {
-    AnimationsConfig {
-      window_move: AnimationEffectsConfig::default(),
-      window_open: AnimationEffectsConfig::default(),
-      max_frame_rate: 60,
-    }
-  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

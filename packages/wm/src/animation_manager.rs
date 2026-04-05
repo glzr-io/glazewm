@@ -349,8 +349,7 @@ impl AnimationManager {
   /// Spawns a task for emitting ticks at the target frame rate.
   ///
   /// Cancels existing tick task if there is one. The ticks are emitted at
-  /// the highest frame rate among the animated windows, capped by
-  /// `max_frame_rate`.
+  /// the highest frame rate among the animated windows.
   ///
   /// Called on animation start and completion.
   fn update_tick_rate(&mut self) {
