@@ -258,7 +258,7 @@ impl AnimationManager {
     }
   }
 
-  /// Starts an animation.
+  /// Starts a new animation, or extends an existing animation.
   #[allow(clippy::too_many_arguments)]
   pub fn start_animation(
     &mut self,
@@ -320,33 +320,28 @@ impl AnimationManager {
       outer_rect
     };
 
+    let context = match &self.context {
+      Some(ctx) => ctx,
+      None => self
+        .context
+        .get_or_insert(AnimationContext::new(dispatcher)?),
+    };
+
     // Resize existing overlay to the new bounding box when the target
     // changes mid-flight, preserving the screenshot and z-order.
     if let Some(anim_window) = self.windows.get_mut(&window.id()) {
       anim_window.resize(&outer_rect)?;
 
-      // On Windows, immediately redraw the animation after resizing. The
-      // animation is scaled relative to the window's frame, so it would
-      // otherwise be incorrect until the next tick.
-      #[cfg(target_os = "windows")]
-      self
-        .context
-        .as_ref()
-        .context("Animation context not initialized.")?
-        .transaction(|| {
-          anim_window.update(
-            &animation.current_rect(),
-            animation.current_opacity().as_ref(),
-          )
-        })??;
+      // Immediately redraw the animation after resizing. The animation is
+      // scaled relative to the window's frame, so it would otherwise be
+      // incorrect until the next tick.
+      context.transaction(|| {
+        anim_window.update(
+          &animation.current_rect(),
+          animation.current_opacity().as_ref(),
+        )
+      })??;
     } else {
-      let context = match &self.context {
-        Some(ctx) => ctx,
-        None => self
-          .context
-          .get_or_insert(AnimationContext::new(dispatcher)?),
-      };
-
       let anim_window = AnimationWindow::new(
         context,
         &window.native(),
@@ -359,8 +354,8 @@ impl AnimationManager {
       self.windows.insert(window.id(), anim_window);
     }
 
-    // Start the timer after the window has been created.
-    // TODO: Start times for animations will differ slightly between
+    // Start the tick timer after the window has been created.
+    // NOTE: Start times for animations will differ slightly between
     // windows within the same platform sync.
     if let Some(animation) = self.animations.get_mut(&window.id()) {
       animation.start_time = Instant::now();
