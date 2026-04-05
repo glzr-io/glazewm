@@ -25,8 +25,11 @@ use objc2_foundation::NSString;
 use windows::{
   core::PCWSTR,
   Win32::{
-    Foundation::POINT,
-    System::Environment::ExpandEnvironmentStringsW,
+    Foundation::{CloseHandle, POINT},
+    System::{
+      Environment::ExpandEnvironmentStringsW,
+      Threading::{WaitForSingleObject, INFINITE},
+    },
     UI::{
       Input::KeyboardAndMouse::{
         GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
@@ -299,8 +302,15 @@ impl DispatcherExtWindows for Dispatcher {
       ..Default::default()
     };
 
-    unsafe { ShellExecuteExW(&raw mut exec_info) }
-      .map_err(crate::Error::from)
+    unsafe { ShellExecuteExW(&raw mut exec_info) }?;
+
+    // Wait for the spawned process to exit.
+    if !exec_info.hProcess.is_invalid() {
+      unsafe { WaitForSingleObject(exec_info.hProcess, INFINITE) };
+      unsafe { CloseHandle(exec_info.hProcess) };
+    }
+
+    Ok(())
   }
 }
 

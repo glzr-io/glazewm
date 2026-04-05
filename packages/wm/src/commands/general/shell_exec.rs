@@ -1,7 +1,8 @@
-use std::path::Path;
+use std::{io::Write, path::Path};
 
 #[cfg(target_os = "windows")]
 use anyhow::Context;
+use shell_util::{CommandOptions, Shell};
 #[cfg(target_os = "macos")]
 use shell_util::{CommandOptions, Shell};
 #[cfg(target_os = "windows")]
@@ -29,43 +30,60 @@ pub fn shell_exec(
   // held by our process (e.g. the IPC server port) until the subprocess
   // exits.
   let result = {
-    #[cfg(target_os = "macos")]
-    {
-      Shell::spawn(
-        &program,
-        args.split_whitespace(),
-        &CommandOptions::default(),
-      )
-    }
-    #[cfg(target_os = "windows")]
-    {
-      let home_dir =
-        home::home_dir().context("Unable to get home directory.")?;
-
-      // TODO: Use `Shell::spawn` instead. `ShellExecuteExW` is still used
-      // to be able to launch programs from the App Paths registry
-      // (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths`), like
-      // `chrome` without it being in $PATH.
-      state.dispatcher.shell_execute_ex(
-        &program,
-        &args,
-        &home_dir,
-        hide_window,
-      )
-    }
+    // #[cfg(target_os = "macos")]
+    // {
+    Shell::spawn(
+      &program,
+      args.split_whitespace(),
+      &CommandOptions::default(),
+    )
   };
+  //   #[cfg(target_os = "windows")]
+  //   {
+  //     let home_dir =
+  //       home::home_dir().context("Unable to get home directory.")?;
 
-  result.map_err(|err| {
+  //     // TODO: Use `Shell::spawn` instead. `ShellExecuteExW` is still
+  // used     // to be able to launch programs from the App Paths
+  // registry     // (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App
+  // Paths`), like     // `chrome` without it being in $PATH.
+  //     state.dispatcher.shell_execute_ex(
+  //       &program,
+  //       &args,
+  //       &home_dir,
+  //       hide_window,
+  //     )
+  //   }
+  // };
+
+  let mut result = result.map_err(|err| {
     anyhow::anyhow!(
       "Shell exec failed for '{command}'. Make sure the program exists and is \
       accessible from your shell. Error: {err}",
     )
   })?;
 
+  std::thread::spawn(move || {
+    while let Some(event) = result.events().blocking_recv() {
+      tracing::warn!("Event: {:?}", event);
+    }
+  });
+
   tracing::warn!(
-    "Shell exec completed in {}ms.",
+    "Shell exec completed in {}ms.\n",
     instant.elapsed().as_millis()
   );
+
+  let mut file = std::fs::OpenOptions::new()
+    .append(true)
+    .create(true)
+    .open("shell_exec.log")?;
+
+  writeln!(
+    file,
+    "Shell exec completed in {}ms.",
+    instant.elapsed().as_millis()
+  )?;
 
   Ok(())
 }
