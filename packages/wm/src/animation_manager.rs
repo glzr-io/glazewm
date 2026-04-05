@@ -20,6 +20,11 @@ use crate::{
   user_config::UserConfig,
 };
 
+pub enum AnimationTrigger {
+  WindowOpened,
+  WindowMoved,
+}
+
 /// State of an individual window animation.
 ///
 /// A window corresponds to a maximum of one [`WindowAnimationState`] at a
@@ -213,9 +218,9 @@ impl AnimationManager {
   pub fn animation_effect_for_window<'a>(
     &self,
     window: &WindowContainer,
-    monitor_properties: &NativeMonitorProperties,
-    is_opening: bool,
+    trigger: AnimationTrigger,
     target_rect: &Rect,
+    monitor_properties: &NativeMonitorProperties,
     config: &'a UserConfig,
   ) -> Option<&'a AnimationEffectConfig> {
     // Skip animation if:
@@ -234,9 +239,9 @@ impl AnimationManager {
       return None;
     }
 
-    match (is_opening, &config.value.animations) {
+    match (trigger, &config.value.animations) {
       (
-        true,
+        AnimationTrigger::WindowOpened,
         AnimationsConfig {
           window_open: Some(open_config),
           ..
@@ -249,7 +254,7 @@ impl AnimationManager {
         }
       }
       (
-        false,
+        AnimationTrigger::WindowMoved,
         AnimationsConfig {
           window_move: Some(move_config),
           ..
@@ -286,10 +291,9 @@ impl AnimationManager {
   pub fn start_animation(
     &mut self,
     window: &WindowContainer,
-    monitor_properties: &NativeMonitorProperties,
-    is_opening: bool,
-    target_rect: Rect,
     effect_config: &AnimationEffectConfig,
+    target_rect: Rect,
+    monitor_properties: &NativeMonitorProperties,
     dispatcher: &Dispatcher,
   ) -> anyhow::Result<()> {
     let existing_animation = self.animations.get(&window.id());
@@ -298,14 +302,10 @@ impl AnimationManager {
     // skipped if the animation is behind, the frame rate is variable.
     let frame_rate = monitor_properties.refresh_rate.unwrap_or(60);
 
-    let start_rect = if is_opening {
-      target_rect.scale_from_center(0.9)
-    } else {
-      existing_animation.map_or_else(
-        || window.native_properties().frame.clone(),
-        WindowAnimationState::current_rect,
-      )
-    };
+    let start_rect = existing_animation.map_or_else(
+      || window.native_properties().frame.clone(),
+      WindowAnimationState::current_rect,
+    );
 
     let animation = WindowAnimationState::new(
       start_rect,

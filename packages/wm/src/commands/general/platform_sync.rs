@@ -12,6 +12,7 @@ use wm_platform::{CornerStyle, OpacityValue};
 use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
+  animation_manager::AnimationTrigger,
   models::{Container, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -287,19 +288,23 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    // Determine if this window should have an opening animation.
-    let is_opening = is_visible
-      && state.pending_sync.open_animation_windows().contains(window);
-
     // Determine the animation effect to apply, if any.
     let animation_effect = if state.pending_sync.should_skip_animations() {
       None
     } else {
+      let animation_trigger = if is_visible
+        && state.pending_sync.open_animation_windows().contains(window)
+      {
+        AnimationTrigger::WindowOpened
+      } else {
+        AnimationTrigger::WindowMoved
+      };
+
       state.animation_manager.animation_effect_for_window(
         window,
-        &monitor.native_properties(),
-        is_opening,
+        animation_trigger,
         &target_rect,
+        &monitor.native_properties(),
         config,
       )
     };
@@ -307,10 +312,9 @@ fn redraw_containers(
     if let Some(effect_config) = animation_effect {
       if let Err(err) = state.animation_manager.start_animation(
         window,
-        &monitor.native_properties(),
-        is_opening,
-        target_rect.clone(),
         effect_config,
+        target_rect.clone(),
+        &monitor.native_properties(),
         &state.dispatcher,
       ) {
         tracing::warn!("Failed to start animation: {}", err);
