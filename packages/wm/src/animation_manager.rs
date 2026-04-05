@@ -6,7 +6,7 @@ use std::{
 use anyhow::Context;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::{AnimationEffectsConfig, AnimationsConfig};
+use wm_common::{AnimationEffectConfig, AnimationsConfig};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
@@ -48,7 +48,7 @@ impl WindowAnimationState {
   fn new(
     start_rect: Rect,
     target_rect: Rect,
-    config: &AnimationEffectsConfig,
+    config: &AnimationEffectConfig,
     frame_rate: u32,
   ) -> Self {
     Self {
@@ -131,10 +131,12 @@ pub struct AnimationManager {
 }
 
 impl AnimationManager {
-  pub fn new(dispatcher: &Dispatcher) -> Self {
+  pub fn new(
+    // LINT: `dispatcher` is only used on macOS.
+    #[cfg_attr(not(target_os = "macos"), allow(unused_variables))]
+    dispatcher: &Dispatcher,
+  ) -> Self {
     let (tick_tx, tick_rx) = mpsc::unbounded_channel();
-    let displays_have_separate_spaces =
-      dispatcher.displays_have_separate_spaces();
 
     Self {
       animations: HashMap::new(),
@@ -144,7 +146,8 @@ impl AnimationManager {
       context: None,
       tick_task: None,
       #[cfg(target_os = "macos")]
-      displays_have_separate_spaces,
+      displays_have_separate_spaces: dispatcher
+        .displays_have_separate_spaces(),
     }
   }
 
@@ -205,15 +208,16 @@ impl AnimationManager {
       })?
   }
 
-  /// Determines whether a new animation should be started for a window.
-  pub fn should_start_animation(
+  /// Returns the animation effect config if an animation should be
+  /// started for a window, or `None` if no animation is needed.
+  pub fn animation_effect_for_window<'a>(
     &self,
     window: &WindowContainer,
     monitor_properties: &NativeMonitorProperties,
     is_opening: bool,
     target_rect: &Rect,
-    config: &UserConfig,
-  ) -> bool {
+    config: &'a UserConfig,
+  ) -> Option<&'a AnimationEffectConfig> {
     // Skip animation if:
     //  - The window is minimized.
     //  - The window is maximized (macOS only - can't override the OS's
@@ -227,14 +231,30 @@ impl AnimationManager {
       || (!self.is_animating(&window.id())
         && window.is_in_corner(&monitor_properties.working_area))
     {
-      return false;
+      return None;
     }
 
     match (is_opening, &config.value.animations) {
-      (true, AnimationsConfig { window_open: Some(_), .. }) => {
-        !self.animations.contains_key(&window.id())
+      (
+        true,
+        AnimationsConfig {
+          window_open: Some(open_config),
+          ..
+        },
+      ) => {
+        if self.animations.contains_key(&window.id()) {
+          None
+        } else {
+          Some(open_config)
+        }
       }
-      (false, AnimationsConfig { window_move: Some(move_config), .. }) => {
+      (
+        false,
+        AnimationsConfig {
+          window_move: Some(move_config),
+          ..
+        },
+      ) => {
         // If the window is mid-animation, compare the previous animation
         // target to the new target.
         let frame = window.native_properties().frame;
@@ -251,9 +271,13 @@ impl AnimationManager {
         #[allow(clippy::cast_possible_wrap)]
         let threshold_px = move_config.threshold_px as i32;
 
-        distance > threshold_px
+        if distance > threshold_px {
+          Some(&move_config.effect)
+        } else {
+          None
+        }
       }
-      _ => false,
+      _ => None,
     }
   }
 
@@ -265,7 +289,7 @@ impl AnimationManager {
     monitor_properties: &NativeMonitorProperties,
     is_opening: bool,
     target_rect: Rect,
-    config: &UserConfig,
+    effect_config: &AnimationEffectConfig,
     dispatcher: &Dispatcher,
   ) -> anyhow::Result<()> {
     let existing_animation = self.animations.get(&window.id());
@@ -274,40 +298,21 @@ impl AnimationManager {
     // skipped if the animation is behind, the frame rate is variable.
     let frame_rate = monitor_properties.refresh_rate.unwrap_or(60);
 
-    let animation = if is_opening {
-      let open_config = config
-        .value
-        .animations
-        .window_open
-        .as_ref()
-        .context("Window open animation not configured.")?;
-
-      WindowAnimationState::new(
-        target_rect.scale_from_center(0.9),
-        target_rect,
-        open_config,
-        frame_rate,
-      )
+    let start_rect = if is_opening {
+      target_rect.scale_from_center(0.9)
     } else {
-      let move_config = config
-        .value
-        .animations
-        .window_move
-        .as_ref()
-        .context("Window move animation not configured.")?;
-
-      let start_rect = existing_animation.map_or_else(
+      existing_animation.map_or_else(
         || window.native_properties().frame.clone(),
         WindowAnimationState::current_rect,
-      );
-
-      WindowAnimationState::new(
-        start_rect,
-        target_rect,
-        move_config,
-        frame_rate,
       )
     };
+
+    let animation = WindowAnimationState::new(
+      start_rect,
+      target_rect,
+      effect_config,
+      frame_rate,
+    );
 
     self.animations.insert(window.id(), animation.clone());
 

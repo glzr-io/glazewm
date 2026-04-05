@@ -291,28 +291,30 @@ fn redraw_containers(
     let is_opening = is_visible
       && state.pending_sync.open_animation_windows().contains(window);
 
-    // Determine if an animation should be started for this window.
-    // TODO: Change `should_start_animation` to instead return the window
-    // effect to apply.
-    let should_start_animation =
-      !state.pending_sync.should_skip_animations()
-        && state.animation_manager.should_start_animation(
-          window,
-          &monitor.native_properties(),
-          is_opening,
-          &target_rect,
-          config,
-        );
+    // Determine the animation effect to apply, if any.
+    let animation_effect = if state.pending_sync.should_skip_animations() {
+      None
+    } else {
+      state.animation_manager.animation_effect_for_window(
+        window,
+        &monitor.native_properties(),
+        is_opening,
+        &target_rect,
+        config,
+      )
+    };
 
-    if should_start_animation {
-      state.animation_manager.start_animation(
+    if let Some(effect_config) = animation_effect {
+      if let Err(err) = state.animation_manager.start_animation(
         window,
         &monitor.native_properties(),
         is_opening,
         target_rect.clone(),
-        config,
+        effect_config,
         &state.dispatcher,
-      )?;
+      ) {
+        tracing::warn!("Failed to start animation: {}", err);
+      }
     }
 
     tracing::debug!("Updating window position: {window}");
@@ -323,7 +325,7 @@ fn redraw_containers(
       &target_rect,
       *hide_corner,
       &z_order,
-      should_start_animation,
+      animation_effect.is_some(),
       is_visible,
       config,
     ) {

@@ -391,35 +391,50 @@ pub struct WorkspaceConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
-  pub window_move: Option<AnimationEffectsConfig>,
-  pub window_open: Option<AnimationEffectsConfig>,
+  pub window_move: Option<WindowMoveAnimationConfig>,
+  pub window_open: Option<AnimationEffectConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
-pub struct AnimationEffectsConfig {
-  pub duration_ms: u32,
-  pub easing: EasingFunction,
-  pub animation_type: AnimationEffectType,
+pub struct WindowMoveAnimationConfig {
   /// Minimum pixel distance required to trigger movement animations.
   pub threshold_px: u32,
+
+  #[serde(flatten)]
+  pub effect: AnimationEffectConfig,
 }
 
-impl Default for AnimationEffectsConfig {
+impl Default for WindowMoveAnimationConfig {
   fn default() -> Self {
-    AnimationEffectsConfig {
-      duration_ms: 200,
+    WindowMoveAnimationConfig {
       threshold_px: 10,
-      easing: EasingFunction::default(),
-      animation_type: AnimationEffectType::default(),
+      effect: AnimationEffectConfig::default(),
     }
   }
 }
 
-/// Animation effect types that can be combined.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct AnimationEffectConfig {
+  pub effect_type: AnimationEffect,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+}
+
+impl Default for AnimationEffectConfig {
+  fn default() -> Self {
+    AnimationEffectConfig {
+      effect_type: AnimationEffect::default(),
+      duration_ms: 200,
+      easing: EasingFunction::default(),
+    }
+  }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum AnimationEffectType {
+pub enum AnimationEffect {
   /// Slide animation effect.
   #[default]
   Slide,
