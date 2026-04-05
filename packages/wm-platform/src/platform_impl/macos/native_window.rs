@@ -6,14 +6,10 @@ use objc2_app_kit::{
 };
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
-  CFBoolean, CFRetained, CFString, CGPoint, CGRect, CGSize,
+  CFBoolean, CFRetained, CFString, CGPoint, CGSize,
 };
-use objc2_core_graphics::CGImage;
 #[allow(deprecated)]
-use objc2_core_graphics::{
-  CGDisplayIsAsleep, CGError, CGWindowImageOption,
-  CGWindowListCreateImage, CGWindowListOption,
-};
+use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
 
 use crate::{
   platform_impl::{
@@ -386,36 +382,6 @@ impl NativeWindow {
     }
 
     Ok(())
-  }
-
-  /// Implements [`NativeWindowExtMacOs::screen_capture`].
-  #[allow(deprecated)]
-  pub(crate) fn screen_capture(
-    &self,
-  ) -> crate::Result<CFRetained<CGImage>> {
-    // Use `CGRectNull` to capture the minimum rectangle that encloses the
-    // window. See: https://developer.apple.com/documentation/coregraphics/cgwindowlistcreateimage(_:_:_:_:)
-    let cg_rect_null = CGRect::new(
-      CGPoint {
-        x: f64::INFINITY,
-        y: f64::INFINITY,
-      },
-      CGSize::ZERO,
-    );
-
-    // NOTE: `CGWindowListCreateImage` is deprecated, but functional.
-    // ScreenCaptureKit is recommended instead, see:
-    // https://developer.apple.com/documentation/screencapturekit/scwindow.
-    CGWindowListCreateImage(
-      cg_rect_null,
-      CGWindowListOption::OptionIncludingWindow,
-      self.id.0,
-      CGWindowImageOption::BestResolution
-        .union(CGWindowImageOption::BoundsIgnoreFraming),
-    )
-    .ok_or(crate::Error::Platform(
-      "Failed to create window screenshot.".to_string(),
-    ))
   }
 }
 

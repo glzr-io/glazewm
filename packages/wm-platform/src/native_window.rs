@@ -2,8 +2,6 @@
 use objc2_application_services::AXUIElement;
 #[cfg(target_os = "macos")]
 use objc2_core_foundation::{CFBoolean, CFRetained, CFString};
-#[cfg(target_os = "macos")]
-use objc2_core_graphics::CGImage;
 #[cfg(target_os = "windows")]
 use windows::Win32::{
   Foundation::HWND,
@@ -100,14 +98,6 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
-
-  /// Captures a screenshot of the window.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  #[allow(deprecated)]
-  fn screen_capture(&self) -> crate::Result<CFRetained<CGImage>>;
 }
 
 #[cfg(target_os = "macos")]
@@ -146,10 +136,6 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
-  }
-
-  fn screen_capture(&self) -> crate::Result<CFRetained<CGImage>> {
-    self.inner.screen_capture()
   }
 }
 

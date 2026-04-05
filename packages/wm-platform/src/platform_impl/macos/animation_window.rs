@@ -5,12 +5,16 @@ use objc2_app_kit::{
   NSBackingStoreType, NSColor, NSWindow, NSWindowOrderingMode,
   NSWindowStyleMask,
 };
+use objc2_core_foundation::{CFRetained, CGPoint, CGRect, CGSize};
 use objc2_core_graphics::CGImage;
+#[allow(deprecated)]
+use objc2_core_graphics::{
+  CGWindowImageOption, CGWindowListCreateImage, CGWindowListOption,
+};
 use objc2_quartz_core::{CALayer, CATransaction};
 
 use crate::{
-  Dispatcher, NativeWindow, NativeWindowExtMacOs, OpacityValue, Rect,
-  ThreadBound,
+  Dispatcher, NativeWindow, OpacityValue, Rect, ThreadBound, WindowId,
 };
 
 /// Shared animation context for macOS.
@@ -91,7 +95,7 @@ impl AnimationWindow {
       i32,
     )>;
 
-    let cg_image = window.screen_capture()?;
+    let captured = CapturedFrame::new(window.id())?;
 
     let (ns_window, layer, display_height) =
       dispatcher.dispatch_sync(|| -> DispatchResult {
@@ -142,7 +146,8 @@ impl AnimationWindow {
         // SAFETY: `CGImageRef` is accepted by `CALayer::contents`.
         unsafe {
           layer.setContents(Some(
-            &*std::ptr::from_ref::<CGImage>(&cg_image).cast::<AnyObject>(),
+            &*std::ptr::from_ref::<CGImage>(&captured.cg_image)
+              .cast::<AnyObject>(),
           ));
         };
 
@@ -153,10 +158,10 @@ impl AnimationWindow {
         // containing the window.
         #[allow(clippy::cast_precision_loss)]
         let image_width =
-          CGImage::width(Some(&cg_image)) as f32 / scale_factor;
+          CGImage::width(Some(&captured.cg_image)) as f32 / scale_factor;
         #[allow(clippy::cast_precision_loss)]
         let image_height =
-          CGImage::height(Some(&cg_image)) as f32 / scale_factor;
+          CGImage::height(Some(&captured.cg_image)) as f32 / scale_factor;
 
         CATransaction::begin();
         CATransaction::setDisableActions(true);
@@ -256,5 +261,42 @@ impl AnimationWindow {
     if let Some(opacity) = opacity {
       layer.setOpacity(opacity.0);
     }
+  }
+}
+
+/// Captured screenshot of a window via `CGWindowListCreateImage`.
+struct CapturedFrame {
+  cg_image: CFRetained<CGImage>,
+}
+
+impl CapturedFrame {
+  /// Captures a single frame of the window with the given ID.
+  #[allow(deprecated)]
+  fn new(window_id: WindowId) -> crate::Result<Self> {
+    // Use `CGRectNull` to capture the minimum rectangle that encloses the
+    // window. See: https://developer.apple.com/documentation/coregraphics/cgwindowlistcreateimage(_:_:_:_:)
+    let cg_rect_null = CGRect::new(
+      CGPoint {
+        x: f64::INFINITY,
+        y: f64::INFINITY,
+      },
+      CGSize::ZERO,
+    );
+
+    // NOTE: `CGWindowListCreateImage` is deprecated, but functional.
+    // ScreenCaptureKit is recommended instead, see:
+    // https://developer.apple.com/documentation/screencapturekit/scwindow
+    let image = CGWindowListCreateImage(
+      cg_rect_null,
+      CGWindowListOption::OptionIncludingWindow,
+      window_id.0,
+      CGWindowImageOption::BestResolution
+        .union(CGWindowImageOption::BoundsIgnoreFraming),
+    )
+    .ok_or(crate::Error::Platform(
+      "Failed to create window screenshot.".to_string(),
+    ))?;
+
+    Ok(Self { cg_image: image })
   }
 }
