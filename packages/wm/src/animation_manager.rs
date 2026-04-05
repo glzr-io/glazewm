@@ -8,8 +8,8 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::AnimationEffectsConfig;
 use wm_platform::{
-  AnimationContext, AnimationWindow, Dispatcher, EasingFunction,
-  OpacityValue, Rect,
+  AnimationContext, AnimationWindow, Dispatcher, DispatcherExtMacOs,
+  EasingFunction, OpacityValue, Rect,
 };
 
 use crate::{
@@ -122,11 +122,16 @@ pub struct AnimationManager {
 
   /// Handle to the running tick task, if any.
   tick_task: Option<tokio::task::JoinHandle<()>>,
+
+  /// Whether displays have separate spaces.
+  displays_have_separate_spaces: bool,
 }
 
 impl AnimationManager {
-  pub fn new() -> Self {
+  pub fn new(dispatcher: &Dispatcher) -> Self {
     let (tick_tx, tick_rx) = mpsc::unbounded_channel();
+    let displays_have_separate_spaces =
+      dispatcher.displays_have_separate_spaces();
 
     Self {
       animations: HashMap::new(),
@@ -135,6 +140,7 @@ impl AnimationManager {
       windows: HashMap::new(),
       context: None,
       tick_task: None,
+      displays_have_separate_spaces,
     }
   }
 

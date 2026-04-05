@@ -428,7 +428,7 @@ fn reposition_window(
     window.native().resize(rect.width(), rect.height())?;
   } else {
     #[cfg(target_os = "macos")]
-    window.native().set_frame(rect)?;
+    window.native().set_frame(&rect)?;
 
     #[cfg(target_os = "windows")]
     {

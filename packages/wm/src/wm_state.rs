@@ -89,9 +89,9 @@ impl WmState {
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
+      animation_manager: AnimationManager::new(&dispatcher),
       dispatcher,
       pending_sync: PendingSync::default(),
-      animation_manager: AnimationManager::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
