@@ -13,3 +13,7 @@ out/
 # IDE files
 .vs/
 .idea/
+
+# vi files
+.*.swp
+.*.swo
