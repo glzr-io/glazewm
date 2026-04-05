@@ -20,6 +20,9 @@ tracing = { workspace = true }
 serde = { workspace = true }
 regex = { workspace = true }
 
+[features]
+test_utils = []
+
 [dev-dependencies]
 libtest-mimic-collect = "0.3.2"
 
