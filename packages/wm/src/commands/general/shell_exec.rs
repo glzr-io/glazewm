@@ -16,6 +16,7 @@ pub fn shell_exec(
   hide_window: bool,
   state: &WmState,
 ) -> anyhow::Result<()> {
+  let instant = std::time::Instant::now();
   let (program, args) = parse_command(command, state)?;
   tracing::info!(
     "Parsed command program: '{}', args: '{}'.",
@@ -60,6 +61,11 @@ pub fn shell_exec(
       accessible from your shell. Error: {err}",
     )
   })?;
+
+  tracing::warn!(
+    "Shell exec completed in {}ms.",
+    instant.elapsed().as_millis()
+  );
 
   Ok(())
 }
