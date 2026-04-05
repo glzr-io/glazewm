@@ -6,7 +6,7 @@ use std::{
 use anyhow::Context;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::AnimationEffectsConfig;
+use wm_common::{AnimationEffectsConfig, AnimationsConfig};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
@@ -230,11 +230,11 @@ impl AnimationManager {
       return false;
     }
 
-    match is_opening {
-      true if config.value.animations.window_open.enabled => {
+    match (is_opening, &config.value.animations) {
+      (true, AnimationsConfig { window_open: Some(_), .. }) => {
         !self.animations.contains_key(&window.id())
       }
-      false if config.value.animations.window_move.enabled => {
+      (false, AnimationsConfig { window_move: Some(move_config), .. }) => {
         // If the window is mid-animation, compare the previous animation
         // target to the new target.
         let frame = window.native_properties().frame;
@@ -249,8 +249,7 @@ impl AnimationManager {
           + (prev_rect.height() - target_rect.height()).abs();
 
         #[allow(clippy::cast_possible_wrap)]
-        let threshold_px =
-          config.value.animations.window_move.threshold_px as i32;
+        let threshold_px = move_config.threshold_px as i32;
 
         distance > threshold_px
       }
@@ -276,13 +275,27 @@ impl AnimationManager {
     let frame_rate = monitor_properties.refresh_rate.unwrap_or(60);
 
     let animation = if is_opening {
+      let open_config = config
+        .value
+        .animations
+        .window_open
+        .as_ref()
+        .context("Window open animation not configured.")?;
+
       WindowAnimationState::new(
         target_rect.scale_from_center(0.9),
         target_rect,
-        &config.value.animations.window_open,
+        open_config,
         frame_rate,
       )
     } else {
+      let move_config = config
+        .value
+        .animations
+        .window_move
+        .as_ref()
+        .context("Window move animation not configured.")?;
+
       let start_rect = existing_animation.map_or_else(
         || window.native_properties().frame.clone(),
         WindowAnimationState::current_rect,
@@ -291,7 +304,7 @@ impl AnimationManager {
       WindowAnimationState::new(
         start_rect,
         target_rect,
-        &config.value.animations.window_move,
+        move_config,
         frame_rate,
       )
     };

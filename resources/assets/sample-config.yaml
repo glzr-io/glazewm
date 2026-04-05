@@ -1,7 +1,6 @@
 animations:
   # Animation settings for window movement (tiling, resizing, etc).
   window_move:
-    enabled: true
     duration_ms: 150
     # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
     # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic'
@@ -14,7 +13,6 @@ animations:
 
   # Animation settings for when windows open.
   window_open:
-    enabled: true
     duration_ms: 200
     easing: "ease_out"
     # Type of animation effects to apply.

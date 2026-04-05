@@ -391,14 +391,13 @@ pub struct WorkspaceConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
-  pub window_move: AnimationEffectsConfig,
-  pub window_open: AnimationEffectsConfig,
+  pub window_move: Option<AnimationEffectsConfig>,
+  pub window_open: Option<AnimationEffectsConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationEffectsConfig {
-  pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
   pub animation_type: AnimationEffectType,
@@ -409,7 +408,6 @@ pub struct AnimationEffectsConfig {
 impl Default for AnimationEffectsConfig {
   fn default() -> Self {
     AnimationEffectsConfig {
-      enabled: false,
       duration_ms: 200,
       threshold_px: 10,
       easing: EasingFunction::default(),
