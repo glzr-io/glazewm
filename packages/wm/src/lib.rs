@@ -13,3 +13,6 @@ pub mod wm_state;
 
 #[cfg(test)]
 pub mod test_utils;
+
+#[cfg(test)]
+mod test;
