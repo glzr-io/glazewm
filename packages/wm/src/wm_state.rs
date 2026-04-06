@@ -68,13 +68,13 @@ pub struct WmState {
   pub is_focus_synced: bool,
 
   /// Whether the initial state has been populated.
-  has_initialized: bool,
+  pub(crate) has_initialized: bool,
 
   /// Sender for emitting WM-related events.
-  event_tx: mpsc::UnboundedSender<WmEvent>,
+  pub(crate) event_tx: mpsc::UnboundedSender<WmEvent>,
 
   /// Sender for gracefully shutting down the WM.
-  exit_tx: mpsc::UnboundedSender<()>,
+  pub(crate) exit_tx: mpsc::UnboundedSender<()>,
 }
 
 impl WmState {
@@ -707,6 +707,42 @@ impl Drop for WmState {
           .native()
           .set_transparency(&OpacityValue::from_alpha(u8::MAX));
       }
+    }
+  }
+}
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+  use wm_common::BindingModeConfig;
+  use wm_platform::Dispatcher;
+
+  use super::{test_utils::mocks::*, *};
+
+  #[bon]
+  impl WmState {
+    #[builder]
+    #[allow(dead_code)]
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn mock(
+      #[builder(default = Dispatcher::mock())] dispatcher: Dispatcher,
+      #[builder(default = vec![])] monitors: Vec<Monitor>,
+      #[builder(default = vec![])] binding_modes: Vec<BindingModeConfig>,
+      #[builder(default = false)] is_paused: bool,
+      #[builder(default = false)] has_initialized: bool,
+    ) -> Self {
+      build_mock_wm_state(
+        dispatcher,
+        &monitors,
+        binding_modes,
+        is_paused,
+        has_initialized,
+      )
     }
   }
 }

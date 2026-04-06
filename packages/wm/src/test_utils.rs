@@ -6,19 +6,23 @@
 #[cfg(test)]
 #[allow(dead_code)]
 pub(crate) mod mocks {
+  use tokio::sync::mpsc;
   use wm_common::{
-    GapsConfig, TilingDirection, WindowState, WorkspaceConfig,
+    BindingModeConfig, GapsConfig, TilingDirection, WindowState,
+    WorkspaceConfig,
   };
-  use wm_platform::{Display, NativeWindow, Rect, RectDelta};
+  use wm_platform::{Dispatcher, Display, NativeWindow, Rect, RectDelta};
 
   use crate::{
     commands::container::attach_container,
     models::{
       Container, Monitor, NativeMonitorProperties, NativeWindowProperties,
-      NonTilingWindow, SplitContainer, TilingContainer, TilingWindow,
-      Workspace,
+      NonTilingWindow, RootContainer, SplitContainer, TilingContainer,
+      TilingWindow, Workspace,
     },
+    pending_sync::PendingSync,
     traits::{CommonGetters, TilingSizeGetters},
+    wm_state::WmState,
   };
 
   /// Default monitor dimensions (1680x1050).
@@ -221,5 +225,45 @@ pub(crate) mod mocks {
       vec![],
       None,
     )
+  }
+
+  // ===== WM STATE =====
+
+  pub(crate) fn build_mock_wm_state(
+    dispatcher: Dispatcher,
+    monitors: &[Monitor],
+    binding_modes: Vec<BindingModeConfig>,
+    is_paused: bool,
+    has_initialized: bool,
+  ) -> WmState {
+    let (event_tx, _) = mpsc::unbounded_channel();
+    let (exit_tx, _) = mpsc::unbounded_channel();
+
+    let root_container = RootContainer::new();
+
+    for monitor in monitors {
+      attach_container(
+        &monitor.clone().into(),
+        &root_container.clone().into(),
+        None,
+      )
+      .unwrap();
+    }
+
+    WmState {
+      root_container,
+      dispatcher,
+      pending_sync: PendingSync::default(),
+      recent_workspace_name: None,
+      prev_effects_window: None,
+      unmanaged_or_minimized_timestamp: None,
+      binding_modes,
+      ignored_windows: Vec::new(),
+      is_paused,
+      is_focus_synced: false,
+      has_initialized,
+      event_tx,
+      exit_tx,
+    }
   }
 }
