@@ -273,8 +273,9 @@ impl AnimationManager {
           + (prev_rect.width() - target_rect.width()).abs()
           + (prev_rect.height() - target_rect.height()).abs();
 
-        #[allow(clippy::cast_possible_wrap)]
-        let threshold_px = move_config.threshold_px as i32;
+        // TODO: Validate config to only allow pixel values.
+        #[allow(clippy::cast_possible_truncation)]
+        let threshold_px = move_config.trigger_threshold.amount as i32;
 
         if distance > threshold_px {
           Some(&move_config.effect)

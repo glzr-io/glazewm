@@ -398,8 +398,8 @@ pub struct AnimationsConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WindowMoveAnimationConfig {
-  /// Minimum pixel distance required to trigger movement animations.
-  pub threshold_px: u32,
+  /// Minimum distance to trigger movement animations.
+  pub trigger_threshold: LengthValue,
 
   #[serde(flatten)]
   pub effect: AnimationEffectConfig,
@@ -408,7 +408,7 @@ pub struct WindowMoveAnimationConfig {
 impl Default for WindowMoveAnimationConfig {
   fn default() -> Self {
     WindowMoveAnimationConfig {
-      threshold_px: 10,
+      trigger_threshold: LengthValue::from_px(10),
       effect: AnimationEffectConfig::default(),
     }
   }

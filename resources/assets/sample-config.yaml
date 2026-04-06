@@ -1,24 +1,3 @@
-animations:
-  # Animation settings for window movement (tiling, resizing, etc).
-  window_move:
-    duration_ms: 150
-    # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
-    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic'
-    easing: "ease_in_out"
-    # Minimum pixel distance required to trigger movement animations.
-    # Helps prevent animations from starting on very small position changes.
-    # Increase this value on high-DPI displays to reduce sensitivity.
-    # Default: 10
-    threshold_px: 10
-
-  # Animation settings for when windows open.
-  window_open:
-    duration_ms: 200
-    easing: "ease_out"
-    # Type of animation effects to apply.
-    # Options: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
-    animation_type: "fade_slide_scale"
-
 general:
   # Commands to run when the WM has started. This is useful for running a
   # script or launching another application.
@@ -74,6 +53,20 @@ gaps:
     right: "20px"
     bottom: "20px"
     left: "20px"
+
+# *Experimental* animation support!
+# Uncomment to enable window move/open animations.
+animations:
+  # window_move:
+  #   duration_ms: 180
+  #   # Allowed values: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
+  #   # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic'
+  #   easing: "ease_in_out"
+  #   # Minimum distance to trigger movement animations.
+  #   trigger_threshold: "10px"
+  # window_open:
+  #   duration_ms: 180
+  #   easing: "ease_out"
 
 window_effects:
   # Visual effects to apply to the focused window.
