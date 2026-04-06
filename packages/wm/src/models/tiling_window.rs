@@ -140,3 +140,38 @@ impl_common_getters!(TilingWindow);
 impl_tiling_size_getters!(TilingWindow);
 impl_position_getters_as_resizable!(TilingWindow);
 impl_window_getters!(TilingWindow);
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "../test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+  use wm_platform::NativeWindow;
+
+  use super::{test_utils::mocks::*, *};
+
+  #[bon]
+  impl TilingWindow {
+    #[builder]
+    pub fn mock(
+      #[builder(default = 1.0)] tiling_size: f32,
+      #[builder(default = String::new())] title: String,
+      #[builder(default = String::new())] process_name: String,
+      #[builder(default = default_window_rect())] floating_placement: Rect,
+      #[builder(default = default_gaps_config())] gaps_config: GapsConfig,
+      #[builder(default = NativeWindow::mock())] native: NativeWindow,
+    ) -> Self {
+      build_mock_tiling_window(
+        tiling_size,
+        title,
+        process_name,
+        floating_placement,
+        gaps_config,
+        native,
+      )
+    }
+  }
+}

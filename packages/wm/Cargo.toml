@@ -7,6 +7,9 @@ license = "GPL-3"
 edition = "2021"
 default-run = "glazewm"
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name = "glazewm"
 path = "src/main.rs"
@@ -42,3 +45,7 @@ wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
 wm-macros = { workspace = true }
 wm-platform = { path = "../wm-platform" }
+
+[dev-dependencies]
+bon = "3"
+wm-platform = { path = "../wm-platform", features = ["test_utils"] }

@@ -780,6 +780,7 @@ impl WindowManager {
   }
 
   /// Runs cleanup tasks when the WM is exiting.
+  #[allow(dead_code)]
   pub(crate) fn cleanup(
     &mut self,
     config: &mut UserConfig,

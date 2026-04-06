@@ -197,3 +197,41 @@ impl std::fmt::Display for Workspace {
     )
   }
 }
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "../test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+
+  use super::{test_utils::mocks::*, *};
+  use crate::models::{NonTilingWindow, TilingContainer};
+
+  #[bon]
+  impl Workspace {
+    #[builder]
+    pub fn mock(
+      #[builder(default = "1".to_string())] name: String,
+      display_name: Option<String>,
+      #[builder(default = TilingDirection::Horizontal)]
+      tiling_direction: TilingDirection,
+      #[builder(default = default_gaps_config())] gaps_config: GapsConfig,
+      #[builder(default = vec![])] tiling_containers: Vec<TilingContainer>,
+      #[builder(default = vec![])] non_tiling_windows: Vec<
+        NonTilingWindow,
+      >,
+    ) -> Self {
+      build_mock_workspace(
+        name,
+        display_name,
+        tiling_direction,
+        gaps_config,
+        tiling_containers,
+        non_tiling_windows,
+      )
+    }
+  }
+}

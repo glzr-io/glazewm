@@ -34,3 +34,41 @@ impl TryFrom<&NativeWindow> for NativeWindowProperties {
     })
   }
 }
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "../test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+
+  use super::{test_utils::mocks::*, *};
+
+  #[bon]
+  impl NativeWindowProperties {
+    #[builder]
+    pub fn mock(
+      #[builder(default = String::new())] title: String,
+      #[builder(default = String::new())] process_name: String,
+      #[builder(default = default_window_rect())] frame: Rect,
+      #[builder(default = false)] is_minimized: bool,
+      #[builder(default = false)] is_maximized: bool,
+      #[builder(default = true)] is_resizable: bool,
+    ) -> Self {
+      Self {
+        title,
+        process_name,
+        frame,
+        is_minimized,
+        is_maximized,
+        is_resizable,
+        #[cfg(target_os = "windows")]
+        class_name: String::new(),
+        #[cfg(target_os = "windows")]
+        shadow_borders: default_border_delta(),
+      }
+    }
+  }
+}

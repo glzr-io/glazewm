@@ -166,3 +166,38 @@ impl PositionGetters for NonTilingWindow {
     }
   }
 }
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "../test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+  use wm_common::FloatingStateConfig;
+  use wm_platform::NativeWindow;
+
+  use super::{test_utils::mocks::*, *};
+
+  #[bon]
+  impl NonTilingWindow {
+    #[builder]
+    pub fn mock(
+      #[builder(default = String::new())] title: String,
+      #[builder(default = String::new())] process_name: String,
+      #[builder(default = default_window_rect())] floating_placement: Rect,
+      #[builder(default = WindowState::Floating(FloatingStateConfig::default()))]
+      state: WindowState,
+      #[builder(default = NativeWindow::mock())] native: NativeWindow,
+    ) -> Self {
+      build_mock_non_tiling_window(
+        title,
+        process_name,
+        floating_placement,
+        state,
+        native,
+      )
+    }
+  }
+}

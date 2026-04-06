@@ -84,3 +84,35 @@ impl_common_getters!(SplitContainer);
 impl_tiling_size_getters!(SplitContainer);
 impl_tiling_direction_getters!(SplitContainer);
 impl_position_getters_as_resizable!(SplitContainer);
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "../test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+
+  use super::{test_utils::mocks::*, *};
+  use crate::models::TilingContainer;
+
+  #[bon]
+  impl SplitContainer {
+    #[builder]
+    pub fn mock(
+      #[builder(default = TilingDirection::Horizontal)]
+      tiling_direction: TilingDirection,
+      #[builder(default = default_gaps_config())] gaps_config: GapsConfig,
+      #[builder(default = true)] distribute_tiling_sizes: bool,
+      #[builder(default = vec![])] tiling_containers: Vec<TilingContainer>,
+    ) -> Self {
+      build_mock_split_container(
+        tiling_direction,
+        gaps_config,
+        distribute_tiling_sizes,
+        tiling_containers,
+      )
+    }
+  }
+}

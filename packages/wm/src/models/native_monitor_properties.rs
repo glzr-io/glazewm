@@ -40,3 +40,43 @@ impl NativeMonitorProperties {
     })
   }
 }
+
+#[cfg(test)]
+#[allow(clippy::duplicate_mod)]
+#[path = "../test_utils.rs"]
+mod test_utils;
+
+#[cfg(test)]
+mod mock_impl {
+  use bon::bon;
+
+  use super::{test_utils::mocks::*, *};
+
+  #[bon]
+  impl NativeMonitorProperties {
+    #[builder]
+    pub fn mock(
+      #[builder(default = String::new())] device_name: String,
+      #[builder(default = default_bounds())] bounds: Rect,
+      #[builder(default = default_working_area())] working_area: Rect,
+      #[builder(default = DEFAULT_DPI)] dpi: u32,
+      #[builder(default = DEFAULT_SCALE_FACTOR)] scale_factor: f32,
+    ) -> Self {
+      Self {
+        device_name,
+        bounds,
+        working_area,
+        dpi,
+        scale_factor,
+        #[cfg(target_os = "macos")]
+        device_uuid: String::new(),
+        #[cfg(target_os = "windows")]
+        handle: 0,
+        #[cfg(target_os = "windows")]
+        hardware_id: None,
+        #[cfg(target_os = "windows")]
+        device_path: None,
+      }
+    }
+  }
+}
