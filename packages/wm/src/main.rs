@@ -46,6 +46,8 @@ mod wm;
 mod wm_state;
 
 #[cfg(test)]
+mod test;
+#[cfg(test)]
 mod test_utils;
 
 /// Main entry point for the application.
