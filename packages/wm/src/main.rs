@@ -269,6 +269,12 @@ async fn start_wm(
           )?;
         }
 
+        // Restart the keyboard hook on config reload to recover from
+        // a potentially dead CGEventTap.
+        if matches!(wm_event, WmEvent::UserConfigChanged { .. }) {
+          keybinding_listener.restart(dispatcher)?;
+        }
+
         if let Err(err) = ipc_server.process_event(wm_event) {
           tracing::error!("{:?}", err);
         }
