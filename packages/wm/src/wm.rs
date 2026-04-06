@@ -779,7 +779,13 @@ impl WindowManager {
       InvokeCommand::ToggleMonocle => {
         let workspace =
           subject_container.workspace().context("No workspace.")?;
-        workspace.set_monocle(!workspace.is_monocle());
+        let new_monocle_state = !workspace.is_monocle();
+        workspace.set_monocle(new_monocle_state);
+
+        if new_monocle_state {
+          exit_fullscreen_windows(&workspace, state, config)?;
+        }
+
         state
           .pending_sync
           .queue_container_to_redraw(workspace.clone());
@@ -789,6 +795,7 @@ impl WindowManager {
         let workspace =
           subject_container.workspace().context("No workspace.")?;
         workspace.set_monocle(true);
+        exit_fullscreen_windows(&workspace, state, config)?;
         state
           .pending_sync
           .queue_container_to_redraw(workspace.clone());
@@ -830,4 +837,36 @@ impl WindowManager {
       }
     }
   }
+}
+
+/// Changes all fullscreen windows in the workspace to normal state.
+///
+/// This is needed when enabling monocle mode to ensure consistent window
+/// behavior. Fullscreen windows would otherwise behave differently than
+/// other windows in monocle mode.
+fn exit_fullscreen_windows(
+  workspace: &crate::models::Workspace,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  use crate::traits::CommonGetters;
+
+  let fullscreen_windows: Vec<_> = workspace
+    .self_and_descendants()
+    .filter_map(|container| container.as_window_container().ok())
+    .filter(|window| matches!(window.state(), WindowState::Fullscreen(_)))
+    .collect();
+
+  for window in fullscreen_windows {
+    let target_state = window.toggled_state(WindowState::Tiling, config);
+    if let Err(err) =
+      update_window_state(window, target_state, state, config)
+    {
+      if !err.to_string().contains("Window has no workspace.") {
+        return Err(err);
+      }
+    }
+  }
+
+  Ok(())
 }
