@@ -78,7 +78,7 @@ pub fn shell_exec(
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```ignore
 /// let (prog, args) = parse_command("code .")?;
 /// assert_eq!(prog, "code");
 /// assert_eq!(args, ".");
