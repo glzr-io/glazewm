@@ -72,6 +72,10 @@ pub struct KeybindingListener {
   /// A receiver channel for outgoing keybinding events.
   event_rx: mpsc::UnboundedReceiver<KeybindingEvent>,
 
+  /// Sender half of the event channel, retained for use when
+  /// restarting the keyboard hook.
+  event_tx: mpsc::UnboundedSender<KeybindingEvent>,
+
   /// A map of keybindings to their trigger key.
   ///
   /// The trigger key is the final key in a keybinding. For example, in
@@ -102,12 +106,13 @@ impl KeybindingListener {
     let keyboard_hook = Self::create_keyboard_hook(
       keybinding_map.clone(),
       enabled.clone(),
-      event_tx,
+      event_tx.clone(),
       dispatcher,
     )?;
 
     Ok(Self {
       event_rx,
+      event_tx,
       keybinding_map,
       enabled,
       keyboard_hook,
@@ -139,6 +144,23 @@ impl KeybindingListener {
   /// Terminates the keybinding listener.
   pub fn terminate(&mut self) -> crate::Result<()> {
     self.keyboard_hook.terminate()
+  }
+
+  /// Restarts the underlying keyboard hook.
+  ///
+  /// Useful for recovering from a macOS `CGEventTap` being disabled by
+  /// the system.
+  pub fn restart(&mut self, dispatcher: &Dispatcher) -> crate::Result<()> {
+    let _ = self.keyboard_hook.terminate();
+
+    self.keyboard_hook = Self::create_keyboard_hook(
+      self.keybinding_map.clone(),
+      self.enabled.clone(),
+      self.event_tx.clone(),
+      dispatcher,
+    )?;
+
+    Ok(())
   }
 
   /// Creates and starts the keyboard hook with the given callback.

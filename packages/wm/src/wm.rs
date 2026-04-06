@@ -52,6 +52,7 @@ use crate::{
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
+  pub restart_keybinding_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
@@ -62,13 +63,17 @@ impl WindowManager {
   ) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
+    let (restart_keybinding_tx, restart_keybinding_rx) =
+      mpsc::unbounded_channel();
 
-    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
+    let mut state =
+      WmState::new(dispatcher, event_tx, exit_tx, restart_keybinding_tx);
     state.populate(config)?;
 
     Ok(Self {
       event_rx,
       exit_rx,
+      restart_keybinding_rx,
       state,
     })
   }
@@ -222,7 +227,10 @@ impl WindowManager {
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
     // No-op if WM is currently paused.
-    if state.is_paused && *command != InvokeCommand::WmTogglePause {
+    if state.is_paused
+      && *command != InvokeCommand::WmTogglePause
+      && *command != InvokeCommand::WmRestartKeybindingListener
+    {
       return Ok(());
     }
 
@@ -764,6 +772,9 @@ impl WindowManager {
         enable_binding_mode(name, state, config)
       }
       InvokeCommand::WmExit => state.emit_exit(),
+      InvokeCommand::WmRestartKeybindingListener => {
+        state.emit_restart_keybinding()
+      }
       InvokeCommand::WmRedraw => {
         state
           .pending_sync

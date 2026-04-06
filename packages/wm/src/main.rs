@@ -274,6 +274,11 @@ async fn start_wm(
 
         Ok(())
       },
+      Some(()) = wm.restart_keybinding_rx.recv() => {
+        tracing::warn!("Restarting keybinding listener.");
+        keybinding_listener.restart(dispatcher)?;
+        Ok(())
+      },
       Some(()) = tray.config_reload_rx.recv() => {
         wm.process_commands(
           &vec![InvokeCommand::WmReloadConfig],
