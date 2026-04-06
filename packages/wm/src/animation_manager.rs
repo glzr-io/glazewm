@@ -172,18 +172,19 @@ impl AnimationManager {
   }
 
   /// Destroys the animation window and clears animation state.
-  pub fn destroy_animation(
-    &mut self,
-    window_id: &Uuid,
-  ) -> anyhow::Result<()> {
+  pub fn destroy_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
     self.update_tick_rate();
 
     if let Some(anim_window) = self.windows.remove(window_id) {
-      anim_window.destroy()?;
+      std::thread::spawn(|| {
+        // Briefly keep animation windows up to hide flicker during sync.
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        if let Err(err) = anim_window.destroy() {
+          tracing::warn!("Failed to destroy animation window: {err}");
+        }
+      });
     }
-
-    Ok(())
   }
 
   /// Updates all active animations during a single tick.

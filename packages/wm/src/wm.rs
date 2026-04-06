@@ -175,13 +175,8 @@ impl WindowManager {
 
       platform_sync(&mut self.state, config)?;
 
-      // Briefly keep animation windows up to hide flicker during sync.
-      // TODO: This shouldn't block the thread.
-      std::thread::sleep(std::time::Duration::from_millis(20));
-
       for completed_id in &completed_ids {
-        let _ =
-          self.state.animation_manager.destroy_animation(completed_id);
+        self.state.animation_manager.destroy_animation(completed_id);
       }
     }
 
