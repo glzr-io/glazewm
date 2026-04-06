@@ -270,6 +270,7 @@ pub fn handle_window_moved_or_resized(
     if is_maximized || should_fullscreen {
       if let Some(workspace) = window.workspace() {
         if workspace.is_monocle() {
+          #[cfg(target_os = "windows")]
           let _ = window.native().restore(None);
           return Ok(());
         }
