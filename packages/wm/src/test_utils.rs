@@ -4,11 +4,12 @@
 //! mock builders in the model modules.
 
 use bon::bon;
+use tokio::sync::mpsc;
 use wm_common::{
   FloatingStateConfig, GapsConfig, TilingDirection, WindowState,
   WorkspaceConfig,
 };
-use wm_platform::{Display, NativeWindow, Rect, RectDelta};
+use wm_platform::{Dispatcher, Display, NativeWindow, Rect, RectDelta};
 
 use crate::{
   commands::container::attach_container,
@@ -18,6 +19,7 @@ use crate::{
     Workspace,
   },
   traits::TilingSizeGetters,
+  wm_state::WmState,
 };
 
 pub const MOCK_MONITOR_WIDTH: i32 = 1680;
@@ -221,6 +223,32 @@ impl TilingWindow {
     window.set_tiling_size(tiling_size);
 
     window
+  }
+}
+
+#[bon]
+impl WmState {
+  #[builder]
+  #[allow(clippy::needless_pass_by_value)]
+  pub fn mock(
+    #[builder(default = Dispatcher::mock())] dispatcher: Dispatcher,
+    #[builder(default = vec![])] monitors: Vec<Monitor>,
+  ) -> Self {
+    let (event_tx, _) = mpsc::unbounded_channel();
+    let (exit_tx, _) = mpsc::unbounded_channel();
+
+    let state = WmState::new(dispatcher, event_tx, exit_tx);
+
+    for monitor in monitors {
+      attach_container(
+        &monitor.clone().into(),
+        &state.root_container.clone().into(),
+        None,
+      )
+      .unwrap();
+    }
+
+    state
   }
 }
 
