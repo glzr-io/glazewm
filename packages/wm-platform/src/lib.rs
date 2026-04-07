@@ -17,6 +17,9 @@ mod single_instance;
 mod thread_bound;
 mod window_listener;
 
+#[cfg(feature = "test_utils")]
+pub mod test_utils;
+
 pub use dispatcher::*;
 pub use display::*;
 pub use display_listener::*;
