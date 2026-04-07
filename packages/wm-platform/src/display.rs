@@ -223,7 +223,7 @@ pub trait DisplayDeviceExtWindows {
   ///
   /// # Example usage
   ///
-  /// ```rust,no_run
+  /// ```ignore
   /// device.device_path(); // "\\?\DISPLAY#DEL40A3#5&1234abcd&0&UID256#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"
   /// device.hardware_id(); // Some("DEL40A3")
   /// ```

@@ -28,7 +28,8 @@ pub fn handle_window_hidden(
     // Unmanage the window if it's not in a display state transition. Also,
     // since window events are not 100% guaranteed to be in correct order,
     // we need to ignore events where the window is not actually hidden.
-    if window.display_state() == DisplayState::Shown
+    if (config.value.general.hide_method == HideMethod::PlaceInCorner
+      || window.display_state() == DisplayState::Shown)
       && !window.native().is_visible().unwrap_or(false)
     {
       unmanage_window(window, state)?;

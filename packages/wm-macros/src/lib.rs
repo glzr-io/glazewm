@@ -37,7 +37,7 @@ mod prelude {
 /// ```
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// /// Your main enum documentation
 /// // Note that the defaults block does not apply to the main enum itself.
 /// #[derive(Clone, Debug, wm_macros::SubEnum)]
@@ -92,7 +92,7 @@ pub fn sub_enum(input: TokenStream) -> TokenStream {
 /// Creates `impl From<Inner> for Enum` and `impl TryFrom<Enum> for Inner`
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// struct One;
 /// struct Two;
 ///

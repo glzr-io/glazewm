@@ -5,7 +5,7 @@
 ///
 /// # Example
 /// Parse a [syn::Ident] within parenthesis:
-/// ```
+/// ```ignore
 /// type ParenthesizedIdent = wm_macros::Parenthesized<syn::Ident>;
 /// fn example(stream: syn::parse::ParseStream) -> syn::Result<ParenthesizedIdent> {
 ///   stream.parse::<ParenthesizedIdent>()

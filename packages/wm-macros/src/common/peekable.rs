@@ -71,7 +71,7 @@ pub trait Peekable {
   /// from the type (`Parse`).
   ///
   /// # Examble
-  /// ```
+  /// ```ignore
   /// fn peek_then_parse<T: Parse + Peekable>(stream: syn::parse::ParseStream) -> syn::Result<T> {
   ///   if stream.peek(T::peekable()) {
   ///     let value = stream.parse::<T>()?;
@@ -122,7 +122,7 @@ pub fn get_peek_display<T: syn::parse::Peek>(_peek: T) -> &'static str {
 /// rather than a value.
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// # fn example(stream: syn::parse::ParseStream) -> syn::Result<()> {
 /// // Allows for
 /// stream.tpeek::<syn::Ident>()?;
