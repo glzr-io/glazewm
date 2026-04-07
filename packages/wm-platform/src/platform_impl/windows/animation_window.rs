@@ -61,8 +61,6 @@ static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
 /// heavyweight GPU/WGC objects per animation.
 pub(crate) struct AnimationContext {
   _d3d_device: ID3D11Device,
-  d3d_context: ID3D11DeviceContext,
-  dcomp_device: IDCompositionDesktopDevice,
   winrt_device: IDirect3DDevice,
   capture_interop: IGraphicsCaptureItemInterop,
 }
@@ -79,10 +77,8 @@ impl AnimationContext {
         ));
       }
 
-      let (d3d_device, d3d_context) = Self::create_d3d11_device()?;
+      let d3d_device = Self::create_d3d11_device()?;
       let dxgi_device: IDXGIDevice = d3d_device.cast()?;
-      let dcomp_device: IDCompositionDesktopDevice =
-        unsafe { DCompositionCreateDevice2(&dxgi_device)? };
 
       let inspectable =
         unsafe { CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)? };
@@ -95,8 +91,6 @@ impl AnimationContext {
 
       Ok(Self {
         _d3d_device: d3d_device,
-        d3d_context,
-        dcomp_device,
         winrt_device,
         capture_interop,
       })
@@ -109,19 +103,19 @@ impl AnimationContext {
   where
     F: FnOnce() -> R,
   {
-    COM_INIT.with(|_| {
-      let result = update_fn();
-      unsafe { self.dcomp_device.Commit()? };
-      Ok(result)
-    })
+    self.dispatcher.dispatch_sync(|| {
+      COM_INIT.with(|_| {
+        let result = update_fn();
+        unsafe { self.dcomp_device.Commit()? };
+        Ok(result)
+      })
+    })?
   }
 
   /// Creates a D3D11 device with BGRA support (required by
   /// DirectComposition).
-  fn create_d3d11_device(
-  ) -> crate::Result<(ID3D11Device, ID3D11DeviceContext)> {
+  fn create_d3d11_device() -> crate::Result<ID3D11Device> {
     let mut device: Option<ID3D11Device> = None;
-    let mut context: Option<ID3D11DeviceContext> = None;
 
     unsafe {
       D3D11CreateDevice(
@@ -133,23 +127,15 @@ impl AnimationContext {
         D3D11_SDK_VERSION,
         Some(&raw mut device),
         None,
-        Some(&raw mut context),
+        None,
       )?;
     }
 
-    let device = device.ok_or_else(|| {
+    device.ok_or_else(|| {
       crate::Error::Platform(
         "D3D11CreateDevice returned null device.".to_string(),
       )
-    })?;
-
-    let context = context.ok_or_else(|| {
-      crate::Error::Platform(
-        "D3D11CreateDevice returned null context.".to_string(),
-      )
-    })?;
-
-    Ok((device, context))
+    })
   }
 }
 
@@ -164,10 +150,10 @@ impl AnimationContext {
 /// HWND frame stays fixed for the lifetime of the animation.
 pub(crate) struct AnimationWindow {
   handle: isize,
-  dcomp_device: IDCompositionDesktopDevice,
-  _dcomp_target: IDCompositionTarget,
-  dcomp_visual: IDCompositionVisual3,
-  scale_transform: IDCompositionScaleTransform,
+  dcomp_device: ThreadBound<IDCompositionDesktopDevice>,
+  _dcomp_target: ThreadBound<IDCompositionTarget>,
+  dcomp_visual: ThreadBound<IDCompositionVisual3>,
+  scale_transform: ThreadBound<IDCompositionScaleTransform>,
   /// Rect of the captured source texture (for scale calculations).
   src_inner_rect: Rect,
   /// Frame of the overlay HWND in screen coordinates.

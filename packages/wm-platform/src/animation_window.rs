@@ -3,8 +3,8 @@ use crate::{platform_impl, Dispatcher, NativeWindow, OpacityValue, Rect};
 /// Shared context for animation windows.
 ///
 /// Allows for batching updates across animation windows. Internally, this
-/// holds GPU resources that can be shared between animation window
-/// instances.
+/// holds thread-safe GPU resources that can be shared between animation
+/// window instances.
 pub struct AnimationContext {
   inner: platform_impl::AnimationContext,
 }
