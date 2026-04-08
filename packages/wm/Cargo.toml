@@ -42,3 +42,7 @@ wm-common = { path = "../wm-common" }
 wm-ipc-client = { path = "../wm-ipc-client" }
 wm-macros = { workspace = true }
 wm-platform = { path = "../wm-platform" }
+
+[dev-dependencies]
+bon = "3"
+wm-platform = { path = "../wm-platform", features = ["test_utils"] }

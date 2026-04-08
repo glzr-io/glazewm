@@ -45,6 +45,9 @@ mod user_config;
 mod wm;
 mod wm_state;
 
+#[cfg(test)]
+mod test_utils;
+
 /// Main entry point for the application.
 ///
 /// Conditionally starts the WM or runs a CLI command based on the given
