@@ -23,17 +23,13 @@ use crate::{
 /// device context is needed. The context provides `transaction` to batch
 /// multiple `CALayer` updates into a single `CATransaction` on the main
 /// thread.
-pub(crate) struct AnimationContext {
-  dispatcher: Dispatcher,
-}
+pub(crate) struct AnimationContext;
 
 impl AnimationContext {
   /// Creates a shared animation context.
   #[allow(clippy::unnecessary_wraps)]
-  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
-    Ok(Self {
-      dispatcher: dispatcher.clone(),
-    })
+  pub(crate) fn new(_dispatcher: &Dispatcher) -> crate::Result<Self> {
+    Ok(Self)
   }
 
   /// Executes `update_fn` inside a single `CATransaction` on the main
@@ -41,12 +37,16 @@ impl AnimationContext {
   ///
   /// All `CALayer` mutations performed by `update_fn` are batched into one
   /// implicit-animation-free commit.
-  pub(crate) fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
+  pub(crate) fn transaction<F, R>(
+    &self,
+    update_fn: F,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<R>
   where
     F: FnOnce() -> R + Send,
     R: Send,
   {
-    self.dispatcher.dispatch_sync(|| {
+    dispatcher.dispatch_sync(|| {
       CATransaction::begin();
       CATransaction::setDisableActions(true);
       let result = update_fn();

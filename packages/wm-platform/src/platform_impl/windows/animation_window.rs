@@ -48,11 +48,17 @@ use windows::{
 
 use crate::{
   platform_impl::com::COM_INIT, Dispatcher, NativeWindow, OpacityValue,
-  Rect,
+  Rect, ThreadBound,
 };
 
 /// Guard ensuring the overlay window class is registered at most once.
 static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
+
+struct Direct3DDevice(IDirect3DDevice);
+unsafe impl Send for Direct3DDevice {}
+
+struct GraphicsCaptureItemInterop(IGraphicsCaptureItemInterop);
+unsafe impl Send for GraphicsCaptureItemInterop {}
 
 /// Shared GPU context for all animation windows.
 ///
@@ -61,52 +67,69 @@ static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
 /// heavyweight GPU/WGC objects per animation.
 pub(crate) struct AnimationContext {
   _d3d_device: ID3D11Device,
-  winrt_device: IDirect3DDevice,
-  capture_interop: IGraphicsCaptureItemInterop,
+  d3d_context: ThreadBound<ID3D11DeviceContext>,
+  dcomp_device: ThreadBound<IDCompositionDesktopDevice>,
+  winrt_device: Direct3DDevice,
+  capture_interop: GraphicsCaptureItemInterop,
 }
 
 impl AnimationContext {
   /// Creates a shared D3D11 + `DirectComposition` device pair and
   /// pre-warms WGC capture objects (WinRT device, interop factory).
-  pub(crate) fn new(_dispatcher: &Dispatcher) -> crate::Result<Self> {
-    COM_INIT.with(|_| {
-      if !GraphicsCaptureSession::IsSupported()? {
-        return Err(crate::Error::Platform(
-          "Windows.Graphics.Capture isn't supported on this system."
-            .to_string(),
-        ));
-      }
+  pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
+    dispatcher.dispatch_sync(|| {
+      COM_INIT.with(|_| {
+        if !GraphicsCaptureSession::IsSupported()? {
+          return Err(crate::Error::Platform(
+            "Windows.Graphics.Capture isn't supported on this system."
+              .to_string(),
+          ));
+        }
 
-      let d3d_device = Self::create_d3d11_device()?;
-      let dxgi_device: IDXGIDevice = d3d_device.cast()?;
+        let (d3d_device, d3d_context) = Self::create_d3d11_device()?;
+        let dxgi_device: IDXGIDevice = d3d_device.cast()?;
+        let dcomp_device: IDCompositionDesktopDevice =
+          unsafe { DCompositionCreateDevice2(&dxgi_device)? };
 
-      let inspectable =
-        unsafe { CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)? };
-      let winrt_device: IDirect3DDevice = inspectable.cast()?;
+        let inspectable =
+          unsafe { CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)? };
+        let winrt_device: IDirect3DDevice = inspectable.cast()?;
 
-      let capture_interop = windows::core::factory::<
-        GraphicsCaptureItem,
-        IGraphicsCaptureItemInterop,
-      >()?;
+        let capture_interop = windows::core::factory::<
+          GraphicsCaptureItem,
+          IGraphicsCaptureItemInterop,
+        >()?;
 
-      Ok(Self {
-        _d3d_device: d3d_device,
-        winrt_device,
-        capture_interop,
+        Ok(Self {
+          _d3d_device: d3d_device,
+          d3d_context: ThreadBound::new(d3d_context, dispatcher.clone()),
+          dcomp_device: ThreadBound::new(dcomp_device, dispatcher.clone()),
+          winrt_device: Direct3DDevice(winrt_device),
+          capture_interop: GraphicsCaptureItemInterop(capture_interop),
+        })
       })
-    })
+    })?
   }
 
   /// Executes `update_fn` and then commits all pending `DirectComposition`
   /// changes to the compositor in a single batch.
-  pub(crate) fn transaction<F, R>(&self, update_fn: F) -> crate::Result<R>
+  pub(crate) fn transaction<F, R>(
+    &self,
+    update_fn: F,
+    dispatcher: &Dispatcher,
+  ) -> crate::Result<R>
   where
-    F: FnOnce() -> R,
+    F: FnOnce() -> R + Send,
+    R: Send,
   {
-    self.dispatcher.dispatch_sync(|| {
+    dispatcher.dispatch_sync(|| {
       COM_INIT.with(|_| {
         let result = update_fn();
-        unsafe { self.dcomp_device.Commit()? };
+        unsafe {
+          self
+            .dcomp_device
+            .with(|dcomp_device| dcomp_device.Commit())??;
+        }
         Ok(result)
       })
     })?
@@ -114,8 +137,10 @@ impl AnimationContext {
 
   /// Creates a D3D11 device with BGRA support (required by
   /// DirectComposition).
-  fn create_d3d11_device() -> crate::Result<ID3D11Device> {
+  fn create_d3d11_device(
+  ) -> crate::Result<(ID3D11Device, ID3D11DeviceContext)> {
     let mut device: Option<ID3D11Device> = None;
+    let mut context: Option<ID3D11DeviceContext> = None;
 
     unsafe {
       D3D11CreateDevice(
@@ -127,17 +152,27 @@ impl AnimationContext {
         D3D11_SDK_VERSION,
         Some(&raw mut device),
         None,
-        None,
+        Some(&raw mut context),
       )?;
     }
 
-    device.ok_or_else(|| {
+    let device = device.ok_or_else(|| {
       crate::Error::Platform(
         "D3D11CreateDevice returned null device.".to_string(),
       )
-    })
+    })?;
+
+    let context = context.ok_or_else(|| {
+      crate::Error::Platform(
+        "D3D11CreateDevice returned null context.".to_string(),
+      )
+    })?;
+
+    Ok((device, context))
   }
 }
+
+unsafe impl Sync for AnimationContext {}
 
 /// Per-window overlay for animating a single window transition.
 ///
@@ -174,69 +209,80 @@ impl AnimationWindow {
     opacity: Option<OpacityValue>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
-    COM_INIT.with(|_| {
-      let captured = CapturedFrame::new(window.inner.hwnd(), context)?;
+    let captured = CapturedFrame::new(window.inner.hwnd(), context)?;
 
-      // Window is spawned on the main thread to avoid having to create a
-      // new message loop.
-      let handle = dispatcher.dispatch_sync(|| {
-        Self::create_window(window.inner.hwnd().0, outer_rect)
-      })??;
+    dispatcher.dispatch_sync(|| {
+      COM_INIT.with(|_| {
+        // Window is spawned on the main thread - avoids having to create a
+        // new message loop.
+        let handle =
+          Self::create_window(window.inner.hwnd().0, outer_rect)?;
 
-      let dcomp_device = &context.dcomp_device;
-      let dcomp_target =
-        unsafe { dcomp_device.CreateTargetForHwnd(HWND(handle), true)? };
+        let dcomp_device = context.dcomp_device.get_ref()?;
+        let dcomp_target =
+          unsafe { dcomp_device.CreateTargetForHwnd(HWND(handle), true)? };
 
-      let dcomp_surface = unsafe {
-        dcomp_device.CreateSurface(
-          inner_rect.width().cast_unsigned(),
-          inner_rect.height().cast_unsigned(),
-          DXGI_FORMAT_B8G8R8A8_UNORM,
-          DXGI_ALPHA_MODE_PREMULTIPLIED,
-        )?
-      };
+        let dcomp_surface = unsafe {
+          dcomp_device.CreateSurface(
+            inner_rect.width().cast_unsigned(),
+            inner_rect.height().cast_unsigned(),
+            DXGI_FORMAT_B8G8R8A8_UNORM,
+            DXGI_ALPHA_MODE_PREMULTIPLIED,
+          )?
+        };
 
-      Self::copy_texture_to_surface(
-        &context.d3d_context,
-        &captured.texture,
-        &dcomp_surface,
-      )?;
+        Self::copy_texture_to_surface(
+          context.d3d_context.get_ref()?,
+          &captured.texture,
+          &dcomp_surface,
+        )?;
 
-      let dcomp_visual: IDCompositionVisual3 =
-        unsafe { dcomp_device.CreateVisual()?.cast()? };
+        let dcomp_visual: IDCompositionVisual3 =
+          unsafe { dcomp_device.CreateVisual()?.cast()? };
 
-      unsafe {
-        dcomp_visual.SetContent(&dcomp_surface)?;
-        dcomp_target.SetRoot(&dcomp_visual)?;
-      }
+        unsafe {
+          dcomp_visual.SetContent(&dcomp_surface)?;
+          dcomp_target.SetRoot(&dcomp_visual)?;
+        }
 
-      let scale_transform =
-        unsafe { dcomp_device.CreateScaleTransform()? };
+        let scale_transform =
+          unsafe { dcomp_device.CreateScaleTransform()? };
 
-      unsafe { dcomp_visual.SetTransform(&scale_transform)? };
+        unsafe { dcomp_visual.SetTransform(&scale_transform)? };
 
-      context.transaction(|| {
-        Self::update_visual(
-          &dcomp_visual,
-          &scale_transform,
-          inner_rect,
-          inner_rect,
-          outer_rect,
-          opacity.as_ref(),
-        )
-      })??;
+        let dcomp_visual =
+          ThreadBound::new(dcomp_visual, dispatcher.clone());
+        let scale_transform =
+          ThreadBound::new(scale_transform, dispatcher.clone());
+        let dcomp_target =
+          ThreadBound::new(dcomp_target, dispatcher.clone());
 
-      Ok(Self {
-        handle,
-        dcomp_device: dcomp_device.clone(),
-        _dcomp_target: dcomp_target,
-        dcomp_visual,
-        scale_transform,
-        src_inner_rect: inner_rect.clone(),
-        outer_rect: outer_rect.clone(),
-        dispatcher: dispatcher.clone(),
+        context.transaction(
+          || {
+            Self::update_visual(
+              dcomp_visual.get_ref()?,
+              scale_transform.get_ref()?,
+              inner_rect,
+              inner_rect,
+              outer_rect,
+              opacity.as_ref(),
+            )
+          },
+          dispatcher,
+        )??;
+
+        Ok(Self {
+          handle,
+          dcomp_device: context.dcomp_device.clone(),
+          _dcomp_target: dcomp_target,
+          dcomp_visual,
+          scale_transform,
+          src_inner_rect: inner_rect.clone(),
+          outer_rect: outer_rect.clone(),
+          dispatcher: dispatcher.clone(),
+        })
       })
-    })
+    })?
   }
 
   /// Resizes the overlay HWND to cover `outer_rect`, updating the
@@ -271,14 +317,16 @@ impl AnimationWindow {
     inner_rect: &Rect,
     opacity: Option<&OpacityValue>,
   ) -> crate::Result<()> {
-    Self::update_visual(
-      &self.dcomp_visual,
-      &self.scale_transform,
-      &self.src_inner_rect,
-      inner_rect,
-      &self.outer_rect,
-      opacity,
-    )
+    self.dispatcher.dispatch_sync(|| {
+      Self::update_visual(
+        self.dcomp_visual.get_ref()?,
+        self.scale_transform.get_ref()?,
+        &self.src_inner_rect,
+        inner_rect,
+        &self.outer_rect,
+        opacity,
+      )
+    })?
   }
 
   /// Repositions the `DirectComposition` visual to `inner_rect` relative
@@ -328,30 +376,28 @@ impl AnimationWindow {
   /// Clears the visual tree and commits before releasing COM objects so
   /// the compositor does not retain stale GPU surfaces.
   pub(crate) fn destroy(self) -> crate::Result<()> {
-    COM_INIT.with(|_| {
-      unsafe {
-        if let Err(err) =
-          self.dcomp_visual.SetContent(None::<&windows::core::IUnknown>)
-        {
-          tracing::warn!("Failed to clear DComp visual content: {err}");
-        }
-        if let Err(err) = self.dcomp_visual.SetTransform(
-          None::<
-            &windows::Win32::Graphics::DirectComposition::IDCompositionTransform,
-          >,
-        ) {
-          tracing::warn!("Failed to clear DComp visual transform: {err}");
-        }
-        if let Err(err) = self.dcomp_device.Commit() {
-          tracing::warn!("Failed to commit DComp teardown: {err}");
-        }
-      }
+    self.dispatcher.dispatch_sync(|| {
+      COM_INIT.with(|_| {
+        unsafe {
+          // Clear the surface reference so the compositor releases the GPU
+          // resource immediately on the next commit.
+          if let Err(err) = self.dcomp_visual.with(|dcomp_visual| {
+            dcomp_visual.SetContent(None::<&windows::core::IUnknown>)
+          }) {
+            tracing::warn!("Failed to clear DComp visual content: {err}");
+          }
 
-      self.dispatcher.dispatch_sync(|| {
-        if let Err(err) = unsafe { DestroyWindow(HWND(self.handle)) } {
-          tracing::warn!("Failed to destroy overlay HWND: {err}");
+          if let Err(err) =
+            self.dcomp_device.with(|dcomp_device| dcomp_device.Commit())
+          {
+            tracing::warn!("Failed to commit DComp teardown: {err}");
+          }
+
+          if let Err(err) = DestroyWindow(HWND(self.handle)) {
+            tracing::warn!("Failed to destroy overlay HWND: {err}");
+          }
         }
-      })
+      });
     })
   }
 
@@ -482,10 +528,10 @@ impl CapturedFrame {
   fn new(hwnd: HWND, context: &AnimationContext) -> crate::Result<Self> {
     // SAFETY: HWND is valid per the caller's contract.
     let capture_item: GraphicsCaptureItem =
-      unsafe { context.capture_interop.CreateForWindow(hwnd)? };
+      unsafe { context.capture_interop.0.CreateForWindow(hwnd)? };
 
     let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
-      &context.winrt_device,
+      &context.winrt_device.0,
       DirectXPixelFormat::B8G8R8A8UIntNormalized,
       1,
       capture_item.Size()?,
@@ -499,9 +545,26 @@ impl CapturedFrame {
     // Disable the yellow capture border on Windows 11 (Build 22000+).
     let _ = session.SetIsBorderRequired(false);
 
+    let (tx, rx) = std::sync::mpsc::sync_channel::<()>(1);
+
+    frame_pool.FrameArrived(&TypedEventHandler::new(
+      move |_: &Option<Direct3D11CaptureFramePool>, _| {
+        let _ = tx.send(());
+        Ok(())
+      },
+    ))?;
+
     session.StartCapture()?;
 
-    let frame = Self::wait_for_frame(&frame_pool)?;
+    rx.recv_timeout(std::time::Duration::from_secs(1))
+      .map_err(|_| {
+        crate::Error::Platform("WGC capture timed out.".into())
+      })?;
+
+    let frame = frame_pool.TryGetNextFrame().map_err(|err| {
+      crate::Error::Platform(format!("Failed to get WGC frame: {err}"))
+    })?;
+
     let surface = frame.Surface()?;
     let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
 
@@ -513,37 +576,6 @@ impl CapturedFrame {
       frame,
       session,
       frame_pool,
-    })
-  }
-
-  /// Waits for the next WGC frame using an event-based approach.
-  ///
-  /// Registers a `FrameArrived` handler that signals a channel, then
-  /// blocks until the frame arrives or the timeout expires.
-  fn wait_for_frame(
-    pool: &Direct3D11CaptureFramePool,
-  ) -> crate::Result<Direct3D11CaptureFrame> {
-    let (tx, rx) = std::sync::mpsc::sync_channel::<()>(1);
-
-    pool.FrameArrived(&TypedEventHandler::new(
-      move |_: &Option<Direct3D11CaptureFramePool>, _| {
-        let _ = tx.send(());
-        Ok(())
-      },
-    ))?;
-
-    // Frame arrived before the handler was registered.
-    if let Ok(frame) = pool.TryGetNextFrame() {
-      return Ok(frame);
-    }
-
-    rx.recv_timeout(std::time::Duration::from_secs(1))
-      .map_err(|_| {
-        crate::Error::Platform("WGC capture timed out.".into())
-      })?;
-
-    pool.TryGetNextFrame().map_err(|err| {
-      crate::Error::Platform(format!("Failed to get WGC frame: {err}"))
     })
   }
 

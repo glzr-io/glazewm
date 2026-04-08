@@ -155,7 +155,10 @@ impl WindowManager {
     &mut self,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
-    self.state.animation_manager.tick_update()?;
+    self
+      .state
+      .animation_manager
+      .tick_update(&self.state.dispatcher)?;
 
     let completed_ids = self.state.animation_manager.completed_ids();
 

@@ -101,16 +101,13 @@ impl EventLoopSource {
       Box::new(Box::new(dispatch_fn));
     let callback_ptr = Box::into_raw(dispatch_fn);
 
-    // `SendMessageW` blocks the calling thread until the window procedure
-    // processes the message and executes the closure. This guarantees the
-    // closure's lifetime remains valid.
     unsafe {
-      SendMessageW(
+      PostMessageW(
         HWND(self.message_window_handle),
         WM_DISPATCH_CALLBACK.with(|v| *v),
         WPARAM(callback_ptr as _),
         LPARAM(0),
-      );
+      )?;
     }
 
     Ok(())

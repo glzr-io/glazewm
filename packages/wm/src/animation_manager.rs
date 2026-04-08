@@ -190,7 +190,10 @@ impl AnimationManager {
   /// Updates all active animations during a single tick.
   ///
   /// Updates get batched into a single compositor transaction.
-  pub fn tick_update(&mut self) -> anyhow::Result<()> {
+  pub fn tick_update(
+    &mut self,
+    dispatcher: &Dispatcher,
+  ) -> anyhow::Result<()> {
     if self.animations.is_empty() {
       return Ok(());
     }
@@ -199,19 +202,22 @@ impl AnimationManager {
       .context
       .as_ref()
       .context("Animation context not initialized.")?
-      .transaction(|| {
-        for (id, anim) in &self.animations {
-          if !anim.is_complete() {
-            if let Some(anim_window) = self.windows.get(id) {
-              anim_window.update(
-                &anim.current_rect(),
-                anim.current_opacity().as_ref(),
-              )?;
+      .transaction(
+        || {
+          for (id, anim) in &self.animations {
+            if !anim.is_complete() {
+              if let Some(anim_window) = self.windows.get(id) {
+                anim_window.update(
+                  &anim.current_rect(),
+                  anim.current_opacity().as_ref(),
+                )?;
+              }
             }
           }
-        }
-        anyhow::Ok(())
-      })?
+          anyhow::Ok(())
+        },
+        dispatcher,
+      )?
   }
 
   /// Returns the animation effect config if an animation should be
@@ -355,12 +361,15 @@ impl AnimationManager {
       // Immediately redraw the animation after resizing. The animation is
       // scaled relative to the window's frame, so it would otherwise be
       // incorrect until the next tick.
-      context.transaction(|| {
-        anim_window.update(
-          &animation.current_rect(),
-          animation.current_opacity().as_ref(),
-        )
-      })??;
+      context.transaction(
+        || {
+          anim_window.update(
+            &animation.current_rect(),
+            animation.current_opacity().as_ref(),
+          )
+        },
+        dispatcher,
+      )?;
     } else {
       let anim_window = AnimationWindow::new(
         context,
