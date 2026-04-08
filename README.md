@@ -285,7 +285,7 @@ window_rules:
 
 Visual effects can be applied to windows via the `window_effects` option. Currently, colored borders are the only effect available with more to come in the future.
 
-> Note: Window effects are exclusive to Windows 11.
+> Note: Native window border effects require Windows 11. On Windows 10, the focused window can use the `win10_highlight` overlay instead.
 
 ```yaml
 window_effects:
@@ -295,6 +295,9 @@ window_effects:
     border:
       enabled: true
       color: "#0000ff"
+
+    # Use an overlay highlight on Windows 10.
+    win10_highlight: false
 
   # Visual effects to apply to non-focused windows.
   other_windows:

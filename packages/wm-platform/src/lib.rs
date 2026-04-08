@@ -7,6 +7,8 @@ mod display;
 mod display_listener;
 mod error;
 mod event_loop;
+#[cfg(target_os = "windows")]
+mod focused_window_border;
 mod keybinding_listener;
 mod models;
 mod mouse_listener;
@@ -16,6 +18,8 @@ mod platform_impl;
 mod single_instance;
 mod thread_bound;
 mod window_listener;
+#[cfg(target_os = "windows")]
+mod windows_version;
 
 #[cfg(feature = "test_utils")]
 pub mod test_utils;
@@ -25,6 +29,8 @@ pub use display::*;
 pub use display_listener::*;
 pub use error::*;
 pub use event_loop::*;
+#[cfg(target_os = "windows")]
+pub use focused_window_border::*;
 pub use keybinding_listener::*;
 pub use models::*;
 pub use mouse_listener::*;
@@ -41,3 +47,5 @@ pub use windows::Win32::UI::WindowsAndMessaging::{
   WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
   WS_MAXIMIZEBOX,
 };
+#[cfg(target_os = "windows")]
+pub use windows_version::*;

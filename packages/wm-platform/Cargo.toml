@@ -28,10 +28,14 @@ libtest-mimic-collect = "0.3.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.52", features = [
+  "Foundation_Numerics",
   "implement",
   "Win32_Devices_HumanInterfaceDevice",
+  "Win32_Graphics_Direct2D",
+  "Win32_Graphics_Direct2D_Common",
   "Win32_Foundation",
   "Win32_Graphics_Dwm",
+  "Win32_Graphics_Dxgi_Common",
   "Win32_Graphics_Gdi",
   "Win32_Security",
   "Win32_System_Com",

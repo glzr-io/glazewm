@@ -241,6 +241,9 @@ pub struct WindowEffectsConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WindowEffectConfig {
+  /// Whether to use the Win10-focused highlight overlay.
+  pub win10_highlight: bool,
+
   /// Config for optionally applying a colored border.
   pub border: BorderEffectConfig,
 

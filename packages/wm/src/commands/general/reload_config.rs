@@ -7,7 +7,10 @@ use wm_common::{WindowRuleEvent, WmEvent};
 use wm_platform::NativeWindowWindowsExt;
 
 use crate::{
-  commands::{window::run_window_rules, workspace::sort_workspaces},
+  commands::{
+    general::sync_focused_window_border, window::run_window_rules,
+    workspace::sort_workspaces,
+  },
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm::WindowManager,
@@ -39,6 +42,9 @@ pub fn reload_config(
 
   #[cfg(target_os = "windows")]
   update_window_effects(&old_config, state, config)?;
+
+  #[cfg(target_os = "windows")]
+  sync_focused_window_border(state, config)?;
 
   // Ensure all windows are shown when hide method is changed.
   #[cfg(target_os = "windows")]
