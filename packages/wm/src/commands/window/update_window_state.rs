@@ -27,6 +27,15 @@ pub fn update_window_state(
     return Ok(window);
   }
 
+  if matches!(target_state, WindowState::Fullscreen(_)) {
+    if let Some(workspace) = window.workspace() {
+      if workspace.is_monocle() {
+        info!("Blocking fullscreen in monocle workspace.");
+        return Ok(window);
+      }
+    }
+  }
+
   info!("Updating window state: {:?}.", target_state);
 
   match target_state {

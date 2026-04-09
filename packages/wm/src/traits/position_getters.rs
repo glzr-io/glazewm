@@ -16,6 +16,11 @@ macro_rules! impl_position_getters_as_resizable {
   ($struct_name:ident) => {
     impl PositionGetters for $struct_name {
       fn to_rect(&self) -> anyhow::Result<Rect> {
+        if let Some(workspace) = self.workspace() {
+          if workspace.is_monocle() {
+            return workspace.to_rect();
+          }
+        }
         let parent = self
           .parent()
           .and_then(|parent| parent.as_direction_container().ok())

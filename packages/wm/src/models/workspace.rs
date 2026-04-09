@@ -32,6 +32,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  is_monocle: bool,
 }
 
 impl Workspace {
@@ -40,6 +41,7 @@ impl Workspace {
     gaps_config: GapsConfig,
     tiling_direction: TilingDirection,
   ) -> Self {
+    let is_monocle = config.monocle;
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
       parent: None,
@@ -48,6 +50,7 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      is_monocle,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -111,21 +114,14 @@ impl Workspace {
       1.
     };
 
-    // Get the delta between the monitor's bounds and its working area.
-    let monitor_bounds = monitor.native_properties().bounds;
-    let working_area_delta = monitor
-      .native_properties()
-      .working_area
-      .delta(&monitor_bounds);
+    // Use the monitor's working area (excludes taskbar) as the base.
+    let working_area = monitor.native_properties().working_area;
 
     Ok(
-      monitor_bounds
+      working_area
         // Scale the gaps if `scale_with_dpi` is enabled. Outer gap config
-        // values can be a percentage (relative to the monitor bounds), so
-        // the outer gap delta needs to be applied prior to the working
-        // area delta.
-        .apply_delta(&outer_gaps.inverse(), Some(scale_factor))
-        .apply_delta(&working_area_delta, None),
+        // values can be a percentage (relative to the monitor bounds).
+        .apply_delta(&outer_gaps.inverse(), Some(scale_factor)),
     )
   }
 
@@ -173,7 +169,16 @@ impl Workspace {
       x: rect.x(),
       y: rect.y(),
       tiling_direction: self.tiling_direction(),
+      is_monocle: self.is_monocle(),
     }))
+  }
+
+  pub fn is_monocle(&self) -> bool {
+    self.0.borrow().is_monocle
+  }
+
+  pub fn set_monocle(&self, new_state: bool) {
+    self.0.borrow_mut().is_monocle = new_state;
   }
 }
 

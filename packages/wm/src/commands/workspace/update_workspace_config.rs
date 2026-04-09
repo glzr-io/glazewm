@@ -38,6 +38,7 @@ pub fn update_workspace_config(
       .bind_to_monitor
       .or(current_config.bind_to_monitor),
     keep_alive: new_config.keep_alive.unwrap_or(current_config.keep_alive),
+    monocle: new_config.monocle.unwrap_or(current_config.monocle),
   };
 
   workspace.set_config(updated_config);
