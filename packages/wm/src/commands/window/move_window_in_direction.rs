@@ -295,10 +295,18 @@ fn invert_workspace_tiling_direction(
   // we create a split container around 1 and 2. This results in
   // H[H[1 V[2 3]]], and V[H[1 V[2]] 3] after the tiling direction change.
   if workspace_children.len() > 1 {
-    let split_container = SplitContainer::new(
-      workspace.tiling_direction(),
-      config.value.gaps.clone(),
+    let gaps = workspace.monitor().map_or_else(
+      || config.value.gaps.clone(),
+      |monitor| {
+        config.value.gaps.for_monitor(
+          monitor.index(),
+          &monitor.native_properties().device_name,
+        )
+      },
     );
+
+    let split_container =
+      SplitContainer::new(workspace.tiling_direction(), gaps);
 
     wrap_in_split_container(
       &split_container,

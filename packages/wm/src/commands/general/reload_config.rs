@@ -140,6 +140,9 @@ fn update_workspace_configs(
 }
 
 /// Updates outer gap of workspaces and inner gaps of tiling containers.
+///
+/// Workspace gaps are resolved per-monitor when `monitor_overrides`
+/// are present in the config.
 fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
   let tiling_containers = state
     .root_container
@@ -147,11 +150,30 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
     .filter_map(|container| container.as_tiling_container().ok());
 
   for container in tiling_containers {
-    container.set_gaps_config(config.value.gaps.clone());
+    let gaps = container.monitor().map_or_else(
+      || config.value.gaps.clone(),
+      |monitor| {
+        config.value.gaps.for_monitor(
+          monitor.index(),
+          &monitor.native_properties().device_name,
+        )
+      },
+    );
+    container.set_gaps_config(gaps);
   }
 
   for workspace in state.workspaces() {
-    workspace.set_gaps_config(config.value.gaps.clone());
+    let gaps = workspace.monitor().map_or_else(
+      || config.value.gaps.clone(),
+      |monitor| {
+        config.value.gaps.for_monitor(
+          monitor.index(),
+          &monitor.native_properties().device_name,
+        )
+      },
+    );
+
+    workspace.set_gaps_config(gaps);
   }
 }
 
