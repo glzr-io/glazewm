@@ -1,6 +1,6 @@
 use anyhow::Context;
 use wm_common::{TilingDirection, WindowState};
-use wm_platform::{Direction, Rect};
+use wm_platform::{Direction, LengthValue, Rect};
 
 use crate::{
   commands::container::{
@@ -25,6 +25,7 @@ const SNAP_DISTANCE: i32 = 15;
 pub fn move_window_in_direction(
   window: WindowContainer,
   direction: &Direction,
+  distance: Option<&LengthValue>,
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
@@ -34,9 +35,12 @@ pub fn move_window_in_direction(
     }
     WindowContainer::NonTilingWindow(non_tiling_window) => {
       match non_tiling_window.state() {
-        WindowState::Floating(_) => {
-          move_floating_window(non_tiling_window, direction, state)
-        }
+        WindowState::Floating(_) => move_floating_window(
+          non_tiling_window,
+          direction,
+          distance,
+          state,
+        ),
         WindowState::Fullscreen(_) => move_to_workspace_in_direction(
           &non_tiling_window.into(),
           direction,
@@ -381,10 +385,11 @@ fn insert_into_ancestor(
 fn move_floating_window(
   window_to_move: NonTilingWindow,
   direction: &Direction,
+  distance: Option<&LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   let new_position =
-    new_floating_position(&window_to_move, direction, state)?;
+    new_floating_position(&window_to_move, direction, distance, state)?;
 
   if let Some((position_rect, target_monitor)) = new_position {
     let monitor = window_to_move.monitor().context("No monitor.")?;
@@ -410,6 +415,7 @@ fn move_floating_window(
 fn new_floating_position(
   window_to_move: &NonTilingWindow,
   direction: &Direction,
+  distance: Option<&LengthValue>,
   state: &mut WmState,
 ) -> anyhow::Result<Option<(Rect, Monitor)>> {
   let monitor = window_to_move.monitor().context("No monitor.")?;
@@ -456,11 +462,14 @@ fn new_floating_position(
   // Calculate the distance the window should move based on the ratio of
   // the window's length to the monitor's length.
   #[allow(clippy::cast_precision_loss)]
-  let move_distance = match window_length as f32 / monitor_length as f32 {
-    x if (0.0..0.2).contains(&x) => length_delta / 5,
-    x if (0.2..0.4).contains(&x) => length_delta / 4,
-    x if (0.4..0.6).contains(&x) => length_delta / 3,
-    _ => length_delta / 2,
+  let move_distance = match distance {
+    None => match window_length as f32 / monitor_length as f32 {
+      x if (0.0..0.2).contains(&x) => length_delta / 5,
+      x if (0.2..0.4).contains(&x) => length_delta / 4,
+      x if (0.4..0.6).contains(&x) => length_delta / 3,
+      _ => length_delta / 2,
+    },
+    Some(length_value) => length_value.to_px(monitor_length, None),
   };
 
   // Snap the window to the current monitor's edge if it's within 15px of

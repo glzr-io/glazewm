@@ -4,7 +4,9 @@ use clap::{error::KindFormatter, Args, Parser, ValueEnum};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::Level;
 use uuid::Uuid;
-use wm_platform::{Delta, Direction, LengthValue, OpacityValue};
+use wm_platform::{
+  Delta, Direction, DirectionWithDistance, LengthValue, OpacityValue,
+};
 
 use crate::TilingDirection;
 
@@ -350,9 +352,11 @@ pub struct InvokeFocusCommand {
 #[group(required = true, multiple = false)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct InvokeMoveCommand {
-  /// Direction to move the window.
+  /// Direction to move the window, with an optional move distance
+  /// (e.g. `right` or `right,2%` or `up,10px` - distance applies
+  /// only to floating windows)
   #[clap(long)]
-  pub direction: Option<Direction>,
+  pub direction: Option<DirectionWithDistance>,
 
   /// Move window to workspace in specified direction.
   #[clap(long)]
