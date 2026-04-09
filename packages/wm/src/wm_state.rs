@@ -17,6 +17,7 @@ use crate::{
     general::platform_sync,
     monitor::{add_monitor, move_bounded_workspaces_to_new_monitor},
     window::{manage_window, unmanage_window},
+    workspace::activate_keep_alive_workspaces,
   },
   models::{
     Container, Monitor, NativeMonitorProperties, RootContainer,
@@ -120,6 +121,10 @@ impl WmState {
         move_bounded_workspaces_to_new_monitor(&monitor, self, config)?;
       }
     }
+
+    let monitors = self.monitors();
+    let fallback_monitor = monitors.first();
+    activate_keep_alive_workspaces(self, config, fallback_monitor)?;
 
     // Manage windows in reverse z-order (bottom to top). This helps to
     // preserve the original stacking order.
