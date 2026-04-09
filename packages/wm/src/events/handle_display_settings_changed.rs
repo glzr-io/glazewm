@@ -3,8 +3,8 @@ use wm_common::try_warn;
 
 use crate::{
   commands::monitor::{
-    add_monitor, move_bounded_workspaces_to_new_monitor, remove_monitor,
-    sort_monitors, update_monitor,
+    add_monitor, disconnect_monitor,
+    move_bounded_workspaces_to_new_monitor, sort_monitors, update_monitor,
   },
   models::{Monitor, NativeMonitorProperties},
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -65,12 +65,12 @@ pub fn handle_display_settings_changed(
   // their workspaces to other monitors.
   //
   // Prevent removal of the last monitor (i.e. for when all monitors are
-  // disconnected). This will cause the WM's monitors to temporarily
-  // mismatch the OS monitor state, however, it'll be updated correctly
-  // when a new monitor is connected again.
-  for monitor in pending_monitors {
+  // disconnected). This will cause the WM's monitors to mismatch the OS
+  // monitor state, however, it'll be updated correctly when a new monitor
+  // is connected again.
+  for pending_monitor in pending_monitors {
     if state.monitors().len() > 1 {
-      remove_monitor(monitor, state, config)?;
+      disconnect_monitor(pending_monitor, state, config)?;
     }
   }
 

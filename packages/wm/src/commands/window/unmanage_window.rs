@@ -22,6 +22,13 @@ pub fn unmanage_window(
   // Get container to switch focus to after the window has been removed.
   let focus_target = state.focus_target_after_removal(&window.clone());
 
+  // Clear insertion target before detaching to drop the Rc reference to
+  // the target container. Without this, the detached window keeps its
+  // insertion target alive, preventing deallocation.
+  if let WindowContainer::NonTilingWindow(ref non_tiling) = window {
+    non_tiling.set_insertion_target(None);
+  }
+
   detach_container(window.clone().into())?;
 
   // After detaching the container, flatten any redundant split containers.
