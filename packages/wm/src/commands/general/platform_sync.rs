@@ -516,6 +516,8 @@ fn apply_window_effects(
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
+  let is_fullscreen =
+    matches!(window.state(), WindowState::Fullscreen(_));
 
   // LINT: `effect_config` is only used on Windows.
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
@@ -524,6 +526,38 @@ fn apply_window_effects(
   } else {
     &window_effects.other_windows
   };
+
+  // For fullscreen windows, reset border/corner/transparency effects
+  // to defaults but still apply hide_title_bar.
+  if is_fullscreen {
+    if window_effects.focused_window.border.enabled
+      || window_effects.other_windows.border.enabled
+    {
+      _ = window.native().set_border_color(None);
+    }
+
+    if window_effects.focused_window.corner_style.enabled
+      || window_effects.other_windows.corner_style.enabled
+    {
+      _ = window.native().set_corner_style(&CornerStyle::Default);
+    }
+
+    if window_effects.focused_window.transparency.enabled
+      || window_effects.other_windows.transparency.enabled
+    {
+      _ = window
+        .native()
+        .set_transparency(&OpacityValue::from_alpha(u8::MAX));
+    }
+
+    if window_effects.focused_window.hide_title_bar.enabled
+      || window_effects.other_windows.hide_title_bar.enabled
+    {
+      apply_hide_title_bar_effect(window, effect_config);
+    }
+
+    return;
+  }
 
   // Skip if both focused + non-focused window effects are disabled.
   #[cfg(target_os = "windows")]
