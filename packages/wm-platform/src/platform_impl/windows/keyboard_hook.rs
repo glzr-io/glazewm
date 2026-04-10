@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+use tokio::sync::mpsc;
 use windows::Win32::{
   Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM},
   UI::{
@@ -98,6 +99,7 @@ impl KeyboardHook {
   /// thread.
   pub fn new<F>(
     callback: F,
+    _tap_disabled_tx: mpsc::Sender<()>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self>
   where

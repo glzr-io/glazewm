@@ -259,6 +259,7 @@ pub enum InvokeCommand {
   WmExit,
   WmRedraw,
   WmReloadConfig,
+  WmRestartKeybindingListener,
   WmTogglePause,
 }
 
