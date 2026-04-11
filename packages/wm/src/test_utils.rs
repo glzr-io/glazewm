@@ -6,7 +6,7 @@
 use bon::bon;
 use tokio::sync::mpsc;
 use wm_common::{
-  FloatingStateConfig, GapsConfig, TilingDirection, WindowState,
+  FloatingStateConfig, GapsConfig, TilingDirection, WindowState, WmEvent,
   WorkspaceConfig,
 };
 use wm_platform::{Dispatcher, Display, NativeWindow, Rect, RectDelta};
@@ -49,6 +49,10 @@ pub fn mock_window_rect() -> Rect {
 
 pub fn mock_border_delta() -> RectDelta {
   RectDelta::zero()
+}
+
+pub fn mock_channel_sender<T>() -> mpsc::UnboundedSender<T> {
+  mpsc::unbounded_channel().0
 }
 
 #[bon]
@@ -232,11 +236,12 @@ impl WmState {
   #[allow(clippy::needless_pass_by_value)]
   pub fn mock(
     #[builder(default = Dispatcher::mock())] dispatcher: Dispatcher,
+    #[builder(default = mock_channel_sender())]
+    event_tx: mpsc::UnboundedSender<WmEvent>,
+    #[builder(default = mock_channel_sender())]
+    exit_tx: mpsc::UnboundedSender<()>,
     #[builder(default = vec![])] monitors: Vec<Monitor>,
   ) -> Self {
-    let (event_tx, _) = mpsc::unbounded_channel();
-    let (exit_tx, _) = mpsc::unbounded_channel();
-
     let state = WmState::new(dispatcher, event_tx, exit_tx);
 
     for monitor in monitors {
