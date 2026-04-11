@@ -138,7 +138,7 @@ window_rules:
       - window_process: { equals: 'zebar' }
 
       # Ignores picture-in-picture windows for browsers.
-      - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
+      - window_title: { regex: '[Pp]icture.in.[Pp]icture|^(.+?)\s?•\s?(.+)$' }
         window_class: { regex: 'Chrome_WidgetWin_1|MozillaDialogClass' }
 
       # Ignore rules for various 3rd-party apps.
