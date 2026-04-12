@@ -26,7 +26,10 @@ use windows::{
   core::PCWSTR,
   Win32::{
     Foundation::POINT,
-    System::Environment::ExpandEnvironmentStringsW,
+    System::{
+      Environment::ExpandEnvironmentStringsW,
+      SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX},
+    },
     UI::{
       Input::KeyboardAndMouse::{
         GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON,
@@ -662,6 +665,45 @@ impl Dispatcher {
     }
 
     Ok(())
+  }
+
+  /// Returns whether the system is under significant virtual-memory commit
+  /// pressure.
+  ///
+  /// On Windows, a commit pressure spike occurs immediately after wake
+  /// from sleep and during system startup as suspended processes are
+  /// paged back in. Any allocation that fails during this window causes
+  /// Rust's global allocator to call `handle_alloc_error → rust_oom →
+  /// __fastfail(7)`, terminating the process. This cannot be caught by
+  /// `catch_unwind`.
+  ///
+  /// Returns `true` when less than half of the total virtual-memory commit
+  /// limit (`ullTotalPageFile`) is available (`ullAvailPageFile`). At that
+  /// point, deferring any optional allocating work (e.g.
+  /// `cleanup_invalid_windows`) eliminates the timing window without
+  /// affecting normal operation — the next tick (5 seconds later) will
+  /// retry once pressure subsides.
+  ///
+  /// Always returns `false` on macOS and when the API call fails.
+  #[must_use]
+  pub fn is_under_commit_pressure(&self) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+      // SAFETY: `MEMORYSTATUSEX` contains only numeric fields; zeroing is
+      // valid. `dwLength` must be set to the struct size before the call.
+      let mut status: MEMORYSTATUSEX = unsafe { std::mem::zeroed() };
+      status.dwLength =
+        u32::try_from(std::mem::size_of::<MEMORYSTATUSEX>())
+          .unwrap_or_default();
+
+      if unsafe { GlobalMemoryStatusEx(&raw mut status) }.is_ok()
+        && status.ullTotalPageFile > 0
+      {
+        return status.ullAvailPageFile < status.ullTotalPageFile / 2;
+      }
+    }
+
+    false
   }
 
   /// Shows a modal error dialog with the given title and message.

@@ -186,7 +186,7 @@ impl MouseListener {
     if res_size == 0
       || raw_input_size == u32::MAX
       || raw_input.header.dwType != RIM_TYPEMOUSE.0
-      || unsafe { raw_input.data.mouse.ulExtraInformation } as u32
+      || unsafe { raw_input.data.mouse.ulExtraInformation }
         == FOREGROUND_INPUT_IDENTIFIER
     {
       return Ok(());
