@@ -225,6 +225,14 @@ impl NativeWindow {
     })?
   }
 
+  /// Implements [`NativeWindowExtMacOs::unmaximize`].
+  pub(crate) fn unmaximize(&self) -> crate::Result<()> {
+    self.element.with(move |el| -> crate::Result<()> {
+      let ax_bool = CFBoolean::new(false);
+      el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
+    })?
+  }
+
   /// Implements [`NativeWindow::focus`].
   pub(crate) fn focus(&self) -> crate::Result<()> {
     let psn = self.application.psn()?;

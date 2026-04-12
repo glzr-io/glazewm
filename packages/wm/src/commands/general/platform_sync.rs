@@ -5,6 +5,8 @@ use wm_common::{
   CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
   WindowState, WmEvent,
 };
+#[cfg(target_os = "macos")]
+use wm_platform::NativeWindowExtMacOs;
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "windows")]
@@ -335,6 +337,7 @@ fn redraw_containers(
   Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
@@ -388,7 +391,38 @@ fn reposition_window(
     window.native().resize(rect.width(), rect.height())?;
   } else {
     #[cfg(target_os = "macos")]
-    window.native().set_frame(&rect)?;
+    {
+      // Exit native macOS fullscreen if the window is natively maximized
+      // but shouldn't be (e.g. transitioning to tiling/floating).
+      let should_unmaximize = match &window.state() {
+        WindowState::Fullscreen(fs) => {
+          !fs.maximized && window.native().is_maximized()?
+        }
+        _ => window.native().is_maximized()?,
+      };
+
+      if should_unmaximize {
+        if let Err(err) = window.native().unmaximize() {
+          tracing::warn!("Failed to exit native fullscreen: {}", err);
+        }
+      }
+
+      // Enter native macOS fullscreen if maximized fullscreen is
+      // requested. Skip `set_frame` since macOS manages the window
+      // geometry in native fullscreen.
+      if matches!(
+        &window.state(),
+        WindowState::Fullscreen(fs) if fs.maximized
+      ) {
+        if !window.native().is_maximized()? {
+          if let Err(err) = window.native().maximize() {
+            tracing::warn!("Failed to enter native fullscreen: {}", err);
+          }
+        }
+      } else {
+        window.native().set_frame(&rect)?;
+      }
+    }
 
     #[cfg(target_os = "windows")]
     {

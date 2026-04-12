@@ -98,6 +98,9 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
+
+  /// Exits native macOS fullscreen by setting `AXFullScreen` to `false`.
+  fn unmaximize(&self) -> crate::Result<()>;
 }
 
 #[cfg(target_os = "macos")]
@@ -136,6 +139,10 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
+  }
+
+  fn unmaximize(&self) -> crate::Result<()> {
+    self.inner.unmaximize()
   }
 }
 
