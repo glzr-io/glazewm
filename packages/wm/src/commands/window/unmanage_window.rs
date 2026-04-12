@@ -1,5 +1,7 @@
 use anyhow::Context;
 use wm_common::{WindowState, WmEvent};
+#[cfg(target_os = "macos")]
+use wm_platform::macos_remove_border;
 
 use crate::{
   commands::container::{
@@ -16,6 +18,9 @@ pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  #[cfg(target_os = "macos")]
+  macos_remove_border(window.native().id());
+
   // Create iterator of parent, grandparent, and great-grandparent.
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
