@@ -4,7 +4,9 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
-use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
+use wm_common::{
+  BindingModeConfig, HideCorner, TrayIconMode, WindowState, WmEvent,
+};
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
@@ -64,6 +66,9 @@ pub struct WmState {
   /// Whether the WM is paused.
   pub is_paused: bool,
 
+  /// Current runtime display mode of the tray icon.
+  pub tray_icon_mode: TrayIconMode,
+
   /// Whether the OS focused window is the same as the WM focused window.
   pub is_focus_synced: bool,
 
@@ -93,6 +98,7 @@ impl WmState {
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
       is_paused: false,
+      tray_icon_mode: TrayIconMode::default(),
       is_focus_synced: false,
       has_initialized: false,
       event_tx,
@@ -571,6 +577,34 @@ impl WmState {
     Ok(())
   }
 
+  /// Sets the runtime tray icon mode.
+  ///
+  /// Returns whether the mode changed.
+  pub fn set_tray_icon_mode(&mut self, mode: TrayIconMode) -> bool {
+    if self.tray_icon_mode == mode {
+      return false;
+    }
+
+    self.tray_icon_mode = mode;
+    self.emit_event(WmEvent::TrayIconModeChanged { mode });
+
+    true
+  }
+
+  /// Toggles the runtime tray icon mode.
+  ///
+  /// Returns the resulting tray icon mode.
+  pub fn toggle_tray_icon_mode(&mut self) -> TrayIconMode {
+    let next_mode = match self.tray_icon_mode {
+      TrayIconMode::Status => TrayIconMode::Workspace,
+      TrayIconMode::Workspace => TrayIconMode::Status,
+    };
+
+    let _ = self.set_tray_icon_mode(next_mode);
+
+    next_mode
+  }
+
   pub fn container_by_id(&self, id: Uuid) -> Option<Container> {
     self
       .root_container
@@ -708,5 +742,83 @@ impl Drop for WmState {
           .set_transparency(&OpacityValue::from_alpha(u8::MAX));
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use tokio::sync::mpsc;
+  use wm_common::{TrayIconMode, WmEvent};
+  use wm_platform::EventLoop;
+
+  use super::WmState;
+
+  /// Creates an initialized `WmState` instance for unit tests.
+  fn initialized_state() -> (
+    wm_platform::EventLoop,
+    WmState,
+    mpsc::UnboundedReceiver<WmEvent>,
+  ) {
+    let (event_loop, dispatcher) =
+      EventLoop::new().expect("Failed to create event loop.");
+    let (event_tx, event_rx) = mpsc::unbounded_channel();
+    let (exit_tx, _exit_rx) = mpsc::unbounded_channel();
+
+    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
+    state.has_initialized = true;
+
+    (event_loop, state, event_rx)
+  }
+
+  #[test]
+  fn set_tray_icon_mode_emits_event_on_change() {
+    let (_event_loop, mut state, mut event_rx) = initialized_state();
+
+    assert!(state.set_tray_icon_mode(TrayIconMode::Workspace));
+    assert_eq!(state.tray_icon_mode, TrayIconMode::Workspace);
+
+    let event = event_rx
+      .try_recv()
+      .expect("Expected tray icon mode changed event.");
+
+    assert!(matches!(
+      event,
+      WmEvent::TrayIconModeChanged {
+        mode: TrayIconMode::Workspace,
+      }
+    ));
+  }
+
+  #[test]
+  fn set_tray_icon_mode_is_noop_for_same_mode() {
+    let (_event_loop, mut state, mut event_rx) = initialized_state();
+
+    assert!(!state.set_tray_icon_mode(TrayIconMode::Status));
+    assert!(event_rx.try_recv().is_err());
+  }
+
+  #[test]
+  fn toggle_tray_icon_mode_switches_between_modes() {
+    let (_event_loop, mut state, mut event_rx) = initialized_state();
+
+    assert_eq!(state.toggle_tray_icon_mode(), TrayIconMode::Workspace);
+    assert!(matches!(
+      event_rx
+        .try_recv()
+        .expect("Expected first tray icon mode changed event."),
+      WmEvent::TrayIconModeChanged {
+        mode: TrayIconMode::Workspace,
+      }
+    ));
+
+    assert_eq!(state.toggle_tray_icon_mode(), TrayIconMode::Status);
+    assert!(matches!(
+      event_rx
+        .try_recv()
+        .expect("Expected second tray icon mode changed event."),
+      WmEvent::TrayIconModeChanged {
+        mode: TrayIconMode::Status,
+      }
+    ));
   }
 }
