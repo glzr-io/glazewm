@@ -8,7 +8,7 @@ use crate::{
     NotificationCenter, NotificationEvent, NotificationName,
     NotificationObserver,
   },
-  Dispatcher, ThreadBound,
+  Dispatcher, DisplayEventKind, ThreadBound,
 };
 
 /// Platform-specific implementation of [`DisplayListener`].
@@ -20,7 +20,7 @@ pub(crate) struct DisplayListener {
 impl DisplayListener {
   /// Creates an instance of `DisplayListener`.
   pub(crate) fn new(
-    event_tx: mpsc::UnboundedSender<()>,
+    event_tx: mpsc::UnboundedSender<DisplayEventKind>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let dispatcher_clone = dispatcher.clone();
@@ -48,7 +48,7 @@ impl DisplayListener {
 
   /// Registers notification observers on the main thread.
   fn add_observers(
-    event_tx: mpsc::UnboundedSender<()>,
+    event_tx: mpsc::UnboundedSender<DisplayEventKind>,
     dispatcher: Dispatcher,
   ) -> ThreadBound<Retained<NotificationObserver>> {
     let (observer, mut events_rx) = NotificationObserver::new();
@@ -104,7 +104,7 @@ impl DisplayListener {
             std::thread::spawn(move || {
               std::thread::sleep(WAKE_COALESCE_DURATION);
 
-              if let Err(err) = event_tx.send(()) {
+              if let Err(err) = event_tx.send(DisplayEventKind::DisplayChanged) {
                 tracing::warn!(
                   "Failed to send display change event: {}",
                   err
@@ -127,7 +127,7 @@ impl DisplayListener {
               wake_time = None;
             }
 
-            if let Err(err) = event_tx.send(()) {
+            if let Err(err) = event_tx.send(DisplayEventKind::DisplayChanged) {
               tracing::warn!(
                 "Failed to send display change event: {}",
                 err

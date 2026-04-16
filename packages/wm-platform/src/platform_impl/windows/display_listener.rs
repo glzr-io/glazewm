@@ -11,7 +11,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
   WM_POWERBROADCAST, WM_SETTINGCHANGE,
 };
 
-use crate::{Dispatcher, DispatcherExtWindows};
+use crate::{Dispatcher, DispatcherExtWindows, DisplayEventKind};
 
 /// Platform-specific implementation of [`DisplayListener`].
 pub(crate) struct DisplayListener {
@@ -22,7 +22,7 @@ pub(crate) struct DisplayListener {
 impl DisplayListener {
   /// Implements [`DisplayListener::new`].
   pub(crate) fn new(
-    event_tx: mpsc::UnboundedSender<()>,
+    event_tx: mpsc::UnboundedSender<DisplayEventKind>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
     let is_system_suspended = Arc::new(AtomicBool::new(false));
@@ -47,35 +47,33 @@ impl DisplayListener {
             Some(0)
           }
           WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DEVICECHANGE => {
-            let should_emit = {
-              // Ignore display change messages if the system hasn't fully
-              // resumed from sleep.
-              if is_system_suspended.load(Ordering::Relaxed) {
-                false
-              } else {
-                #[allow(clippy::cast_possible_truncation)]
-                match message {
-                  // Received when displays are connected and disconnected,
-                  // resolution changes, or arrangement changes.
-                  WM_DISPLAYCHANGE => true,
-                  // Received when the working area has changed. Fires when
-                  // the Windows taskbar is changed or an appbar is
-                  // registered or changed. 3rd-party apps like
-                  // ButteryTaskbar can trigger this message by calling
-                  // `SystemParametersInfo(SPI_SETWORKAREA, ...)`.
-                  WM_SETTINGCHANGE => wparam as u32 == SPI_SETWORKAREA.0,
-                  // Received when any device is connected or disconnected
-                  // (including non-display devices).
-                  // TODO: Check if this is actually needed. Previous C#
-                  // implementation did not use this.
-                  WM_DEVICECHANGE => wparam as u32 == DBT_DEVNODES_CHANGED,
-                  _ => unreachable!(),
-                }
-              }
-            };
+            // Ignore display change messages if the system hasn't fully
+            // resumed from sleep.
+            if !is_system_suspended.load(Ordering::Relaxed) {
+              #[allow(clippy::cast_possible_truncation)]
+              let event_kind = match message {
+                // Received when displays are connected and disconnected,
+                // resolution changes, or arrangement changes.
+                WM_DISPLAYCHANGE => Some(DisplayEventKind::DisplayChanged),
+                // Received when the working area has changed. Fires when
+                // the Windows taskbar is changed or an appbar is
+                // registered or changed. 3rd-party apps like
+                // ButteryTaskbar can trigger this message by calling
+                // `SystemParametersInfo(SPI_SETWORKAREA, ...)`.
+                WM_SETTINGCHANGE => (wparam as u32 == SPI_SETWORKAREA.0)
+                  .then_some(DisplayEventKind::WorkAreaChanged),
+                // Received when any device is connected or disconnected
+                // (including non-display devices).
+                // TODO: Check if this is actually needed. Previous C#
+                // implementation did not use this.
+                WM_DEVICECHANGE => (wparam as u32 == DBT_DEVNODES_CHANGED)
+                  .then_some(DisplayEventKind::DeviceChanged),
+                _ => unreachable!(),
+              };
 
-            if should_emit {
-              let _ = event_tx.send(());
+              if let Some(kind) = event_kind {
+                let _ = event_tx.send(kind);
+              }
             }
 
             Some(0)

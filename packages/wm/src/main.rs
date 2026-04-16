@@ -206,9 +206,15 @@ async fn start_wm(
         tracing::debug!("Received window event: {:?}", event);
         wm.process_event(PlatformEvent::Window(event), &mut config)
       },
-      Some(()) = display_listener.next_event() => {
-        tracing::debug!("Received display settings changed event.");
-        wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
+      Some(event_kind) = display_listener.next_event() => {
+        tracing::debug!("Received display event: {:?}.", event_kind);
+        if matches!(event_kind, wm_platform::DisplayEventKind::DeviceChanged)
+          && !config.value.general.listen_for_device_changes
+        {
+          Ok(())
+        } else {
+          wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
+        }
       },
       Some(event) = keybinding_listener.next_event() => {
         tracing::debug!("Received keyboard event: {:?}", event);
