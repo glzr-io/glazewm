@@ -96,6 +96,12 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Whether to re-evaluate display settings when a non-display device
+  /// change is detected (e.g. a USB peripheral or audio device). Disable
+  /// this if plugging in USB devices causes unwanted window re-layout.
+  /// ** Exclusive to Windows due to `WM_DEVICECHANGE` API.
+  pub listen_for_device_changes: bool,
 }
 
 impl Default for GeneralConfig {
@@ -118,6 +124,7 @@ impl Default for GeneralConfig {
         }
       },
       show_all_in_taskbar: false,
+      listen_for_device_changes: true,
     }
   }
 }
