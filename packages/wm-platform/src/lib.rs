@@ -38,24 +38,7 @@ mod resize_session;
 #[cfg(target_os = "windows")]
 pub use resize_session::ResizeSession;
 
-/// Waits for the DWM compositor to finish compositing the current frame,
-/// providing a vsync-synchronized animation tick.
-///
-/// Blocks the calling thread until the display driver signals that a new frame
-/// has been presented. Used by the animation timer thread as a replacement for
-/// a fixed-interval sleep so that animations run at the monitor's native
-/// refresh rate without polling.
-///
-/// # Platform-specific
-///
-/// Only available on Windows; on other platforms this is a no-op.
-#[cfg(target_os = "windows")]
-pub fn dwm_flush() {
-  use windows::Win32::Graphics::Dwm::DwmFlush;
-  // SAFETY: `DwmFlush` has no preconditions; ignoring the return value is
-  // intentional — a failed flush is non-fatal for the animation loop.
-  let _ = unsafe { DwmFlush() };
-}
+
 pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;

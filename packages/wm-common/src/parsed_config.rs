@@ -478,6 +478,7 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
+  /// Animation settings for pure window translations (position changes only).
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,

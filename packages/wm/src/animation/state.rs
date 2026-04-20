@@ -18,27 +18,18 @@ pub enum AnimationType {
 /// State of an individual window animation.
 #[derive(Clone, Debug)]
 pub struct WindowAnimationState {
-  #[allow(dead_code)]
   pub animation_type: AnimationType,
   pub start_time: Instant,
   pub duration: Duration,
   pub easing: EasingFunction,
 
-  // Position animation
+  // Position animation.
   pub start_rect: Rect,
   pub target_rect: Rect,
 
-  // Opacity animation
+  // Opacity animation; `None` when fade is disabled.
   pub start_opacity: Option<OpacityValue>,
   pub target_opacity: Option<OpacityValue>,
-  #[allow(dead_code)]
-  pub fade_enabled: bool,
-
-  // Scale animation
-  #[allow(dead_code)]
-  pub scale_enabled: bool,
-  #[allow(dead_code)]
-  pub slide_enabled: bool,
 }
 
 impl WindowAnimationState {
@@ -57,9 +48,6 @@ impl WindowAnimationState {
       target_rect,
       start_opacity: None,
       target_opacity: None,
-      fade_enabled: false,
-      scale_enabled: false,
-      slide_enabled: false,
     }
   }
 
@@ -91,9 +79,6 @@ impl WindowAnimationState {
       } else {
         None
       },
-      fade_enabled: config.animation_type.has_fade(),
-      scale_enabled: config.animation_type.has_scale(),
-      slide_enabled: config.animation_type.has_slide(),
     }
   }
 
