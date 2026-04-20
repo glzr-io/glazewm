@@ -418,28 +418,21 @@ impl AnimationManager {
         self.start_animation(window_id, animation);
 
         // Redirect an in-flight surrogate session to the new target, or
-        // create a new one. For pure translations (no size change) skip
-        // creation — direct frame-by-frame repositioning is smooth and avoids
-        // the capture overhead. Also skip when the cancelled animation was an
-        // `Open` whose surrogate failed to create, to avoid cloaking the
-        // window without a valid overlay.
-        #[cfg(target_os = "windows")]
-        let has_size_change = start_rect.width() != target_rect.width()
-          || start_rect.height() != target_rect.height();
+        // create a new one. The surrogate overlay is our own window and moves
+        // instantly each frame; the real window only needs one async move to
+        // its final position. This avoids per-frame cross-process
+        // `SWP_ASYNCWINDOWPOS` calls, which lag behind when the target
+        // process's message loop is slow. Skip only when the cancelled
+        // animation was an `Open` whose surrogate failed to create.
         #[cfg(target_os = "windows")]
         let is_replacing_open = existing_animation
           .as_ref()
           .map(|a| matches!(a.animation_type, AnimationType::Open))
           .unwrap_or(false);
-        // Redirect an in-flight surrogate session to the new target, or
-        // create a new one when none is active. Redirection keeps the
-        // existing surrogate alive so the real window is never left
-        // uncloaked at an intermediate position.
         #[cfg(target_os = "windows")]
         if let Some(session) = self.resize_sessions.get_mut(&window_id) {
           session.update_target(&target_rect);
-        } else if has_size_change && !is_replacing_open
-        {
+        } else if !is_replacing_open {
           match ResizeSession::begin(
             native_window.hwnd(),
             &start_rect,
