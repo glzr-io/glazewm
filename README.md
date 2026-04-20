@@ -232,6 +232,14 @@ gaps:
     right: "20px"
     bottom: "20px"
     left: "20px"
+
+  # Gap if there is only a single window.
+  single_window_outer_gap:
+    top: '20px'
+    right: '20px'
+    bottom: '20px'
+    left: '20px'
+
 ```
 
 ### Config: Workspaces
