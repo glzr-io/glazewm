@@ -11,10 +11,10 @@ animations:
     # Increase this value on high-DPI displays to reduce sensitivity.
     # Default: 10
     threshold_px: 10
-    # Use a surrogate overlay during resize animations (Windows only).
-    # Covers the real window while it resizes, eliminating per-frame relayout
-    # in browsers and other expensive apps. Default: false
-    use_surrogate: false
+    # Use a surrogate overlay during animations (Windows only).
+    # Covers the real window while it repositions, eliminating per-frame
+    # relayout in browsers and other expensive apps. Default: true
+    use_surrogate: true
     # Backdrop style for the surrogate overlay (only used when `use_surrogate`
     # is true). Omit for Acrylic blur-behind (default), or set to a hex color:
     #   "#1a1a1a"   - opaque solid color
