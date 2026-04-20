@@ -274,15 +274,16 @@ fn redraw_containers(
 
     // Transition display state depending on whether window will be
     // shown or hidden.
-    let new_display_state = match (previous_display_state.clone(), workspace.is_displayed()) {
-      (DisplayState::Hidden | DisplayState::Hiding, true) => {
-        DisplayState::Showing
-      }
-      (DisplayState::Shown | DisplayState::Showing, false) => {
-        DisplayState::Hiding
-      }
-      _ => previous_display_state,
-    };
+    let new_display_state =
+      match (previous_display_state.clone(), workspace.is_displayed()) {
+        (DisplayState::Hidden | DisplayState::Hiding, true) => {
+          DisplayState::Showing
+        }
+        (DisplayState::Shown | DisplayState::Showing, false) => {
+          DisplayState::Hiding
+        }
+        _ => previous_display_state.clone(),
+      };
     window.set_display_state(new_display_state);
 
     let target_rect = window
@@ -299,15 +300,19 @@ fn redraw_containers(
     let previous_target =
       state.window_target_positions.get(&window.id()).cloned();
 
-    // For visible windows with no recorded target (e.g. a window being
+    // For already-shown windows with no recorded target (e.g. a window being
     // repositioned by a neighbour spawn before its own first target was
     // written), use the native frame as the animation start so the window
-    // animates instead of snapping.
-    let previous_target = if is_visible && previous_target.is_none() {
-      window.native().frame().ok()
-    } else {
-      previous_target
-    };
+    // animates instead of snapping. Newly managed windows (`Showing`) are
+    // excluded — they should appear directly at their tiling position.
+    let previous_target =
+      if window.display_state() == DisplayState::Shown
+        && previous_target.is_none()
+      {
+        window.native().frame().ok()
+      } else {
+        previous_target
+      };
 
     // Always record the latest target position.
     state
