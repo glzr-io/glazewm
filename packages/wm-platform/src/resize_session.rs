@@ -49,14 +49,19 @@ impl ResizeSession {
   ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
+  ///
+  /// `scale` controls whether the surrogate thumbnail scales its content to
+  /// fit the current frame size (`true` for open animations) or pins at target
+  /// size for a curtain-reveal effect (`false` for move/resize animations).
   pub fn begin(
     hwnd: HWND,
     source_rect: &Rect,
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
+    scale: bool,
   ) -> crate::Result<Self> {
     let surrogate =
-      match NativeSurrogate::create(hwnd, source_rect, surrogate_color) {
+      match NativeSurrogate::create(hwnd, source_rect, target_rect, surrogate_color, scale) {
         Ok(s) => Some(s),
         Err(err) => {
           tracing::warn!(

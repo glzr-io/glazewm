@@ -68,9 +68,9 @@ impl WindowManager {
     let mut state = WmState::new(dispatcher, event_tx, exit_tx, animation_tick_tx);
     state.populate(config)?;
 
-    // Start animation timer if `populate` created any animations (e.g.
-    // window_open animations). This mirrors the `ensure_timer_running` call
-    // at the end of `process_event` for the initial population path.
+    // Start animation timer if `populate` created any animations. This
+    // mirrors the `ensure_timer_running` call at the end of `process_event`
+    // for the initial population path.
     state
       .animation_manager
       .ensure_timer_running(&state, config);

@@ -329,9 +329,9 @@ fn redraw_containers(
     // animations. `window_resize` config is reserved for future use when
     // a meaningful pure-resize distinction can be made.
     let should_use_animations = !is_floating
+      && !is_opening
       && !state.pending_sync.should_skip_animations()
-      && ((is_opening && config.value.animations.window_open.enabled)
-        || (!is_opening && config.value.animations.window_move.enabled));
+      && config.value.animations.window_move.enabled;
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -339,11 +339,10 @@ fn redraw_containers(
     #[cfg(target_os = "windows")]
     let native_ref = window.native();
 
-    // Determine the rect and opacity to use for this frame.
-    let (position_result, opacity_override) = if should_use_animations {
+    // Determine the rect to use for this frame.
+    let (position_result, _) = if should_use_animations {
       state.animation_manager.start_animation_if_needed(
         window.id(),
-        is_opening,
         false, // is_resize: window_move config governs all non-opening animations.
         target_rect.clone(),
         previous_target,
@@ -405,17 +404,6 @@ fn redraw_containers(
         #[cfg(target_os = "windows")]
         if is_visible {
           let _ = window.native().set_cloaked(false);
-        }
-
-        // Apply opacity if there's an animation with fade.
-        #[cfg(target_os = "windows")]
-        if let Some(opacity) = opacity_override {
-          if let Err(err) = window.native().set_transparency(&opacity) {
-            tracing::warn!(
-              "Failed to set window opacity during animation: {}",
-              err
-            );
-          }
         }
       }
     }

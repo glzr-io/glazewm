@@ -163,13 +163,14 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
   unsafe { set_wca(hwnd, std::ptr::addr_of_mut!(data)) };
 }
 
-/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd`, pinned to
-/// `width × height` with no scaling.
+/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd` sized to
+/// `width × height`.
 ///
-/// Both `rcSource` and `rcDestination` are set to `{0, 0, width, height}` so
-/// DWM captures the full window frame (including title bar and borders) and
-/// renders it 1:1 into the destination — no upscaling or downscaling occurs
-/// even if the source window is later resized to a different size.
+/// Both `rcSource` and `rcDestination` are set to `{0, 0, width, height}`.
+/// Callers should pass the animation's **target** dimensions so the thumbnail
+/// always shows the real window's final rendered content. The surrogate window
+/// clips the thumbnail to its current (animated) bounds, producing a curtain
+/// reveal rather than an acrylic-fill artifact when the window grows.
 ///
 /// Returns the opaque thumbnail handle, or `None` if registration fails (e.g.
 /// same-window, invalid handle). The caller is responsible for calling
@@ -223,12 +224,23 @@ fn register_thumbnail(
 ///
 /// At animation start the overlay is placed over the real app window at the
 /// source rect. Windows Acrylic blur-behind is applied as the backdrop, and a
-/// DWM thumbnail of the real window is rendered on top — showing the window's
-/// original content at its original size via a pinned `rcSource` rect.
+/// DWM thumbnail of the real window is rendered on top — pinned to the
+/// animation's **target** dimensions so the thumbnail always shows the final
+/// window content. The surrogate window clips the thumbnail to its current
+/// animated bounds: for growing windows this produces a curtain reveal of the
+/// final content; for shrinking windows the final content sits at target size
+/// with acrylic filling the collapsing remainder.
+///
+/// When `scale` is `true` (open animations), the thumbnail `rcDestination` is
+/// updated each frame to match the current surrogate size so DWM scales the
+/// source content to fit rather than clipping it. This produces a scale-in
+/// effect from the initial smaller rect to the target rect.
+///
 /// GlazeWM cloaks the real window while the overlay is active.
 ///
-/// Per-frame cost is one [`SetWindowPos`] call. No GDI allocations occur and
-/// the thumbnail properties are never updated after creation.
+/// Per-frame cost is one [`SetWindowPos`] call (plus one
+/// `DwmUpdateThumbnailProperties` when the thumbnail handle is valid). No GDI
+/// allocations occur.
 ///
 /// When the animation finishes the real window is uncloaked and this surrogate
 /// is dropped, which unregisters the thumbnail and destroys the overlay window.
@@ -242,20 +254,37 @@ pub struct NativeSurrogate {
   hwnd: isize,
   /// DWM thumbnail handle, or `0` if registration failed.
   thumbnail: isize,
+  /// Whether to scale the thumbnail content to the current surrogate size each
+  /// frame. When `false` the thumbnail destination rect is pinned to the
+  /// target dimensions, producing a curtain-reveal effect.
+  scale: bool,
 }
 
 impl NativeSurrogate {
   /// Creates a surrogate overlay and positions it above `source_hwnd`.
   ///
   /// The overlay is shown without activating it. A DWM thumbnail of
-  /// `source_hwnd` is registered to display the window's live content inside
-  /// the surrogate. When `surrogate_color` is `Some`, the backdrop is a
-  /// solid-color fill; when `None`, Windows Acrylic blur-behind is used.
+  /// `source_hwnd` is registered at `target_rect` dimensions to display the
+  /// window's final rendered content. The surrogate window starts at
+  /// `source_rect` and animates toward `target_rect`. When `surrogate_color`
+  /// is `Some`, the backdrop is a solid-color fill; when `None`, Windows
+  /// Acrylic blur-behind is used.
+  ///
+  /// When `scale` is `true`, [`update`] scales the thumbnail content to the
+  /// current surrogate size on every frame (open animations). When `false`,
+  /// the thumbnail destination is pinned at target size, which clips the
+  /// content to the surrogate's bounds and creates a curtain-reveal effect
+  /// (move/resize animations).
+  ///
   /// Returns an error if window creation fails.
+  ///
+  /// [`update`]: NativeSurrogate::update
   pub fn create(
     source_hwnd: HWND,
     source_rect: &Rect,
+    target_rect: &Rect,
     surrogate_color: Option<&Color>,
+    scale: bool,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
@@ -287,15 +316,22 @@ impl NativeSurrogate {
     }
 
     // Apply the backdrop. When the thumbnail is opaque this is only visible
-    // in areas the thumbnail doesn't cover (i.e. when the surrogate grows
-    // beyond the source window's dimensions).
+    // in areas the thumbnail doesn't cover (acrylic fills the remainder when
+    // the surrogate is larger than the thumbnail's pinned target rect).
     apply_backdrop(hwnd, surrogate_color);
 
-    // Register a DWM thumbnail of the source window so its live content is
-    // rendered inside the surrogate, scaled to fill the current animation
-    // rect. Failure is non-fatal: the surrogate falls back to acrylic-only.
-    let thumbnail =
-      register_thumbnail(hwnd, source_hwnd, src_w, src_h).unwrap_or(0);
+    // Register the DWM thumbnail at target dimensions so the thumbnail always
+    // shows the real window's final rendered content (the real window is
+    // pre-positioned to target_rect at session start). The surrogate clips the
+    // thumbnail to its current animated bounds. Failure is non-fatal: the
+    // surrogate falls back to acrylic-only.
+    let thumbnail = register_thumbnail(
+      hwnd,
+      source_hwnd,
+      target_rect.width(),
+      target_rect.height(),
+    )
+    .unwrap_or(0);
 
     // Place the surrogate immediately above `source_hwnd` in the Z-order
     // and show it without activating it.
@@ -316,18 +352,12 @@ impl NativeSurrogate {
     Ok(Self {
       hwnd: hwnd.0,
       thumbnail,
+      scale,
     })
   }
 
   /// Moves and resizes the surrogate overlay to `rect` and sets the DWM
   /// thumbnail opacity to `opacity` (0 = fully transparent, 255 = opaque).
-  ///
-  /// The DWM thumbnail remains pinned at the original source window size set
-  /// during [`create`]; only the acrylic backdrop and overlay bounds animate.
-  /// The thumbnail fills the surrogate exactly when it matches the source size
-  /// and reveals the acrylic as the surrogate grows beyond it.
-  ///
-  /// [`create`]: NativeSurrogate::create
   pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {
     // SAFETY: `HWND(self.hwnd)` is the overlay window created in `create`
     // and remains valid until `drop`. With `SWP_NOZORDER` set,
@@ -345,9 +375,27 @@ impl NativeSurrogate {
     }?;
 
     if self.thumbnail != 0 {
+      // When scaling, update rcDestination to the current surrogate size so
+      // DWM scales the full source content down to fit. When not scaling the
+      // destination rect stays pinned from creation (curtain-reveal effect).
+      let (flags, dest) = if self.scale {
+        (
+          DWM_TNP_OPACITY | DWM_TNP_RECTDESTINATION,
+          RECT {
+            left: 0,
+            top: 0,
+            right: rect.width(),
+            bottom: rect.height(),
+          },
+        )
+      } else {
+        (DWM_TNP_OPACITY, RECT::default())
+      };
+
       let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: DWM_TNP_OPACITY,
+        dwFlags: flags,
         opacity,
+        rcDestination: dest,
         ..Default::default()
       };
 

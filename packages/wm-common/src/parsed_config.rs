@@ -482,7 +482,6 @@ pub struct AnimationsConfig {
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,
-  pub window_open: AnimationEffectsConfig,
   /// Maximum frame rate for animations in Hz. The animation timer will
   /// not exceed this rate even if the monitor supports higher refresh rates.
   /// Default: 120 Hz
@@ -494,7 +493,6 @@ impl Default for AnimationsConfig {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
       window_resize: AnimationTypeConfig::default(),
-      window_open: AnimationEffectsConfig::default_open(),
       max_frame_rate: 120,
     }
   }
@@ -533,92 +531,6 @@ impl Default for AnimationTypeConfig {
       threshold_px: 10,
       surrogate_color: None,
     }
-  }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default, rename_all(serialize = "camelCase"))]
-pub struct AnimationEffectsConfig {
-  pub enabled: bool,
-  pub duration_ms: u32,
-  pub easing: EasingFunction,
-  /// Type of animation effects to apply.
-  /// Can be: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
-  pub animation_type: AnimationEffectType,
-}
-
-impl AnimationEffectsConfig {
-  fn default_open() -> Self {
-    AnimationEffectsConfig {
-      enabled: true,
-      duration_ms: 200,
-      easing: EasingFunction::EaseOut,
-      animation_type: AnimationEffectType::FadeSlideScale,
-    }
-  }
-}
-
-impl Default for AnimationEffectsConfig {
-  fn default() -> Self {
-    Self::default_open()
-  }
-}
-
-/// Animation effect types that can be combined.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AnimationEffectType {
-  /// No animation effects.
-  None,
-  /// Fade in/out effect.
-  Fade,
-  /// Slide animation effect.
-  Slide,
-  /// Scale animation effect.
-  Scale,
-  /// Fade and slide combined.
-  FadeSlide,
-  /// Fade and scale combined.
-  FadeScale,
-  /// Slide and scale combined.
-  SlideScale,
-  /// All effects combined (fade, slide, and scale).
-  #[default]
-  FadeSlideScale,
-}
-
-impl AnimationEffectType {
-  /// Returns whether fade effect is enabled.
-  pub fn has_fade(&self) -> bool {
-    matches!(
-      self,
-      AnimationEffectType::Fade
-        | AnimationEffectType::FadeSlide
-        | AnimationEffectType::FadeScale
-        | AnimationEffectType::FadeSlideScale
-    )
-  }
-
-  /// Returns whether slide effect is enabled.
-  pub fn has_slide(&self) -> bool {
-    matches!(
-      self,
-      AnimationEffectType::Slide
-        | AnimationEffectType::FadeSlide
-        | AnimationEffectType::SlideScale
-        | AnimationEffectType::FadeSlideScale
-    )
-  }
-
-  /// Returns whether scale effect is enabled.
-  pub fn has_scale(&self) -> bool {
-    matches!(
-      self,
-      AnimationEffectType::Scale
-        | AnimationEffectType::FadeScale
-        | AnimationEffectType::SlideScale
-        | AnimationEffectType::FadeSlideScale
-    )
   }
 }
 

@@ -11,7 +11,7 @@ use wm_platform::{NativeWindow, OpacityValue, Rect};
 use wm_platform::{NativeWindowWindowsExt, ResizeSession};
 
 use crate::{
-  animation::state::{AnimationType, WindowAnimationState},
+  animation::state::WindowAnimationState,
   commands::general::platform_sync,
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
@@ -291,7 +291,6 @@ impl AnimationManager {
   fn should_start_new_animation(
     &self,
     window_id: &Uuid,
-    is_opening: bool,
     is_resize: bool,
     target_rect: &Rect,
     previous_target: Option<&Rect>,
@@ -306,21 +305,23 @@ impl AnimationManager {
     };
     let threshold = anim_config.threshold_px as i32;
 
-    if is_opening && config.value.animations.window_open.enabled {
-      existing_animation.is_none()
-    } else if !is_opening && anim_config.enabled {
+    if anim_config.enabled {
       if let Some(anim) = existing_animation {
         if anim.is_complete() {
-          false
+          // Animation already at its target — treat as a static window and
+          // apply the threshold check against the completed target so a new
+          // animation starts if the window needs to move.
+          let distance = (anim.target_rect.x() - target_rect.x()).abs()
+            + (anim.target_rect.y() - target_rect.y()).abs()
+            + (anim.target_rect.width() - target_rect.width()).abs()
+            + (anim.target_rect.height() - target_rect.height()).abs();
+          distance > threshold
         } else {
-          // Check whether the target has changed enough from the current
-          // animation target to warrant a cancel-and-replace.
-          let target_distance =
-            (anim.target_rect.x() - target_rect.x()).abs()
-              + (anim.target_rect.y() - target_rect.y()).abs()
-              + (anim.target_rect.width() - target_rect.width()).abs()
-              + (anim.target_rect.height() - target_rect.height()).abs();
-          target_distance > threshold
+          // Redirect any in-progress animation to the new target whenever the
+          // destination changes, regardless of distance. Without this, small
+          // target adjustments (< threshold) are silently swallowed and the
+          // window snaps after the stale animation finishes.
+          anim.target_rect != *target_rect
         }
       } else if let Some(prev_target) = previous_target {
         let distance = (prev_target.x() - target_rect.x()).abs()
@@ -345,7 +346,6 @@ impl AnimationManager {
   pub fn start_animation_if_needed(
     &mut self,
     window_id: Uuid,
-    is_opening: bool,
     is_resize: bool,
     target_rect: Rect,
     previous_target: Option<Rect>,
@@ -358,7 +358,6 @@ impl AnimationManager {
 
     let should_start = self.should_start_new_animation(
       &window_id,
-      is_opening,
       is_resize,
       &target_rect,
       previous_target.as_ref(),
@@ -366,37 +365,7 @@ impl AnimationManager {
     );
 
     if should_start {
-      if is_opening {
-        let animation = WindowAnimationState::new_open(
-          target_rect.clone(),
-          &config.value.animations.window_open,
-        );
-        self.start_animation(window_id, animation);
-
-        // Create a surrogate for the open animation so the window fades in
-        // via DWM thumbnail opacity rather than per-frame `SetWindowPos`.
-        // Both source and target are `target_rect` — the overlay sits still
-        // while only the opacity animates.
-        #[cfg(target_os = "windows")]
-        if !self.resize_sessions.contains_key(&window_id) {
-          match ResizeSession::begin(
-            native_window.hwnd(),
-            &target_rect,
-            &target_rect,
-            None,
-          ) {
-            Ok(session) => {
-              self.resize_sessions.insert(window_id, session);
-            }
-            Err(err) => {
-              tracing::warn!(
-                "Failed to begin open surrogate for window {window_id}: \
-                 {err}."
-              );
-            }
-          }
-        }
-      } else if let Some(prev_target) = previous_target {
+      if let Some(prev_target) = previous_target {
         // Start from the current animated position on cancel-and-replace so
         // the animation does not jump back to the original start.
         let start_rect = existing_animation
@@ -422,22 +391,17 @@ impl AnimationManager {
         // instantly each frame; the real window only needs one async move to
         // its final position. This avoids per-frame cross-process
         // `SWP_ASYNCWINDOWPOS` calls, which lag behind when the target
-        // process's message loop is slow. Skip only when the cancelled
-        // animation was an `Open` whose surrogate failed to create.
-        #[cfg(target_os = "windows")]
-        let is_replacing_open = existing_animation
-          .as_ref()
-          .map(|a| matches!(a.animation_type, AnimationType::Open))
-          .unwrap_or(false);
+        // process's message loop is slow.
         #[cfg(target_os = "windows")]
         if let Some(session) = self.resize_sessions.get_mut(&window_id) {
           session.update_target(&target_rect);
-        } else if !is_replacing_open {
+        } else {
           match ResizeSession::begin(
             native_window.hwnd(),
             &start_rect,
             &target_rect,
             anim_config.surrogate_color.as_ref(),
+            false,
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);
