@@ -17,14 +17,20 @@ animations:
     #   "#1a1a1aCC" - solid color with alpha (CC = ~80% opacity)
     # surrogate_color: "#1a1a1a"
 
-  # Animation settings for when windows open.
+  # Animation settings for newly opened windows. Uses a curtain-reveal
+  # surrogate that grows from a thin sliver to the full window width.
   window_open:
     enabled: true
     duration_ms: 200
     easing: "ease_out"
-    # Type of animation effects to apply.
-    # Options: "none", "fade", "slide", "scale", "fade_slide", "fade_scale", "slide_scale", "fade_slide_scale"
-    animation_type: "fade_slide_scale"
+    # Minimum pixel distance required to trigger the open animation.
+    # Default: 0 (always animate)
+    threshold_px: 0
+    # Backdrop style for the surrogate overlay (Windows only). Omit for
+    # Acrylic blur-behind (default), or set to a hex color:
+    #   "#1a1a1a"   - opaque solid color
+    #   "#1a1a1aCC" - solid color with alpha (CC = ~80% opacity)
+    # surrogate_color: "#1a1a1a"
 
   # Maximum frame rate for animations in Hz. The animation timer will not
   # exceed this rate even if the monitor supports higher refresh rates.
