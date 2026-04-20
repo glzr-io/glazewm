@@ -2,8 +2,6 @@ use anyhow::Context;
 use tracing::info;
 use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
 use wm_platform::NativeWindow;
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
 use wm_platform::RectDelta;
 
 use crate::{
@@ -56,15 +54,6 @@ pub fn manage_window(
 
   if let Some(window) = updated_window {
     info!("New window managed: {window}");
-
-    // Cloak the window immediately so it does not flash at full opacity
-    // before the first `platform_sync` starts the open surrogate animation.
-    #[cfg(target_os = "windows")]
-    if window.state() == WindowState::Tiling
-      && config.value.animations.window_open.enabled
-    {
-      let _ = window.native().set_cloaked(true);
-    }
 
     state.emit_event(WmEvent::WindowManaged {
       managed_window: window.to_dto()?,

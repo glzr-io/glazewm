@@ -395,8 +395,6 @@ pub struct AnimationsConfig {
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,
-  /// Animation settings for newly opened windows.
-  pub window_open: AnimationTypeConfig,
   /// Maximum frame rate for animations in Hz. The animation timer will
   /// not exceed this rate even if the monitor supports higher refresh
   /// rates. Default: 120 Hz
@@ -408,7 +406,6 @@ impl Default for AnimationsConfig {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
       window_resize: AnimationTypeConfig::default(),
-      window_open: AnimationTypeConfig::default_open(),
       max_frame_rate: 120,
     }
   }
@@ -437,20 +434,6 @@ pub struct AnimationTypeConfig {
   ///
   /// Only has an effect on Windows; ignored on macOS.
   pub surrogate_color: Option<Color>,
-}
-
-impl AnimationTypeConfig {
-  /// Default config for newly opened windows: slightly longer duration with
-  /// an ease-out curve so the reveal decelerates into its final position.
-  pub fn default_open() -> Self {
-    AnimationTypeConfig {
-      enabled: true,
-      duration_ms: 200,
-      easing: EasingFunction::EaseOut,
-      threshold_px: 0,
-      surrogate_color: None,
-    }
-  }
 }
 
 impl Default for AnimationTypeConfig {

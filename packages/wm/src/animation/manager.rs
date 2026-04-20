@@ -291,19 +291,12 @@ impl AnimationManager {
   fn should_start_new_animation(
     &self,
     window_id: &Uuid,
-    is_opening: bool,
     is_resize: bool,
     target_rect: &Rect,
     previous_target: Option<&Rect>,
     config: &UserConfig,
   ) -> bool {
     let existing_animation = self.get_animation(window_id);
-
-    if is_opening {
-      // Only start the open animation once (no existing animation for a
-      // brand-new window).
-      return existing_animation.is_none();
-    }
 
     let anim_config = if is_resize {
       &config.value.animations.window_resize
@@ -347,9 +340,7 @@ impl AnimationManager {
   /// Determines the rect and opacity to use for a window this frame.
   ///
   /// Starts a new animation when movement or resize crosses the configured
-  /// threshold. For opening windows a surrogate curtain-reveal is used —
-  /// starting from a 4 px wide sliver and growing to the target rect — so
-  /// the caller can see the adjacent window's shrink animation behind it.
+  /// threshold.
   ///
   /// Returns [`AnimationPositionResult::Frozen`] while a surrogate overlay
   /// is active so the caller does not reposition the real window on
@@ -357,7 +348,6 @@ impl AnimationManager {
   pub fn start_animation_if_needed(
     &mut self,
     window_id: Uuid,
-    is_opening: bool,
     is_resize: bool,
     target_rect: Rect,
     previous_target: Option<Rect>,
@@ -370,7 +360,6 @@ impl AnimationManager {
 
     let should_start = self.should_start_new_animation(
       &window_id,
-      is_opening,
       is_resize,
       &target_rect,
       previous_target.as_ref(),
@@ -378,40 +367,7 @@ impl AnimationManager {
     );
 
     if should_start {
-      if is_opening {
-        // Start from a 4 px wide sliver so the adjacent window's shrink
-        // surrogate is visible while this window reveals its content.
-        let start_rect = Rect::from_xy(
-          target_rect.x(),
-          target_rect.y(),
-          4,
-          target_rect.height(),
-        );
-        let animation = WindowAnimationState::new_movement(
-          start_rect.clone(),
-          target_rect.clone(),
-          &config.value.animations.window_open,
-        );
-        self.start_animation(window_id, animation);
-
-        #[cfg(target_os = "windows")]
-        match ResizeSession::begin(
-          native_window.hwnd(),
-          &start_rect,
-          &target_rect,
-          config.value.animations.window_open.surrogate_color.as_ref(),
-          false,
-        ) {
-          Ok(session) => {
-            self.resize_sessions.insert(window_id, session);
-          }
-          Err(err) => {
-            tracing::warn!(
-              "Failed to begin open session for window {window_id}: {err}."
-            );
-          }
-        }
-      } else if let Some(prev_target) = previous_target {
+      if let Some(prev_target) = previous_target {
         // Start from the current animated position on cancel-and-replace so
         // the animation does not jump back to the original start.
         let start_rect = existing_animation

@@ -299,18 +299,11 @@ fn redraw_containers(
     let previous_target =
       state.window_target_positions.get(&window.id()).cloned();
 
-    // A window is opening if it is being shown for the first time (no
-    // previous target position has been recorded for it).
-    let is_opening = matches!(
-      window.display_state(),
-      DisplayState::Showing | DisplayState::Shown
-    ) && previous_target.is_none();
-
-    // For visible non-opening windows with no recorded target (e.g. a
-    // window being repositioned by a neighbour spawn before its own first
-    // target was written), use the native frame as the animation start so
-    // the window animates instead of snapping.
-    let previous_target = if !is_opening && is_visible && previous_target.is_none() {
+    // For visible windows with no recorded target (e.g. a window being
+    // repositioned by a neighbour spawn before its own first target was
+    // written), use the native frame as the animation start so the window
+    // animates instead of snapping.
+    let previous_target = if is_visible && previous_target.is_none() {
       window.native().frame().ok()
     } else {
       previous_target
@@ -325,16 +318,12 @@ fn redraw_containers(
     let is_floating = matches!(window.state(), WindowState::Floating(_));
 
     // Tiling layout changes almost always change both position and size
-    // simultaneously, so `window_move` config governs all non-opening
-    // animations. `window_resize` config is reserved for future use when
-    // a meaningful pure-resize distinction can be made.
+    // simultaneously, so `window_move` config governs all tiling animations.
+    // `window_resize` config is reserved for future use when a meaningful
+    // pure-resize distinction can be made.
     let should_use_animations = !is_floating
       && !state.pending_sync.should_skip_animations()
-      && if is_opening {
-        config.value.animations.window_open.enabled
-      } else {
-        config.value.animations.window_move.enabled
-      };
+      && config.value.animations.window_move.enabled;
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -346,8 +335,7 @@ fn redraw_containers(
     let (position_result, _) = if should_use_animations {
       state.animation_manager.start_animation_if_needed(
         window.id(),
-        is_opening,
-        false, // is_resize: window_move config governs all non-opening animations.
+        false, // is_resize: window_move config governs all tiling animations.
         target_rect.clone(),
         previous_target,
         #[cfg(target_os = "windows")]
