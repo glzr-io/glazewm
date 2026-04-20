@@ -419,9 +419,7 @@ impl AnimationManager {
         #[cfg(target_os = "windows")]
         if let Some(session) = self.resize_sessions.get_mut(&window_id) {
           session.update_target(&target_rect);
-        } else if anim_config.use_surrogate
-          && has_size_change
-          && !is_replacing_open
+        } else if has_size_change && !is_replacing_open
         {
           match ResizeSession::begin(
             native_window.hwnd(),

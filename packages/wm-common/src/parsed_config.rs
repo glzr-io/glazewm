@@ -510,18 +510,6 @@ pub struct AnimationTypeConfig {
   /// Helps prevent animations from starting on very small position changes.
   /// Increase this value on high-DPI displays to reduce sensitivity.
   pub threshold_px: u32,
-  /// Whether to use a surrogate overlay window during animations.
-  ///
-  /// When enabled, a DWM thumbnail of the app window is shown while the real
-  /// window is repositioned in the background. The app repaints only once at
-  /// the final size, eliminating per-frame relayout flicker in expensive apps
-  /// such as browsers and file explorers. Set to `false` only for pure
-  /// translation moves where no resize occurs and the overhead is unnecessary.
-  ///
-  /// # Platform-specific
-  ///
-  /// Only has an effect on Windows; ignored on macOS.
-  pub use_surrogate: bool,
   /// Optional solid-color backdrop for the surrogate overlay window.
   ///
   /// When set, the surrogate uses a flat color fill instead of Windows
@@ -543,7 +531,6 @@ impl Default for AnimationTypeConfig {
       duration_ms: 150,
       easing: EasingFunction::EaseInOut,
       threshold_px: 10,
-      use_surrogate: true,
       surrogate_color: None,
     }
   }
