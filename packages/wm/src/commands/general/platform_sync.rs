@@ -306,6 +306,16 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     ) && previous_target.is_none();
 
+    // For visible non-opening windows with no recorded target (e.g. a
+    // window being repositioned by a neighbour spawn before its own first
+    // target was written), use the native frame as the animation start so
+    // the window animates instead of snapping.
+    let previous_target = if !is_opening && is_visible && previous_target.is_none() {
+      window.native().frame().ok()
+    } else {
+      previous_target
+    };
+
     // Always record the latest target position.
     state
       .window_target_positions
