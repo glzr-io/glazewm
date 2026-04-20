@@ -493,10 +493,7 @@ impl Default for AnimationsConfig {
   fn default() -> Self {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
-      window_resize: AnimationTypeConfig {
-        use_surrogate: true,
-        ..AnimationTypeConfig::default()
-      },
+      window_resize: AnimationTypeConfig::default(),
       window_open: AnimationEffectsConfig::default_open(),
       max_frame_rate: 120,
     }
