@@ -329,9 +329,12 @@ fn redraw_containers(
     // animations. `window_resize` config is reserved for future use when
     // a meaningful pure-resize distinction can be made.
     let should_use_animations = !is_floating
-      && !is_opening
       && !state.pending_sync.should_skip_animations()
-      && config.value.animations.window_move.enabled;
+      && if is_opening {
+        config.value.animations.window_open.enabled
+      } else {
+        config.value.animations.window_move.enabled
+      };
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -343,6 +346,7 @@ fn redraw_containers(
     let (position_result, _) = if should_use_animations {
       state.animation_manager.start_animation_if_needed(
         window.id(),
+        is_opening,
         false, // is_resize: window_move config governs all non-opening animations.
         target_rect.clone(),
         previous_target,
