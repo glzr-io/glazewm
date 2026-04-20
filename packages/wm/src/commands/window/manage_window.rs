@@ -2,6 +2,8 @@ use anyhow::Context;
 use tracing::info;
 use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
 use wm_platform::NativeWindow;
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 use wm_platform::RectDelta;
 
 use crate::{
@@ -54,6 +56,13 @@ pub fn manage_window(
 
   if let Some(window) = updated_window {
     info!("New window managed: {window}");
+
+    // Cloak new tiling windows immediately so they don't briefly appear at
+    // their native OS position before `platform_sync` repositions them.
+    #[cfg(target_os = "windows")]
+    if window.state() == WindowState::Tiling {
+      let _ = window.native().set_cloaked(true);
+    }
 
     state.emit_event(WmEvent::WindowManaged {
       managed_window: window.to_dto()?,
