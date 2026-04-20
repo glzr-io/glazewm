@@ -4,9 +4,7 @@ use wm_common::{
   Rect,
 };
 
-use crate::animation::engine::{
-  animation_progress, interpolate_with_easing, scale_rect_from_center,
-};
+use crate::animation::engine::{animation_progress, interpolate_with_easing};
 
 /// Type of animation being performed.
 #[derive(Clone, Debug)]
@@ -52,33 +50,31 @@ impl WindowAnimationState {
   }
 
   /// Creates a new open animation.
+  ///
+  /// The overlay window stays at `target_rect` for the duration; only the DWM
+  /// thumbnail opacity is animated (fade-in via `DWM_TNP_OPACITY`). Scale and
+  /// slide effects require per-frame `SetWindowPos` on the real window and are
+  /// therefore not applied — only the fade component of `animation_type` is
+  /// used.
   pub fn new_open(
     target_rect: Rect,
     config: &AnimationEffectsConfig,
   ) -> Self {
-    let start_rect = if config.animation_type.has_scale() {
-      scale_rect_from_center(&target_rect, 0.9)
-    } else {
-      target_rect.clone()
-    };
-
     Self {
       animation_type: AnimationType::Open,
       start_time: Instant::now(),
       duration: Duration::from_millis(u64::from(config.duration_ms)),
       easing: config.easing.clone(),
-      start_rect,
+      start_rect: target_rect.clone(),
       target_rect,
-      start_opacity: if config.animation_type.has_fade() {
-        Some(OpacityValue::from_alpha(0))
-      } else {
-        None
-      },
-      target_opacity: if config.animation_type.has_fade() {
-        Some(OpacityValue::from_alpha(255))
-      } else {
-        None
-      },
+      start_opacity: config
+        .animation_type
+        .has_fade()
+        .then(|| OpacityValue::from_alpha(0)),
+      target_opacity: config
+        .animation_type
+        .has_fade()
+        .then(|| OpacityValue::from_alpha(255)),
     }
   }
 

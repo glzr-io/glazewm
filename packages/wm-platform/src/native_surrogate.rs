@@ -319,15 +319,16 @@ impl NativeSurrogate {
     })
   }
 
-  /// Moves and resizes the surrogate overlay to `rect`.
+  /// Moves and resizes the surrogate overlay to `rect` and sets the DWM
+  /// thumbnail opacity to `opacity` (0 = fully transparent, 255 = opaque).
   ///
   /// The DWM thumbnail remains pinned at the original source window size set
-  /// during [`create`]; only the acrylic backdrop animates. The thumbnail
-  /// fills the surrogate exactly when it matches the source size and reveals
-  /// the acrylic as the surrogate grows beyond it.
+  /// during [`create`]; only the acrylic backdrop and overlay bounds animate.
+  /// The thumbnail fills the surrogate exactly when it matches the source size
+  /// and reveals the acrylic as the surrogate grows beyond it.
   ///
   /// [`create`]: NativeSurrogate::create
-  pub fn update(&mut self, rect: &Rect) -> crate::Result<()> {
+  pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {
     // SAFETY: `HWND(self.hwnd)` is the overlay window created in `create`
     // and remains valid until `drop`. With `SWP_NOZORDER` set,
     // `hWndInsertAfter` is ignored per the Win32 documentation.
@@ -342,6 +343,21 @@ impl NativeSurrogate {
         SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_NOZORDER,
       )
     }?;
+
+    if self.thumbnail != 0 {
+      let props = DWM_THUMBNAIL_PROPERTIES {
+        dwFlags: DWM_TNP_OPACITY,
+        opacity,
+        ..Default::default()
+      };
+
+      // SAFETY: `self.thumbnail` is a valid handle. `props` is
+      // stack-allocated and live for the duration of this call.
+      unsafe {
+        let _ =
+          DwmUpdateThumbnailProperties(self.thumbnail, &raw const props);
+      }
+    }
 
     Ok(())
   }

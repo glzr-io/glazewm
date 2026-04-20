@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use wm_common::{EasingFunction, Rect};
+use wm_common::EasingFunction;
 
 /// Calculates the current progress of an animation (0.0 to 1.0).
 pub fn animation_progress(
@@ -81,20 +81,6 @@ pub fn interpolate_with_easing<T>(
   interpolate_fn(start, end, eased_progress)
 }
 
-/// Scales a rectangle from its center point.
-#[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-pub fn scale_rect_from_center(rect: &Rect, scale: f32) -> Rect {
-  let center_x = rect.x() + rect.width() / 2;
-  let center_y = rect.y() + rect.height() / 2;
-
-  let new_width = (rect.width() as f32 * scale).round() as i32;
-  let new_height = (rect.height() as f32 * scale).round() as i32;
-
-  let new_x = center_x - new_width / 2;
-  let new_y = center_y - new_height / 2;
-
-  Rect::from_xy(new_x, new_y, new_width, new_height)
-}
 
 #[cfg(test)]
 mod tests {
@@ -121,15 +107,5 @@ mod tests {
     assert_eq!(mid.height(), 150);
   }
 
-  #[test]
-  fn test_scale_rect_from_center() {
-    let rect = Rect::from_xy(100, 100, 200, 200);
-    let scaled = scale_rect_from_center(&rect, 0.5);
-
-    assert_eq!(scaled.width(), 100);
-    assert_eq!(scaled.height(), 100);
-    assert_eq!(scaled.x(), 150);
-    assert_eq!(scaled.y(), 150);
-  }
 }
 

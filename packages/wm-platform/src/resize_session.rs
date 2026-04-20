@@ -102,10 +102,13 @@ impl ResizeSession {
     self.surrogate.is_some()
   }
 
-  /// Updates the surrogate to the current animation frame position.
-  pub fn update(&mut self, current_rect: &Rect) {
+  /// Updates the surrogate to the current animation frame position and opacity.
+  ///
+  /// `opacity` maps to the DWM thumbnail opacity (0 = transparent, 255 =
+  /// opaque). Pass `255` for resize animations where no fade is needed.
+  pub fn update(&mut self, current_rect: &Rect, opacity: u8) {
     if let Some(surrogate) = &mut self.surrogate {
-      if let Err(err) = surrogate.update(current_rect) {
+      if let Err(err) = surrogate.update(current_rect, opacity) {
         tracing::warn!("Surrogate update failed: {err}.");
       }
     }
@@ -159,7 +162,7 @@ impl ResizeSession {
     }
 
     if let Some(surrogate) = &mut self.surrogate {
-      if let Err(err) = surrogate.update(&self.target_rect.clone()) {
+      if let Err(err) = surrogate.update(&self.target_rect.clone(), 255) {
         tracing::warn!("Surrogate pre-commit update failed: {err}.");
       }
     }

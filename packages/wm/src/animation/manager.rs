@@ -372,6 +372,30 @@ impl AnimationManager {
           &config.value.animations.window_open,
         );
         self.start_animation(window_id, animation);
+
+        // Create a surrogate for the open animation so the window fades in
+        // via DWM thumbnail opacity rather than per-frame `SetWindowPos`.
+        // Both source and target are `target_rect` — the overlay sits still
+        // while only the opacity animates.
+        #[cfg(target_os = "windows")]
+        if !self.resize_sessions.contains_key(&window_id) {
+          match ResizeSession::begin(
+            native_window.hwnd(),
+            &target_rect,
+            &target_rect,
+            None,
+          ) {
+            Ok(session) => {
+              self.resize_sessions.insert(window_id, session);
+            }
+            Err(err) => {
+              tracing::warn!(
+                "Failed to begin open surrogate for window {window_id}: \
+                 {err}."
+              );
+            }
+          }
+        }
       } else if let Some(prev_target) = previous_target {
         // Start from the current animated position on cancel-and-replace so
         // the animation does not jump back to the original start.
@@ -393,17 +417,12 @@ impl AnimationManager {
         );
         self.start_animation(window_id, animation);
 
-        // Create a surrogate session if configured, one does not already
-        // exist, and the window is actually being resized (not just moved).
-        // For pure translation moves the real window can be animated directly
-        // frame-by-frame without the capture + cloak overhead, which is both
-        // smoother and avoids unnecessary flicker.
-        //
-        // Also skip when the animation being cancelled was an `Open`
-        // animation. The open animation runs at the window's final size, so
-        // its `start_rect` and `target_rect` are the same dimensions; the
-        // surrogate would immediately cloak the window and never uncloak it
-        // because the cancel-and-replace is a no-op resize (ghost window).
+        // Redirect an in-flight surrogate session to the new target, or
+        // create a new one. For pure translations (no size change) skip
+        // creation — direct frame-by-frame repositioning is smooth and avoids
+        // the capture overhead. Also skip when the cancelled animation was an
+        // `Open` whose surrogate failed to create, to avoid cloaking the
+        // window without a valid overlay.
         #[cfg(target_os = "windows")]
         let has_size_change = start_rect.width() != target_rect.width()
           || start_rect.height() != target_rect.height();
@@ -453,7 +472,9 @@ impl AnimationManager {
       // so the real window is animated normally instead of disappearing.
       #[cfg(target_os = "windows")]
       if let Some(session) = self.resize_sessions.get_mut(&window_id) {
-        session.update(&current_rect);
+        let opacity_u8 =
+          opacity.as_ref().map(|o| o.to_alpha()).unwrap_or(255);
+        session.update(&current_rect, opacity_u8);
         if session.has_surrogate() {
           return (AnimationPositionResult::Frozen, None);
         }
