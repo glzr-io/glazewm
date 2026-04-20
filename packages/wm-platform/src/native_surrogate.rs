@@ -167,9 +167,9 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
 /// `width × height` with no scaling.
 ///
 /// Both `rcSource` and `rcDestination` are set to `{0, 0, width, height}` so
-/// DWM captures exactly that region of the source window and renders it 1:1
-/// into the destination — no upscaling or downscaling occurs even if the
-/// source window is later resized to a different size.
+/// DWM captures the full window frame (including title bar and borders) and
+/// renders it 1:1 into the destination — no upscaling or downscaling occurs
+/// even if the source window is later resized to a different size.
 ///
 /// Returns the opaque thumbnail handle, or `None` if registration fails (e.g.
 /// same-window, invalid handle). The caller is responsible for calling
@@ -201,7 +201,7 @@ fn register_thumbnail(
     rcSource: pinned_rect,
     opacity: 255,
     fVisible: true.into(),
-    fSourceClientAreaOnly: true.into(),
+    fSourceClientAreaOnly: false.into(),
     ..Default::default()
   };
 

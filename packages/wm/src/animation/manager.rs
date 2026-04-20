@@ -306,17 +306,6 @@ impl AnimationManager {
     };
     let threshold = anim_config.threshold_px as i32;
 
-    // If a surrogate session is already active, don't cancel-and-replace.
-    // The real window has been pre-positioned to the target rect via
-    // `SWP_ASYNCWINDOWPOS`; interrupting the animation would leave it
-    // cloaked indefinitely. Let the current animation run to completion;
-    // any layout changes will be picked up on the next sync after the
-    // surrogate is gone.
-    #[cfg(target_os = "windows")]
-    if self.resize_sessions.contains_key(window_id) {
-      return false;
-    }
-
     if is_opening && config.value.animations.window_open.enabled {
       existing_animation.is_none()
     } else if !is_opening && anim_config.enabled {
@@ -423,10 +412,15 @@ impl AnimationManager {
           .as_ref()
           .map(|a| matches!(a.animation_type, AnimationType::Open))
           .unwrap_or(false);
+        // Redirect an in-flight surrogate session to the new target, or
+        // create a new one when none is active. Redirection keeps the
+        // existing surrogate alive so the real window is never left
+        // uncloaked at an intermediate position.
         #[cfg(target_os = "windows")]
-        if anim_config.use_surrogate
+        if let Some(session) = self.resize_sessions.get_mut(&window_id) {
+          session.update_target(&target_rect);
+        } else if anim_config.use_surrogate
           && has_size_change
-          && !self.resize_sessions.contains_key(&window_id)
           && !is_replacing_open
         {
           match ResizeSession::begin(

@@ -111,6 +111,38 @@ impl ResizeSession {
     }
   }
 
+  /// Redirects the session to a new target rect while the surrogate is still
+  /// active.
+  ///
+  /// Updates the stored `target_rect` and posts `SWP_ASYNCWINDOWPOS` to
+  /// pre-position the real window at `new_target` so it is ready when the
+  /// surrogate is eventually dropped. The surrogate thumbnail remains pinned
+  /// to the original source size; only the animation destination changes.
+  pub fn update_target(&mut self, new_target: &Rect) {
+    self.target_rect = new_target.clone();
+
+    if self.hwnd == 0 {
+      return;
+    }
+
+    let r = new_target;
+
+    // SAFETY: `HWND(self.hwnd)` is valid. `SWP_ASYNCWINDOWPOS` posts to the
+    // window's message queue without blocking. With `SWP_NOZORDER` set,
+    // `hWndInsertAfter` is ignored per the Win32 documentation.
+    unsafe {
+      let _ = SetWindowPos(
+        HWND(self.hwnd),
+        HWND(0),
+        r.x(),
+        r.y(),
+        r.width(),
+        r.height(),
+        SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
+      );
+    }
+  }
+
   /// Snaps the surrogate to the final target rect in preparation for
   /// `platform_sync` to uncloak the real window.
   ///
