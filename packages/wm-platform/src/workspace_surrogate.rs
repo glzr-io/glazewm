@@ -1,15 +1,11 @@
 use windows::Win32::{
-  Foundation::HWND,
+  Foundation::{HWND, RECT},
   Graphics::Dwm::{
     DwmUpdateThumbnailProperties, DWM_THUMBNAIL_PROPERTIES,
     DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_RECTSOURCE,
     DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE,
   },
-  UI::WindowsAndMessaging::{
-    SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE, SWP_NOZORDER,
-  },
 };
-use windows::Win32::Foundation::RECT;
 
 use crate::{Color, NativeSurrogate, Rect};
 
@@ -36,8 +32,9 @@ impl WorkspaceSurrogate {
   /// Creates a surrogate for an outgoing workspace window at its current
   /// position.
   ///
-  /// Call [`show_initial`] immediately after creation to make it visible
-  /// before the real window is cloaked, avoiding a blank frame.
+  /// The surrogate is shown immediately on creation. Call [`show_initial`]
+  /// right after to confirm the DWM thumbnail properties before cloaking
+  /// the real window.
   ///
   /// [`show_initial`]: WorkspaceSurrogate::show_initial
   pub fn new_outgoing(
@@ -47,13 +44,13 @@ impl WorkspaceSurrogate {
   ) -> crate::Result<Self> {
     let inner =
       NativeSurrogate::create(hwnd, rect, rect, color, false)?;
-    // Created hidden; caller must call `show_initial` before cloaking the
-    // real window.
-    inner.set_visible(false);
+    // `NativeSurrogate::create` shows the window via `SWP_SHOWWINDOW`.
+    // Keep it visible so there is no blank frame before `show_initial` is
+    // called and before the real window is cloaked.
     Ok(Self {
       inner: Some(inner),
       rect: rect.clone(),
-      is_visible: false,
+      is_visible: true,
     })
   }
 
@@ -61,8 +58,8 @@ impl WorkspaceSurrogate {
   ///
   /// The surrogate is created hidden — it will be shown by [`update_slide`]
   /// as soon as it enters the monitor's visible area. The real window is
-  /// pre-positioned at `rect` asynchronously so the DWM thumbnail shows the
-  /// correct final-size content for the entire animation.
+  /// left at its current position and cloaked by the caller; the DWM
+  /// thumbnail captures its compositor content regardless of position.
   ///
   /// [`update_slide`]: WorkspaceSurrogate::update_slide
   pub fn new_incoming(
@@ -70,24 +67,6 @@ impl WorkspaceSurrogate {
     rect: &Rect,
     color: Option<&Color>,
   ) -> crate::Result<Self> {
-    // Pre-position the real window at its final rect so the thumbnail shows
-    // the correct size. Async so we don't block on the target's message queue.
-    //
-    // SAFETY: `hwnd` is a valid top-level window. `SWP_NOZORDER` makes the
-    // insert-after parameter irrelevant. `SWP_ASYNCWINDOWPOS` posts the move
-    // to the window's message queue without blocking the caller.
-    unsafe {
-      let _ = SetWindowPos(
-        hwnd,
-        HWND(0),
-        rect.x(),
-        rect.y(),
-        rect.width(),
-        rect.height(),
-        SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
-      );
-    }
-
     // Create the surrogate at the final rect but keep it hidden. The first
     // `update_slide` call will position and reveal it when it enters the
     // current monitor's bounds.
