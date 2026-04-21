@@ -47,11 +47,25 @@ pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;
 pub use window_listener::*;
+/// Waits for the next DWM composition frame to complete.
+///
+/// Used to synchronize animation ticks to vsync so surrogate updates reach
+/// the compositor on every rendered frame without timer-resolution jitter.
+/// On non-Windows platforms this is a no-op.
+pub fn dwm_flush() {
+  #[cfg(target_os = "windows")]
+  unsafe {
+    // SAFETY: No preconditions; `DwmFlush` is safe to call from any thread
+    // and blocks until the next DWM composition frame is ready.
+    let _ = windows::Win32::Graphics::Dwm::DwmFlush();
+  }
+}
+
 // TODO: Avoid exposing `windows` crate types in the public API.
 #[cfg(target_os = "windows")]
 pub use windows::Win32::UI::WindowsAndMessaging::{
   SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED,
-  SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WINDOW_EX_STYLE,
-  WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-  WS_MAXIMIZEBOX,
+  SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOSENDCHANGING, SWP_NOZORDER,
+  WINDOW_EX_STYLE, WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE,
+  WS_EX_TOOLWINDOW, WS_MAXIMIZEBOX,
 };

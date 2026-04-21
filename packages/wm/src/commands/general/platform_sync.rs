@@ -499,7 +499,27 @@ fn redraw_containers(
         // `handle_window_hidden` is guarded against unmanaging cloaked windows
         // so this is safe.
         #[cfg(target_os = "windows")]
-        let _ = window.native().set_cloaked(true);
+        {
+          use wm_platform::{
+            SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+            SWP_NOSENDCHANGING, SWP_NOZORDER,
+          };
+          let _ = window.native().set_cloaked(true);
+          // Synchronously pre-position the cloaked window at its target rect.
+          // When the animation finishes and `set_cloaked(false)` is called, the
+          // window will already be in the correct place, avoiding a one-frame
+          // flash at the old (hidden/corner) position that would occur if the
+          // move were deferred via `SWP_ASYNCWINDOWPOS`.
+          let _ = window.native().set_window_pos(
+            &z_order,
+            &target_rect,
+            SWP_NOZORDER
+              | SWP_FRAMECHANGED
+              | SWP_NOACTIVATE
+              | SWP_NOCOPYBITS
+              | SWP_NOSENDCHANGING,
+          );
+        }
       }
       AnimationPositionResult::Apply(rect_to_use) => {
         // Only omit `SWP_ASYNCWINDOWPOS` when a surrogate is active for this

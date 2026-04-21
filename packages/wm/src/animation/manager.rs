@@ -205,10 +205,14 @@ impl AnimationManager {
 
   /// Starts the animation timer if it is not already running.
   ///
-  /// Fires ticks at the monitor refresh rate, capped by `max_frame_rate`.
+  /// Fires ticks aligned to DWM composition frames via `DwmFlush`, ensuring
+  /// surrogate updates reach the compositor on every rendered frame without
+  /// timer-resolution jitter. Ticks are capped to `max_frame_rate` by
+  /// inserting a minimum inter-frame sleep when the monitor refresh rate
+  /// exceeds the configured cap.
   pub fn ensure_timer_running(
     &self,
-    state: &WmState,
+    _state: &WmState,
     config: &UserConfig,
   ) {
     if self.has_active_animations()
@@ -218,36 +222,56 @@ impl AnimationManager {
       let tx = self.animation_tick_tx.clone();
       let timer_flag = self.animation_timer_running.clone();
 
-      let mut frame_time_ms = 16u32;
+      // Compute the minimum inter-frame interval in microseconds from the
+      // capped frame rate. `DwmFlush` waits for the next composition frame
+      // naturally; the sleep is only needed when the monitor refresh rate
+      // exceeds `max_frame_rate`.
+      let max_rate = config.value.animations.max_frame_rate.max(1);
+      let min_frame_us = 1_000_000u64 / max_rate as u64;
 
-      if let Some(container) = state.focused_container() {
-        if let Some(monitor) = CommonGetters::monitor(&container) {
-          let refresh_rate = monitor.native_properties().refresh_rate;
-          let capped_rate =
-            refresh_rate.min(config.value.animations.max_frame_rate);
-          frame_time_ms = 1000 / capped_rate.max(60);
-        }
-      } else {
-        frame_time_ms =
-          1000 / config.value.animations.max_frame_rate.max(60);
-      }
+      // Spawn a real OS thread (not a Tokio task) so it can call the
+      // blocking `DwmFlush` without stalling the async runtime.
+      let timer_flag_err = timer_flag.clone();
+      std::thread::Builder::new()
+        .name("glazewm-anim-tick".into())
+        .spawn(move || {
+          let mut last_tick = std::time::Instant::now();
 
-      tokio::spawn(async move {
-        let mut interval = tokio::time::interval(
-          tokio::time::Duration::from_millis(frame_time_ms as u64),
-        );
-        interval
-          .set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+          loop {
+            if !timer_flag.load(Ordering::Relaxed) {
+              break;
+            }
 
-        loop {
-          interval.tick().await;
-          if !timer_flag.load(Ordering::Relaxed) || tx.send(()).is_err() {
-            break;
+            // Wait for the next DWM composition frame. On non-Windows
+            // builds this is a no-op inside `dwm_flush`, so we fall back
+            // to a plain sleep to avoid a busy-loop.
+            wm_platform::dwm_flush();
+            #[cfg(not(target_os = "windows"))]
+            std::thread::sleep(std::time::Duration::from_micros(
+              min_frame_us,
+            ));
+
+            // Enforce the max frame rate cap: skip this tick if we haven't
+            // yet reached the minimum inter-frame interval.
+            let now = std::time::Instant::now();
+            let elapsed_us = now.duration_since(last_tick).as_micros() as u64;
+            if elapsed_us < min_frame_us {
+              continue;
+            }
+            last_tick = now;
+
+            if tx.send(()).is_err() {
+              break;
+            }
           }
-        }
 
-        timer_flag.store(false, Ordering::Relaxed);
-      });
+          timer_flag.store(false, Ordering::Relaxed);
+        })
+        .unwrap_or_else(|err| {
+          tracing::warn!("Failed to spawn animation tick thread: {err}.");
+          timer_flag_err.store(false, Ordering::Relaxed);
+          std::thread::spawn(|| {})
+        });
     }
   }
 
