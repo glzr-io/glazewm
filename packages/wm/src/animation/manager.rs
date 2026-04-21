@@ -8,7 +8,7 @@ use uuid::Uuid;
 use wm_common::WindowState;
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, ResizeSession};
+use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
 
 use crate::{
   animation::state::WindowAnimationState,
@@ -17,6 +17,36 @@ use crate::{
   user_config::UserConfig,
   wm_state::WmState,
 };
+
+/// Tracks a single window's participation in the current workspace-switch
+/// slide animation.
+#[cfg(target_os = "windows")]
+struct WorkspaceSwitchEntry {
+  /// Surrogate overlay that slides across the monitor each frame.
+  surrogate: Option<WorkspaceSurrogate>,
+  /// `true` for windows on the incoming workspace, `false` for outgoing.
+  is_incoming: bool,
+}
+
+/// Shared state for all windows in a workspace-switch slide animation.
+///
+/// A single elapsed-time driver advances all surrogates in lock-step so every
+/// window translates by the same pixel offset on every frame, preserving the
+/// illusion that both workspaces move as a single connected panel.
+#[cfg(target_os = "windows")]
+struct WorkspaceSwitchState {
+  /// All participating windows keyed by window ID.
+  windows: HashMap<Uuid, WorkspaceSwitchEntry>,
+  /// Progress driver. Only `progress()` and `easing` are used.
+  driver: WindowAnimationState,
+  /// Slide direction: `+1` = target workspace is higher-index (incoming from
+  /// right, outgoing to left). `-1` = opposite. `0` = fade in place.
+  direction: i32,
+  /// Left x-coordinate of the animation monitor in screen pixels.
+  monitor_x: i32,
+  /// Width of the animation monitor in screen pixels.
+  monitor_width: i32,
+}
 
 /// Result of [`AnimationManager::start_animation_if_needed`], describing
 /// what the caller should do with the real app window's position this frame.
@@ -48,6 +78,13 @@ pub struct AnimationManager {
   /// that repositions the real window.
   #[cfg(target_os = "windows")]
   pub(crate) pending_session_cleanup: Vec<ResizeSession>,
+  /// Active workspace-switch slide animation, or `None` when idle.
+  #[cfg(target_os = "windows")]
+  workspace_switch: Option<WorkspaceSwitchState>,
+  /// Workspace-switch state that just completed; kept alive until the final
+  /// `platform_sync` call unclocks the incoming real windows.
+  #[cfg(target_os = "windows")]
+  pending_ws_cleanup: Option<WorkspaceSwitchState>,
 }
 
 impl AnimationManager {
@@ -61,6 +98,10 @@ impl AnimationManager {
       resize_sessions: HashMap::new(),
       #[cfg(target_os = "windows")]
       pending_session_cleanup: Vec::new(),
+      #[cfg(target_os = "windows")]
+      workspace_switch: None,
+      #[cfg(target_os = "windows")]
+      pending_ws_cleanup: None,
     }
   }
 
@@ -116,9 +157,16 @@ impl AnimationManager {
     completed_ids
   }
 
-  /// Whether there are any active animations.
+  /// Whether there are any active animations or a workspace-switch in flight.
   pub fn has_active_animations(&self) -> bool {
-    !self.animations.is_empty()
+    if !self.animations.is_empty() {
+      return true;
+    }
+    #[cfg(target_os = "windows")]
+    if self.workspace_switch.is_some() {
+      return true;
+    }
+    false
   }
 
   /// Returns all active animation window IDs.
@@ -134,18 +182,24 @@ impl AnimationManager {
     {
       self.resize_sessions.clear();
       self.pending_session_cleanup.clear();
+      self.workspace_switch = None;
+      self.pending_ws_cleanup = None;
     }
   }
 
   /// Drains all active and pending resize sessions and returns them.
   ///
   /// Used by `WmState::Drop` to commit sessions during shutdown or crash so
-  /// that no window is left at an intermediate animation position.
+  /// that no window is left at an intermediate animation position. Workspace-
+  /// switch surrogates are also dropped (real windows are already at their
+  /// final positions by the time this is called).
   #[cfg(target_os = "windows")]
   pub fn drain_all_sessions(&mut self) -> Vec<ResizeSession> {
     let mut sessions: Vec<ResizeSession> =
       self.resize_sessions.drain().map(|(_, s)| s).collect();
     sessions.extend(self.pending_session_cleanup.drain(..));
+    self.workspace_switch = None;
+    self.pending_ws_cleanup = None;
     sessions
   }
 
@@ -262,6 +316,60 @@ impl AnimationManager {
       }
     }
 
+    // Drive workspace-switch slide surrogates. All windows share a single
+    // elapsed-time driver so every surrogate translates by the same pixel
+    // offset each frame, making both workspaces move as one connected panel.
+    //
+    // This runs before `platform_sync` so that when the animation completes,
+    // the incoming windows are queued for redraw and uncloaked in the same
+    // tick.
+    #[cfg(target_os = "windows")]
+    let ws_complete_ids: Option<Vec<Uuid>> = {
+      use crate::animation::engine::{animation_progress, apply_easing};
+
+      if let Some(ws) = &mut state.animation_manager.workspace_switch {
+        let raw_progress =
+          animation_progress(ws.driver.start_time, ws.driver.duration);
+        let eased = apply_easing(raw_progress, &ws.driver.easing);
+
+        for entry in ws.windows.values_mut() {
+          if let Some(ref mut s) = entry.surrogate {
+            s.update_slide(
+              eased,
+              entry.is_incoming,
+              ws.direction,
+              ws.monitor_x,
+              ws.monitor_width,
+            );
+          }
+        }
+
+        if raw_progress >= 1.0 {
+          Some(ws.windows.keys().copied().collect())
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    };
+
+    // On completion, move surrogates to pending cleanup so they outlive the
+    // final `platform_sync` call that unclocks the incoming real windows.
+    #[cfg(target_os = "windows")]
+    if let Some(ids) = ws_complete_ids {
+      state.animation_manager.pending_ws_cleanup =
+        state.animation_manager.workspace_switch.take();
+
+      for id in ids {
+        if let Some(container) = state.container_by_id(id) {
+          if let Ok(window) = container.as_window_container() {
+            state.pending_sync.queue_container_to_redraw(window);
+          }
+        }
+      }
+    }
+
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
@@ -270,7 +378,11 @@ impl AnimationManager {
     // windows to their final positions. Dropping each session destroys its
     // surrogate overlay.
     #[cfg(target_os = "windows")]
-    state.animation_manager.pending_session_cleanup.clear();
+    {
+      state.animation_manager.pending_session_cleanup.clear();
+      // Drop workspace-switch surrogates after incoming windows are uncloaked.
+      state.animation_manager.pending_ws_cleanup = None;
+    }
 
     // Keep the timer running while animations are active; stop it otherwise
     // so the background thread exits cleanly.
@@ -444,6 +556,74 @@ impl AnimationManager {
       // `remove_completed_animations` was already called, or animations are
       // disabled. Apply the final target rect directly.
       (AnimationPositionResult::Apply(target_rect), None)
+    }
+  }
+
+  /// Returns `true` while `window_id` is an incoming participant in the
+  /// active workspace-switch animation.
+  ///
+  /// Unlike the `pending_sync` incoming flag (cleared after the first
+  /// `platform_sync`), this stays `true` for the full animation duration so
+  /// that focus events during the animation do not prematurely uncloak the
+  /// real window before the surrogate finishes sliding in.
+  #[cfg(target_os = "windows")]
+  pub fn is_workspace_switch_incoming(&self, window_id: &Uuid) -> bool {
+    self
+      .workspace_switch
+      .as_ref()
+      .and_then(|ws| ws.windows.get(window_id))
+      .map(|e| e.is_incoming)
+      .unwrap_or(false)
+  }
+
+  /// Installs a workspace-switch slide animation for the provided windows.
+  ///
+  /// Accepts pre-created [`WorkspaceSurrogate`] instances together with their
+  /// incoming/outgoing flags. A shared driver advances all surrogates in
+  /// lock-step so the entire workspace moves as one panel. Any previous
+  /// workspace-switch state is dropped.
+  #[cfg(target_os = "windows")]
+  pub fn start_workspace_switch(
+    &mut self,
+    windows: Vec<(Uuid, Option<WorkspaceSurrogate>, bool)>,
+    direction: i32,
+    monitor_x: i32,
+    monitor_width: i32,
+    config: &UserConfig,
+  ) {
+    self.workspace_switch = None;
+
+    let ws_config = &config.value.animations.workspace_switch;
+    let anim_config = ws_config.as_anim_type_config();
+    let dummy = Rect::from_xy(0, 0, 1, 1);
+    let driver =
+      WindowAnimationState::new_movement(dummy.clone(), dummy, &anim_config);
+
+    let ws_windows: HashMap<Uuid, WorkspaceSwitchEntry> = windows
+      .into_iter()
+      .map(|(id, surrogate, is_incoming)| {
+        (id, WorkspaceSwitchEntry { surrogate, is_incoming })
+      })
+      .collect();
+
+    if !ws_windows.is_empty() {
+      tracing::info!(
+        "Starting workspace-switch slide: direction={}, monitor_x={}, \
+         monitor_width={}, windows={}",
+        direction,
+        monitor_x,
+        monitor_width,
+        ws_windows.len(),
+      );
+      self.workspace_switch = Some(WorkspaceSwitchState {
+        windows: ws_windows,
+        driver,
+        direction,
+        monitor_x,
+        monitor_width,
+      });
+    } else {
+      tracing::warn!("Workspace-switch skipped: no windows to animate.");
     }
   }
 }

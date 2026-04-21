@@ -395,6 +395,8 @@ pub struct AnimationsConfig {
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,
+  /// Animation settings for workspace-switch slide transitions.
+  pub workspace_switch: WorkspaceSwitchAnimationConfig,
   /// Maximum frame rate for animations in Hz. The animation timer will
   /// not exceed this rate even if the monitor supports higher refresh
   /// rates. Default: 120 Hz
@@ -406,7 +408,57 @@ impl Default for AnimationsConfig {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
       window_resize: AnimationTypeConfig::default(),
+      workspace_switch: WorkspaceSwitchAnimationConfig::default(),
       max_frame_rate: 120,
+    }
+  }
+}
+
+/// Animation config for workspace-switch slide transitions.
+///
+/// When enabled, switching workspaces plays a slide animation: the outgoing
+/// workspace translates off-screen in the direction of the switch while the
+/// incoming workspace slides in from the opposite edge, constrained to the
+/// monitor on which the switch occurs.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct WorkspaceSwitchAnimationConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  /// Optional solid-color backdrop for workspace-switch surrogate overlays.
+  ///
+  /// When unset (default), Windows Acrylic blur-behind is used.
+  ///
+  /// # Platform-specific
+  ///
+  /// Only has an effect on Windows; ignored on macOS.
+  pub surrogate_color: Option<Color>,
+}
+
+impl Default for WorkspaceSwitchAnimationConfig {
+  fn default() -> Self {
+    WorkspaceSwitchAnimationConfig {
+      enabled: true,
+      duration_ms: 300,
+      easing: EasingFunction::EaseOutCubic,
+      surrogate_color: None,
+    }
+  }
+}
+
+impl WorkspaceSwitchAnimationConfig {
+  /// Returns an [`AnimationTypeConfig`] compatible representation for use
+  /// with the shared animation engine.
+  ///
+  /// `threshold_px` is forced to `0` so the animation always fires.
+  pub fn as_anim_type_config(&self) -> AnimationTypeConfig {
+    AnimationTypeConfig {
+      enabled: self.enabled,
+      duration_ms: self.duration_ms,
+      easing: self.easing.clone(),
+      threshold_px: 0,
+      surrogate_color: self.surrogate_color.clone(),
     }
   }
 }

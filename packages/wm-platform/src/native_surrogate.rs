@@ -350,6 +350,11 @@ impl NativeSurrogate {
     })
   }
 
+  /// Returns the raw handle of the surrogate overlay window.
+  pub fn hwnd(&self) -> HWND {
+    HWND(self.hwnd)
+  }
+
   /// Moves and resizes the surrogate overlay to `rect` and sets the DWM
   /// thumbnail opacity to `opacity` (0 = fully transparent, 255 = opaque).
   pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {

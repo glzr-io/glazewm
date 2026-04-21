@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use uuid::Uuid;
 
@@ -33,6 +33,19 @@ pub struct PendingSync {
 
   /// Whether to skip animations for the current sync (e.g., during workspace switches).
   skip_animations: bool,
+
+  /// Window IDs on the incoming workspace that should slide in.
+  workspace_switch_incoming: HashSet<Uuid>,
+
+  /// Window IDs on the outgoing workspace that should slide out.
+  workspace_switch_outgoing: HashSet<Uuid>,
+
+  /// Slide direction for the current workspace switch.
+  ///
+  /// `+1` means the target workspace has a higher config index (incoming
+  /// slides in from the right, outgoing slides out to the left). `-1` means
+  /// the opposite. `0` means no directional preference (fade in place).
+  workspace_switch_direction: i32,
 }
 
 impl PendingSync {
@@ -53,6 +66,9 @@ impl PendingSync {
     self.needs_all_effects_update = false;
     self.needs_cursor_jump = false;
     self.skip_animations = false;
+    self.workspace_switch_incoming.clear();
+    self.workspace_switch_outgoing.clear();
+    self.workspace_switch_direction = 0;
     self
   }
 
@@ -120,6 +136,7 @@ impl PendingSync {
     self
   }
 
+  #[allow(dead_code)]
   pub fn set_skip_animations(&mut self, skip: bool) -> &mut Self {
     self.skip_animations = skip;
     self
@@ -151,5 +168,47 @@ impl PendingSync {
 
   pub fn workspaces_to_reorder(&self) -> &Vec<Workspace> {
     &self.workspaces_to_reorder
+  }
+
+  /// Registers a window as an incoming workspace-switch target.
+  pub fn setup_workspace_switch_incoming(
+    &mut self,
+    window_id: Uuid,
+  ) -> &mut Self {
+    self.workspace_switch_incoming.insert(window_id);
+    self
+  }
+
+  /// Registers a window as an outgoing workspace-switch window.
+  pub fn setup_workspace_switch_outgoing(
+    &mut self,
+    window_id: Uuid,
+  ) -> &mut Self {
+    self.workspace_switch_outgoing.insert(window_id);
+    self
+  }
+
+  /// Returns `true` if the window is an incoming workspace-switch window.
+  pub fn is_workspace_switch_incoming(&self, window_id: &Uuid) -> bool {
+    self.workspace_switch_incoming.contains(window_id)
+  }
+
+  /// Returns `true` if the window is an outgoing workspace-switch window.
+  pub fn is_workspace_switch_outgoing(&self, window_id: &Uuid) -> bool {
+    self.workspace_switch_outgoing.contains(window_id)
+  }
+
+  /// Sets the slide direction for the current workspace switch.
+  pub fn set_workspace_switch_direction(
+    &mut self,
+    direction: i32,
+  ) -> &mut Self {
+    self.workspace_switch_direction = direction;
+    self
+  }
+
+  /// Returns the slide direction for the current workspace switch.
+  pub fn workspace_switch_direction(&self) -> i32 {
+    self.workspace_switch_direction
   }
 }

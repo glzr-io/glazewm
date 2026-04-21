@@ -37,6 +37,10 @@ pub use native_surrogate::NativeSurrogate;
 mod resize_session;
 #[cfg(target_os = "windows")]
 pub use resize_session::ResizeSession;
+#[cfg(target_os = "windows")]
+mod workspace_surrogate;
+#[cfg(target_os = "windows")]
+pub use workspace_surrogate::WorkspaceSurrogate;
 
 
 pub use platform_event::*;

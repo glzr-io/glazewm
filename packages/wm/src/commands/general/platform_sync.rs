@@ -9,7 +9,7 @@ use wm_common::{
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "windows")]
-use wm_platform::{CornerStyle, OpacityValue};
+use wm_platform::{CornerStyle, OpacityValue, WorkspaceSurrogate};
 use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
@@ -206,6 +206,106 @@ fn redraw_containers(
     windows
   };
 
+  // Workspace-switch pre-pass: create slide surrogates for all
+  // incoming/outgoing windows before any real window is repositioned.
+  // Outgoing surrogates are shown immediately (before the real window is
+  // cloaked) to eliminate the blank-frame flicker.
+  #[cfg(target_os = "windows")]
+  {
+    let ws_config = &config.value.animations.workspace_switch;
+    if ws_config.enabled {
+      let direction = state.pending_sync.workspace_switch_direction();
+      // Only start a new workspace-switch animation when there are actually
+      // incoming/outgoing windows in this sync (i.e., this is the initial
+      // platform_sync for the switch, not a follow-up focus event).
+      let has_ws_windows = windows_to_update.iter().any(|w| {
+        let id = w.id();
+        state.pending_sync.is_workspace_switch_incoming(&id)
+          || state.pending_sync.is_workspace_switch_outgoing(&id)
+      });
+
+      if has_ws_windows {
+        let color = ws_config.surrogate_color.as_ref();
+        let mut ws_windows: Vec<(uuid::Uuid, Option<WorkspaceSurrogate>, bool)> =
+          Vec::new();
+        let mut monitor_x = 0i32;
+        let mut monitor_width = 0i32;
+
+        for window in windows_to_update.iter() {
+          let id = window.id();
+          let is_incoming =
+            state.pending_sync.is_workspace_switch_incoming(&id);
+          let is_outgoing =
+            state.pending_sync.is_workspace_switch_outgoing(&id);
+
+          if !is_incoming && !is_outgoing {
+            continue;
+          }
+
+          if monitor_width == 0 {
+            if let Some(m) = window.monitor() {
+              let b = m.native_properties().bounds;
+              monitor_x = b.x();
+              monitor_width = b.width();
+            }
+          }
+
+          let hwnd = window.native().hwnd();
+
+          if is_incoming {
+            let Ok(rect) = window.to_rect().and_then(|r| {
+              window.total_border_delta().map(|d| r.apply_delta(&d, None))
+            }) else {
+              continue;
+            };
+            let surrogate = WorkspaceSurrogate::new_incoming(
+              hwnd,
+              &rect,
+              direction,
+              monitor_width,
+              color,
+            )
+            .map_err(|e| {
+              tracing::warn!("Failed to create incoming surrogate: {e}.");
+              e
+            })
+            .ok();
+            ws_windows.push((id, surrogate, true));
+          } else {
+            let current = state
+              .window_target_positions
+              .get(&id)
+              .cloned()
+              .or_else(|| window.native().frame().ok())
+              .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
+            let surrogate = WorkspaceSurrogate::new_outgoing(hwnd, &current, color)
+              .map(|mut s| {
+                // Show before the real window is cloaked/moved.
+                s.show_initial();
+                s
+              })
+              .map_err(|e| {
+                tracing::warn!("Failed to create outgoing surrogate: {e}.");
+                e
+              })
+              .ok();
+            ws_windows.push((id, surrogate, false));
+          }
+        }
+
+        if !ws_windows.is_empty() {
+          state.animation_manager.start_workspace_switch(
+            ws_windows,
+            direction,
+            monitor_x,
+            monitor_width,
+            config,
+          );
+        }
+      }
+    }
+  }
+
   // Get monitors by their optimal hide corner.
   let monitors_by_hide_corner = state.monitors_by_hide_corner();
 
@@ -321,13 +421,35 @@ fn redraw_containers(
     // Floating windows are never animated — they should respond immediately.
     let is_floating = matches!(window.state(), WindowState::Floating(_));
 
+    let is_outgoing_switch =
+      state.pending_sync.is_workspace_switch_outgoing(&window.id());
+
+    // True while this window is an incoming participant in the active
+    // workspace-switch animation. Unlike `is_workspace_switch_incoming` on
+    // `pending_sync` (cleared after the first `platform_sync`), this stays
+    // `true` for the full animation so that focus events during the slide do
+    // not prematurely uncloak the real window.
+    #[cfg(target_os = "windows")]
+    let is_frozen_by_ws_animation = config
+      .value
+      .animations
+      .workspace_switch
+      .enabled
+      && state
+        .animation_manager
+        .is_workspace_switch_incoming(&window.id());
+    #[cfg(not(target_os = "windows"))]
+    let is_frozen_by_ws_animation = false;
+
     // Tiling layout changes almost always change both position and size
     // simultaneously, so `window_move` config governs all tiling animations.
     // `window_resize` config is reserved for future use when a meaningful
     // pure-resize distinction can be made.
     let should_use_animations = !is_floating
+      && !is_outgoing_switch
       && !state.pending_sync.should_skip_animations()
-      && config.value.animations.window_move.enabled;
+      && (config.value.animations.window_move.enabled
+        || is_frozen_by_ws_animation);
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -337,19 +459,32 @@ fn redraw_containers(
 
     // Determine the rect to use for this frame.
     let (position_result, _) = if should_use_animations {
+      // Incoming workspace-switch windows: the surrogate handles all visuals
+      // for the full animation duration — freeze the real window.
+      #[cfg(target_os = "windows")]
+      if is_frozen_by_ws_animation {
+        (AnimationPositionResult::Frozen, None)
+      } else {
+        state.animation_manager.start_animation_if_needed(
+          window.id(),
+          false, // is_resize: window_move config governs all tiling animations.
+          target_rect.clone(),
+          previous_target,
+          &*native_ref,
+          config,
+        )
+      }
+      #[cfg(not(target_os = "windows"))]
       state.animation_manager.start_animation_if_needed(
         window.id(),
-        false, // is_resize: window_move config governs all tiling animations.
+        false,
         target_rect.clone(),
         previous_target,
-        #[cfg(target_os = "windows")]
-        &*native_ref,
         config,
       )
     } else {
-      // Animations are skipped for this sync (e.g. workspace switch). Cancel
-      // any in-progress animation and its surrogate so subsequent ticks don't
-      // re-cloak this window.
+      // Animations are skipped for this window. Cancel any in-progress
+      // animation and its surrogate so subsequent ticks don't re-cloak it.
       state.animation_manager.remove_animation(&window.id());
       (AnimationPositionResult::Apply(target_rect.clone()), None)
     };

@@ -65,12 +65,40 @@ pub fn focus_workspace(
     set_focused_descendant(&container_to_focus, None);
     state.pending_sync.queue_focus_change();
 
+    // Derive slide direction before queuing redraws so `platform_sync` can
+    // build per-window surrogates with the correct direction.
+    let direction = workspace_switch_direction(
+      &target_workspace.config().name,
+      &focused_workspace.config().name,
+      config,
+    );
+    state.pending_sync.set_workspace_switch_direction(direction);
+
+    // Mark windows on the incoming workspace to slide in.
+    for window in target_workspace
+      .descendants()
+      .filter_map(|c| c.as_window_container().ok())
+    {
+      state
+        .pending_sync
+        .setup_workspace_switch_incoming(window.id());
+    }
+
+    // Cancel in-flight animations for outgoing windows and mark them for
+    // the outgoing surrogate slide-out.
+    for window in displayed_workspace
+      .descendants()
+      .filter_map(|c| c.as_window_container().ok())
+    {
+      state.animation_manager.remove_animation(&window.id());
+      state
+        .pending_sync
+        .setup_workspace_switch_outgoing(window.id());
+    }
+
     // Display the workspace to switch focus to.
-    // Skip animations during workspace switches to avoid jarring visual effects
-    // when switching between workspaces quickly.
     state
       .pending_sync
-      .set_skip_animations(true)
       .queue_container_to_redraw(displayed_workspace)
       .queue_container_to_redraw(target_workspace);
 
@@ -93,4 +121,30 @@ pub fn focus_workspace(
   }
 
   Ok(())
+}
+
+/// Returns `+1` if `target_name` has a higher config index than
+/// `focused_name`, `-1` if lower, or `0` if undetermined.
+///
+/// Used to derive the slide direction for the workspace-switch animation.
+fn workspace_switch_direction(
+  target_name: &str,
+  focused_name: &str,
+  config: &UserConfig,
+) -> i32 {
+  let names: Vec<&str> = config
+    .value
+    .workspaces
+    .iter()
+    .map(|w| w.name.as_str())
+    .collect();
+
+  let target_idx = names.iter().position(|n| *n == target_name);
+  let focused_idx = names.iter().position(|n| *n == focused_name);
+
+  match (focused_idx, target_idx) {
+    (Some(fi), Some(ti)) if ti > fi => 1,
+    (Some(fi), Some(ti)) if ti < fi => -1,
+    _ => 0,
+  }
 }
