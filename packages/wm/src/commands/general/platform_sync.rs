@@ -261,8 +261,6 @@ fn redraw_containers(
             let surrogate = WorkspaceSurrogate::new_incoming(
               hwnd,
               &rect,
-              direction,
-              monitor_width,
               color,
             )
             .map_err(|e| {

@@ -355,6 +355,26 @@ impl NativeSurrogate {
     HWND(self.hwnd)
   }
 
+  /// Returns the DWM thumbnail handle, or `0` if thumbnail registration
+  /// failed at creation time.
+  pub fn thumbnail(&self) -> isize {
+    self.thumbnail
+  }
+
+  /// Shows or hides the surrogate overlay window without activating it.
+  pub fn set_visible(&self, visible: bool) {
+    use windows::Win32::UI::WindowsAndMessaging::{
+      ShowWindow, SW_HIDE, SW_SHOWNOACTIVATE,
+    };
+    // SAFETY: `HWND(self.hwnd)` is valid until `drop`.
+    unsafe {
+      ShowWindow(
+        HWND(self.hwnd),
+        if visible { SW_SHOWNOACTIVATE } else { SW_HIDE },
+      );
+    }
+  }
+
   /// Moves and resizes the surrogate overlay to `rect` and sets the DWM
   /// thumbnail opacity to `opacity` (0 = fully transparent, 255 = opaque).
   pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {
