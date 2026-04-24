@@ -32,9 +32,8 @@ impl WorkspaceSurrogate {
   /// Creates a surrogate for an outgoing workspace window at its current
   /// position.
   ///
-  /// The surrogate is shown immediately on creation. Call [`show_initial`]
-  /// right after to confirm the DWM thumbnail properties before cloaking
-  /// the real window.
+  /// The surrogate is created hidden. Call [`show_initial`] before cloaking
+  /// the real window to make the surrogate visible without a blank frame.
   ///
   /// [`show_initial`]: WorkspaceSurrogate::show_initial
   pub fn new_outgoing(
@@ -43,14 +42,11 @@ impl WorkspaceSurrogate {
     color: Option<&Color>,
   ) -> crate::Result<Self> {
     let inner =
-      NativeSurrogate::create(hwnd, rect, rect, color, false)?;
-    // `NativeSurrogate::create` shows the window via `SWP_SHOWWINDOW`.
-    // Keep it visible so there is no blank frame before `show_initial` is
-    // called and before the real window is cloaked.
+      NativeSurrogate::create(hwnd, rect, rect, color, false, false)?;
     Ok(Self {
       inner: Some(inner),
       rect: rect.clone(),
-      is_visible: true,
+      is_visible: false,
     })
   }
 
@@ -60,8 +56,12 @@ impl WorkspaceSurrogate {
   /// as soon as it enters the monitor's visible area. The real window is
   /// left at its current position and cloaked by the caller; the DWM
   /// thumbnail captures its compositor content regardless of position.
+  /// Passing `initially_visible: false` to [`NativeSurrogate::create`]
+  /// prevents a one-frame flash of the surrogate at the target rect before
+  /// the animation has started.
   ///
   /// [`update_slide`]: WorkspaceSurrogate::update_slide
+  /// [`NativeSurrogate::create`]: crate::NativeSurrogate::create
   pub fn new_incoming(
     hwnd: HWND,
     rect: &Rect,
@@ -71,7 +71,7 @@ impl WorkspaceSurrogate {
     // `update_slide` call will position and reveal it when it enters the
     // current monitor's bounds.
     let inner =
-      NativeSurrogate::create(hwnd, rect, rect, color, false)?;
+      NativeSurrogate::create(hwnd, rect, rect, color, false, false)?;
     inner.set_visible(false);
 
     Ok(Self {

@@ -277,11 +277,6 @@ fn redraw_containers(
               .or_else(|| window.native().frame().ok())
               .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
             let surrogate = WorkspaceSurrogate::new_outgoing(hwnd, &current, color)
-              .map(|mut s| {
-                // Show before the real window is cloaked/moved.
-                s.show_initial();
-                s
-              })
               .map_err(|e| {
                 tracing::warn!("Failed to create outgoing surrogate: {e}.");
                 e
@@ -291,7 +286,33 @@ fn redraw_containers(
           }
         }
 
-        if !ws_windows.is_empty() {
+        let has_outgoing =
+          ws_windows.iter().any(|(_, _, is_incoming)| !*is_incoming);
+        let has_incoming =
+          ws_windows.iter().any(|(_, _, is_incoming)| *is_incoming);
+
+        // direction == 0 means workspace names were not found in the config
+        // (dynamically created workspaces). In update_slide, offset = 0 makes
+        // incoming surrogates immediately visible at their target position,
+        // causing an instant flash instead of a slide. Skip the animation.
+        if has_outgoing && has_incoming && direction != 0 {
+          // Flush while the outgoing real windows are still composited. DWM
+          // captures their surfaces during this frame. Outgoing surrogates sit
+          // BELOW the real windows in z-order (hWndInsertAfter = source_hwnd),
+          // so show_initial() after the flush has no visual effect — the real
+          // window still covers them. One flush is sufficient because the source
+          // data is already available from the compositor when show_initial()
+          // makes the surrogates visible.
+          wm_platform::dwm_flush();
+
+          for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
+            if !*is_incoming {
+              if let Some(s) = surrogate {
+                s.show_initial();
+              }
+            }
+          }
+
           state.animation_manager.start_workspace_switch(
             ws_windows,
             direction,
@@ -299,7 +320,34 @@ fn redraw_containers(
             monitor_width,
             config,
           );
+        } else if has_outgoing && direction != 0 {
+          // Incoming workspace is empty: slide the outgoing workspace away.
+          // No incoming surrogates are needed and no windows need cloaking.
+          wm_platform::dwm_flush();
+
+          for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
+            if !*is_incoming {
+              if let Some(s) = surrogate {
+                s.show_initial();
+              }
+            }
+          }
+
+          let outgoing_only: Vec<_> = ws_windows
+            .into_iter()
+            .filter(|(_, _, is_incoming)| !*is_incoming)
+            .collect();
+          state.animation_manager.start_workspace_switch(
+            outgoing_only,
+            direction,
+            monitor_x,
+            monitor_width,
+            config,
+          );
         }
+        // If only incoming windows exist (outgoing workspace was empty), or
+        // direction == 0 (workspace not in config), skip the animation.
+        // Incoming windows will appear via the normal window_move animation.
       }
     }
   }

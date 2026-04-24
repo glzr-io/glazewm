@@ -57,7 +57,7 @@ impl ResizeSession {
     scale: bool,
   ) -> crate::Result<Self> {
     let surrogate =
-      match NativeSurrogate::create(hwnd, source_rect, target_rect, surrogate_color, scale) {
+      match NativeSurrogate::create(hwnd, source_rect, target_rect, surrogate_color, scale, true) {
         Ok(s) => Some(s),
         Err(err) => {
           tracing::warn!(

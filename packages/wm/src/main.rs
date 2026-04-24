@@ -187,6 +187,10 @@ async fn start_wm(
 
   loop {
     let res = tokio::select! {
+      // biased: evaluated top-to-bottom when multiple futures are ready
+      // simultaneously. Shutdown signals are checked first, animation ticks
+      // second so that window/input events never delay mid-animation frames.
+      biased;
       _ = signal::ctrl_c() => {
         tracing::info!("Received SIGINT signal.");
         break;
@@ -198,6 +202,9 @@ async fn start_wm(
       Some(()) = tray.exit_rx.recv() => {
         tracing::info!("Exiting through system tray.");
         break;
+      },
+      Some(()) = wm.animation_tick_rx.recv() => {
+        wm.update_animations(&config)
       },
       Some(event) = mouse_listener.next_event() => {
         tracing::debug!("Received mouse event: {:?}", event);
@@ -221,9 +228,6 @@ async fn start_wm(
         } else {
           wm.state.cleanup_invalid_windows()
         }
-      },
-      Some(()) = wm.animation_tick_rx.recv() => {
-        wm.update_animations(&config)
       },
       Some((
         message,

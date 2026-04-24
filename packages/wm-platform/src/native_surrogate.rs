@@ -14,10 +14,10 @@ use windows::{
     System::LibraryLoader::{GetModuleHandleW, GetProcAddress},
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
-      SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
-      SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW,
-      WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
-      WS_POPUP,
+      SET_WINDOW_POS_FLAGS, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+      SWP_NOMOVE, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
+      SWP_SHOWWINDOW, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+      WS_EX_TRANSPARENT, WS_POPUP,
     },
   },
 };
@@ -273,15 +273,23 @@ impl NativeSurrogate {
   /// content to the surrogate's bounds and creates a curtain-reveal effect
   /// (move/resize animations).
   ///
+  /// When `initially_visible` is `false`, the surrogate window is created
+  /// hidden; the caller must call [`set_visible`] to reveal it. Pass `true`
+  /// for surrogate types that must appear immediately (e.g. resize sessions).
+  /// Workspace-switch surrogates pass `false` to avoid a one-frame flash
+  /// before the caller explicitly shows the window.
+  ///
   /// Returns an error if window creation fails.
   ///
   /// [`update`]: NativeSurrogate::update
+  /// [`set_visible`]: NativeSurrogate::set_visible
   pub fn create(
     source_hwnd: HWND,
     source_rect: &Rect,
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
     scale: bool,
+    initially_visible: bool,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
@@ -327,10 +335,17 @@ impl NativeSurrogate {
     )
     .unwrap_or(0);
 
-    // Place the surrogate immediately above `source_hwnd` in the Z-order
-    // and show it without activating it.
+    // Place the surrogate immediately above `source_hwnd` in the Z-order.
+    // Visibility is controlled by `initially_visible`: workspace-switch
+    // surrogates start hidden to avoid a one-frame flash; resize-session
+    // surrogates start visible so they cover the real window immediately.
     //
     // SAFETY: Both handles are valid.
+    let show_flag = if initially_visible {
+      SWP_SHOWWINDOW
+    } else {
+      SET_WINDOW_POS_FLAGS::default()
+    };
     unsafe {
       SetWindowPos(
         hwnd,
@@ -339,7 +354,7 @@ impl NativeSurrogate {
         0,
         0,
         0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | show_flag,
       )
     }?;
 
