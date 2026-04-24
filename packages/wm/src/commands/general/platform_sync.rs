@@ -565,19 +565,33 @@ fn redraw_containers(
         // guaranteeing the window is at `target_rect` when uncloaked.
         #[cfg(target_os = "windows")]
         if !window.native().is_cloaked().unwrap_or(false) {
-          use wm_platform::{
-            SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
-            SWP_NOZORDER,
-          };
           let _ = window.native().set_cloaked(true);
-          let _ = window.native().set_window_pos(
-            &z_order,
-            &target_rect,
-            SWP_NOZORDER
-              | SWP_FRAMECHANGED
-              | SWP_NOACTIVATE
-              | SWP_NOSENDCHANGING,
-          );
+
+          // Workspace-switch windows hidden via `PlaceInCorner` start at the
+          // corner and need a synchronous pre-position so they are at
+          // `target_rect` when uncloaked. Resize-session windows skip this:
+          // `begin` already posted `SWP_ASYNCWINDOWPOS` (250 ms is enough
+          // time to process), `pre_commit` provides a sync fallback just
+          // before the surrogate drops, and the window is invisible while
+          // cloaked so its mid-animation position is irrelevant.
+          let is_resize_session = state
+            .animation_manager
+            .resize_sessions
+            .contains_key(&window.id());
+          if !is_resize_session {
+            use wm_platform::{
+              SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
+              SWP_NOZORDER,
+            };
+            let _ = window.native().set_window_pos(
+              &z_order,
+              &target_rect,
+              SWP_NOZORDER
+                | SWP_FRAMECHANGED
+                | SWP_NOACTIVATE
+                | SWP_NOSENDCHANGING,
+            );
+          }
         }
       }
       AnimationPositionResult::Apply(rect_to_use) => {
