@@ -27,6 +27,7 @@ pub fn apply_easing(progress: f32, easing: &EasingFunction) -> f32 {
     EasingFunction::EaseInOutCubic => ease_in_out_cubic(progress),
     EasingFunction::EaseInCubic => ease_in_cubic(progress),
     EasingFunction::EaseOutCubic => ease_out_cubic(progress),
+    EasingFunction::EaseOutSpring => ease_out_spring(progress),
   }
 }
 
@@ -81,6 +82,16 @@ pub fn interpolate_with_easing<T>(
   interpolate_fn(start, end, eased_progress)
 }
 
+fn ease_out_spring(t: f32) -> f32 {
+  if t <= 0.0 {
+    return 0.0;
+  }
+  if t >= 1.0 {
+    return 1.0;
+  }
+  let c4 = (2.0 * std::f32::consts::PI) / 2.0;
+  2.0f32.powf(-12.0 * t) * ((t * 4.0 - 4.5) * c4).sin() * -1.0 + 1.0
+}
 
 #[cfg(test)]
 mod tests {
@@ -106,6 +117,5 @@ mod tests {
     assert_eq!(mid.width(), 150);
     assert_eq!(mid.height(), 150);
   }
-
 }
 

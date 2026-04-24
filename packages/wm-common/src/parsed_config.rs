@@ -391,7 +391,8 @@ pub struct WorkspaceConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationsConfig {
-  /// Animation settings for pure window translations (position changes only).
+  /// Animation settings for pure window translations (position changes
+  /// only).
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,
@@ -416,17 +417,18 @@ impl Default for AnimationsConfig {
 
 /// Animation config for workspace-switch slide transitions.
 ///
-/// When enabled, switching workspaces plays a slide animation: the outgoing
-/// workspace translates off-screen in the direction of the switch while the
-/// incoming workspace slides in from the opposite edge, constrained to the
-/// monitor on which the switch occurs.
+/// When enabled, switching workspaces plays a slide animation: the
+/// outgoing workspace translates off-screen in the direction of the switch
+/// while the incoming workspace slides in from the opposite edge,
+/// constrained to the monitor on which the switch occurs.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WorkspaceSwitchAnimationConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
-  /// Optional solid-color backdrop for workspace-switch surrogate overlays.
+  /// Optional solid-color backdrop for workspace-switch surrogate
+  /// overlays.
   ///
   /// When unset (default), Windows Acrylic blur-behind is used.
   ///
@@ -509,6 +511,7 @@ pub enum EasingFunction {
   EaseInOutCubic,
   EaseInCubic,
   EaseOutCubic,
+  EaseOutSpring,
 }
 
 /// Helper function for setting a default value for a boolean field.
