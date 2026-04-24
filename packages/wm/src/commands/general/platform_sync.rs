@@ -368,9 +368,34 @@ fn redraw_containers(
             monitor_height,
             config,
           );
+        } else if has_outgoing && direction != 0 {
+          // Incoming workspace is empty: slide the outgoing workspace away.
+          // No incoming surrogates are needed and no windows need cloaking.
+          wm_platform::dwm_flush();
+
+          for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
+            if !*is_incoming {
+              if let Some(s) = surrogate {
+                s.show_initial();
+              }
+            }
+          }
+
+          let outgoing_only: Vec<_> = ws_windows
+            .into_iter()
+            .filter(|(_, _, is_incoming)| !*is_incoming)
+            .collect();
+          state.animation_manager.start_workspace_switch(
+            outgoing_only,
+            direction,
+            monitor_x,
+            monitor_width,
+            config,
+          );
         }
-        // If the incoming workspace is empty, or direction == 0 (workspace not
-        // in config), skip the animation.
+        // If only incoming windows exist (outgoing workspace was empty), or
+        // direction == 0 (workspace not in config), skip the animation.
+        // Incoming windows will appear via the normal window_move animation.
       }
     }
   }
