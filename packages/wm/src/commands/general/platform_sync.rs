@@ -341,8 +341,16 @@ fn redraw_containers(
         // be 0, placing surrogates at their target position immediately and
         // causing an instant flash instead of a slide.
         if (has_outgoing || has_incoming) && direction != 0 {
-          // DWM thumbnails are live surface captures — the source data is
-          // already available from the compositor without an explicit flush.
+          // Flush while the outgoing real windows are still composited. DWM
+          // captures their surfaces during this frame. Outgoing surrogates sit
+          // BELOW the real windows in z-order (hWndInsertAfter = source_hwnd),
+          // so show_initial() after the flush has no visual effect — the real
+          // window still covers them. One flush is sufficient because the source
+          // data is already available from the compositor when show_initial()
+          // makes the surrogates visible.
+          wm_platform::dwm_flush();
+
+
           for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
             if !*is_incoming {
               if let Some(s) = surrogate {
@@ -360,7 +368,34 @@ fn redraw_containers(
             monitor_height,
             config,
           );
+        } else if has_outgoing && direction != 0 {
+          // Incoming workspace is empty: slide the outgoing workspace away.
+          // No incoming surrogates are needed and no windows need cloaking.
+          wm_platform::dwm_flush();
+
+          for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
+            if !*is_incoming {
+              if let Some(s) = surrogate {
+                s.show_initial();
+              }
+            }
+          }
+
+          let outgoing_only: Vec<_> = ws_windows
+            .into_iter()
+            .filter(|(_, _, is_incoming)| !*is_incoming)
+            .collect();
+          state.animation_manager.start_workspace_switch(
+            outgoing_only,
+            direction,
+            monitor_x,
+            monitor_width,
+            config,
+          );
         }
+        // If only incoming windows exist (outgoing workspace was empty), or
+        // direction == 0 (workspace not in config), skip the animation.
+        // Incoming windows will appear via the normal window_move animation.
       }
     }
   }
