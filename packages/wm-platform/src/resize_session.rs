@@ -147,19 +147,43 @@ impl ResizeSession {
     }
   }
 
-  /// Snaps the surrogate to the final target rect in preparation for
-  /// `platform_sync` to uncloak the real window.
+  /// Snaps the surrogate to the final target rect and synchronously
+  /// pre-positions the real window, in preparation for `platform_sync` to
+  /// uncloak it.
   ///
   /// Checks `IsWindow` and nullifies the stored handle if the window has been
   /// destroyed mid-animation, so that [`commit`] skips the `SetWindowPos`
   /// call.
   ///
+  /// The synchronous `SetWindowPos` here ensures the real window is at
+  /// `target_rect` before `set_cloaked(false)` fires, even when the
+  /// `SWP_ASYNCWINDOWPOS` call from [`begin`] or [`update_target`] has not
+  /// yet been processed by the target window's message queue.
+  ///
   /// [`commit`]: ResizeSession::commit
+  /// [`begin`]: ResizeSession::begin
+  /// [`update_target`]: ResizeSession::update_target
   pub fn pre_commit(&mut self) {
     // SAFETY: `IsWindow` is safe to call with any `HWND` value.
     if !unsafe { IsWindow(HWND(self.hwnd)).as_bool() } {
       self.hwnd = 0;
       return;
+    }
+
+    let r = &self.target_rect;
+
+    // SAFETY: `HWND(self.hwnd)` is valid (verified above). `SWP_NOZORDER`
+    // makes `hWndInsertAfter` irrelevant.
+    unsafe {
+      let _ = SetWindowPos(
+        HWND(self.hwnd),
+        HWND(0),
+        r.x(),
+        r.y(),
+        r.width(),
+        r.height(),
+        SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
+      );
     }
 
     if let Some(surrogate) = &mut self.surrogate {

@@ -618,7 +618,17 @@ impl AnimationManager {
     self.workspace_switch = None;
 
     let ws_config = &config.value.animations.workspace_switch;
-    let anim_config = ws_config.as_anim_type_config();
+    let mut anim_config = ws_config.as_anim_type_config();
+
+    // Scale duration proportionally to monitor width so animation speed
+    // (px/s) stays constant across different screen widths. 1920 px is the
+    // reference: narrower monitors keep the configured duration, wider ones
+    // scale up so per-frame pixel steps remain equally smooth.
+    const REFERENCE_WIDTH_PX: f32 = 1920.0;
+    anim_config.duration_ms = (anim_config.duration_ms as f32
+      * (monitor_width as f32 / REFERENCE_WIDTH_PX).max(1.0))
+      .round() as u32;
+
     let dummy = Rect::from_xy(0, 0, 1, 1);
     let driver =
       WindowAnimationState::new_movement(dummy.clone(), dummy, &anim_config);

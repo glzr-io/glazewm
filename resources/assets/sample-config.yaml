@@ -1,10 +1,10 @@
 animations:
-  # Animation settings for window movement (tiling, resizing, etc).
+  # Animation settings for pure window translations (position changes only).
   window_move:
     enabled: true
     duration_ms: 150
     # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
-    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic'
+    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic', 'ease_out_spring'
     easing: "ease_in_out"
     # Minimum pixel distance required to trigger movement animations.
     # Helps prevent animations from starting on very small position changes.
@@ -15,6 +15,29 @@ animations:
     # Acrylic blur-behind (default), or set to a hex color:
     #   "#1a1a1a"   - opaque solid color
     #   "#1a1a1aCC" - solid color with alpha (CC = ~80% opacity)
+    # surrogate_color: "#1a1a1a"
+
+  # Animation settings for window resize operations.
+  window_resize:
+    enabled: true
+    duration_ms: 150
+    # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
+    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic', 'ease_out_spring'
+    easing: "ease_in_out"
+    # Minimum pixel distance required to trigger resize animations.
+    # Default: 10
+    threshold_px: 10
+    # surrogate_color: "#1a1a1a"
+
+  # Animation settings for workspace-switch slide transitions.
+  # Duration is automatically scaled to monitor width so animation speed
+  # stays consistent across different screen sizes (reference: 1920px).
+  workspace_switch:
+    enabled: true
+    duration_ms: 300
+    # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
+    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic', 'ease_out_spring'
+    easing: "ease_out_cubic"
     # surrogate_color: "#1a1a1a"
 
   # Maximum frame rate for animations in Hz. The animation timer will not

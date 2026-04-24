@@ -487,15 +487,25 @@ fn redraw_containers(
     #[cfg(not(target_os = "windows"))]
     let is_frozen_by_ws_animation = false;
 
-    // Tiling layout changes almost always change both position and size
-    // simultaneously, so `window_move` config governs all tiling animations.
-    // `window_resize` config is reserved for future use when a meaningful
-    // pure-resize distinction can be made.
+    // A window is resizing when its dimensions change (vs. a pure translation).
+    let is_resize = previous_target
+      .as_ref()
+      .map(|prev| {
+        prev.width() != target_rect.width()
+          || prev.height() != target_rect.height()
+      })
+      .unwrap_or(false);
+
+    let anim_enabled = if is_resize {
+      config.value.animations.window_resize.enabled
+    } else {
+      config.value.animations.window_move.enabled
+    };
+
     let should_use_animations = !is_floating
       && !is_outgoing_switch
       && !state.pending_sync.should_skip_animations()
-      && (config.value.animations.window_move.enabled
-        || is_frozen_by_ws_animation);
+      && (anim_enabled || is_frozen_by_ws_animation);
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -513,7 +523,7 @@ fn redraw_containers(
       } else {
         state.animation_manager.start_animation_if_needed(
           window.id(),
-          false, // is_resize: window_move config governs all tiling animations.
+          is_resize,
           target_rect.clone(),
           previous_target,
           &*native_ref,
@@ -523,7 +533,7 @@ fn redraw_containers(
       #[cfg(not(target_os = "windows"))]
       state.animation_manager.start_animation_if_needed(
         window.id(),
-        false,
+        is_resize,
         target_rect.clone(),
         previous_target,
         config,
@@ -539,25 +549,27 @@ fn redraw_containers(
 
     match position_result {
       AnimationPositionResult::Frozen => {
-        // A surrogate overlay is covering this window. Cloak the real window
-        // so only the surrogate is visible — prevents the duplicate-window
-        // artifact where both the stationary real window and the moving
-        // surrogate are visible at the same time.
+        // A surrogate overlay is covering this window. On the first frame,
+        // cloak the real window (so only the surrogate is visible) and
+        // synchronously pre-position it at its target rect. Both operations
+        // are skipped on subsequent frames: they are idempotent, and repeating
+        // a blocking `SetWindowPos` cross-process every tick stalls the
+        // animation loop on slow apps and delays keybinding processing.
         //
         // `handle_window_hidden` is guarded against unmanaging cloaked windows
-        // so this is safe.
+        // so cloaking is safe. If something unclocks the window mid-animation
+        // the next tick will re-cloak and re-position it.
+        //
+        // For `ResizeSession`-backed animations, `pre_commit` also calls
+        // `SetWindowPos` synchronously just before the surrogate drops,
+        // guaranteeing the window is at `target_rect` when uncloaked.
         #[cfg(target_os = "windows")]
-        {
+        if !window.native().is_cloaked().unwrap_or(true) {
           use wm_platform::{
             SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
             SWP_NOZORDER,
           };
           let _ = window.native().set_cloaked(true);
-          // Synchronously pre-position the cloaked window at its target rect.
-          // When the animation finishes and `set_cloaked(false)` is called, the
-          // window will already be in the correct place, avoiding a one-frame
-          // flash at the old (hidden/corner) position that would occur if the
-          // move were deferred via `SWP_ASYNCWINDOWPOS`.
           let _ = window.native().set_window_pos(
             &z_order,
             &target_rect,
