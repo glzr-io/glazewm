@@ -549,8 +549,8 @@ fn redraw_containers(
         #[cfg(target_os = "windows")]
         {
           use wm_platform::{
-            SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS,
-            SWP_NOSENDCHANGING, SWP_NOZORDER,
+            SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
+            SWP_NOZORDER,
           };
           let _ = window.native().set_cloaked(true);
           // Synchronously pre-position the cloaked window at its target rect.
@@ -564,7 +564,6 @@ fn redraw_containers(
             SWP_NOZORDER
               | SWP_FRAMECHANGED
               | SWP_NOACTIVATE
-              | SWP_NOCOPYBITS
               | SWP_NOSENDCHANGING,
           );
         }
@@ -712,7 +711,7 @@ fn reposition_window(
     {
       use wm_platform::{
         SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-        SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WS_MAXIMIZEBOX,
+        SWP_NOSENDCHANGING, WS_MAXIMIZEBOX,
       };
 
       // Restore window if it's minimized/maximized and shouldn't be. This
@@ -745,7 +744,6 @@ fn reposition_window(
       // directly via `UpdateLayeredWindow`), closing the blank gap that
       // appears when async repositioning lags one frame behind the surrogate.
       let mut swp_flags = SWP_NOACTIVATE
-        | SWP_NOCOPYBITS
         | SWP_NOSENDCHANGING
         | if has_surrogate { Default::default() } else { SWP_ASYNCWINDOWPOS };
 

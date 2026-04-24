@@ -209,7 +209,6 @@ impl NativeWindow {
         rect.height(),
         SWP_NOACTIVATE
           | SWP_NOZORDER
-          | SWP_NOCOPYBITS
           | SWP_NOSENDCHANGING
           | SWP_ASYNCWINDOWPOS
           | SWP_FRAMECHANGED,
@@ -236,7 +235,6 @@ impl NativeWindow {
         SWP_NOACTIVATE
           | SWP_NOZORDER
           | SWP_NOMOVE
-          | SWP_NOCOPYBITS
           | SWP_NOSENDCHANGING
           | SWP_ASYNCWINDOWPOS
           | SWP_FRAMECHANGED,
@@ -259,7 +257,6 @@ impl NativeWindow {
         SWP_NOACTIVATE
           | SWP_NOZORDER
           | SWP_NOSIZE
-          | SWP_NOCOPYBITS
           | SWP_NOSENDCHANGING
           | SWP_ASYNCWINDOWPOS
           | SWP_FRAMECHANGED,

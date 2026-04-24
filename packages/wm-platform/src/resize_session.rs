@@ -1,7 +1,7 @@
 use windows::Win32::{
   Foundation::HWND,
   UI::WindowsAndMessaging::{
-    IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+    IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
     SWP_NOSENDCHANGING, SWP_NOZORDER,
   },
 };
@@ -208,7 +208,7 @@ impl ResizeSession {
         r.y(),
         r.width(),
         r.height(),
-        SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_NOZORDER,
+        SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
       )
     }?;
 
