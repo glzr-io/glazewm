@@ -564,7 +564,7 @@ fn redraw_containers(
         // `SetWindowPos` synchronously just before the surrogate drops,
         // guaranteeing the window is at `target_rect` when uncloaked.
         #[cfg(target_os = "windows")]
-        if !window.native().is_cloaked().unwrap_or(true) {
+        if !window.native().is_cloaked().unwrap_or(false) {
           use wm_platform::{
             SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
             SWP_NOZORDER,
