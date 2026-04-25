@@ -27,14 +27,20 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  if state.pending_sync.needs_focus_update() {
-    sync_focus(&focused_container, state)?;
-  }
-
+  // Redraw before transferring OS focus. During a workspace switch,
+  // `redraw_containers` creates surrogates and cloaks incoming windows
+  // before `SetForegroundWindow` is called. Calling `SetForegroundWindow`
+  // first can cause Windows to uncloak the incoming active window when it
+  // becomes the foreground window, making it appear at its final position
+  // for the duration of the animation.
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
     redraw_containers(&focused_container, state, config)?;
+  }
+
+  if state.pending_sync.needs_focus_update() {
+    sync_focus(&focused_container, state)?;
   }
 
   if state.pending_sync.needs_cursor_jump()
@@ -296,11 +302,11 @@ fn redraw_containers(
         let has_incoming =
           ws_windows.iter().any(|(_, _, is_incoming)| *is_incoming);
 
-        // direction == 0 means workspace names were not found in the config
-        // (dynamically created workspaces). In update_slide, offset = 0 makes
-        // incoming surrogates immediately visible at their target position,
-        // causing an instant flash instead of a slide. Skip the animation.
-        if has_outgoing && has_incoming && direction != 0 {
+        // Skip when direction == 0: workspace names were not found in the
+        // config (dynamically created workspaces), so `update_slide` would
+        // produce offset = 0, placing surrogates immediately at their target
+        // position and causing an instant flash instead of a slide.
+        if (has_outgoing || has_incoming) && direction != 0 {
           // Flush while the outgoing real windows are still composited. DWM
           // captures their surfaces during this frame. Outgoing surrogates sit
           // BELOW the real windows in z-order (hWndInsertAfter = source_hwnd),
@@ -326,8 +332,6 @@ fn redraw_containers(
             config,
           );
         }
-        // If the incoming workspace is empty, or direction == 0 (workspace not
-        // in config), skip the animation.
       }
     }
   }
@@ -381,10 +385,22 @@ fn redraw_containers(
     // of a window. See `NativeWindow::raise` for more details.
     #[cfg(target_os = "windows")]
     if should_bring_to_front && !windows_to_redraw.contains(window) {
-      tracing::info!("Updating window z-order: {window}");
-
-      if let Err(err) = window.native().set_z_order(&z_order) {
-        tracing::warn!("Failed to set window z-order: {}", err);
+      // While an incoming workspace-switch animation is active, skip the
+      // z-order update (which uses `SWP_SHOWWINDOW` and could reveal the
+      // pre-positioned real window) and instead re-cloak if the window was
+      // uncloaked — e.g. by `SetForegroundWindow` activating the window.
+      if state
+        .animation_manager
+        .is_workspace_switch_incoming(&window.id())
+      {
+        if !window.native().is_cloaked().unwrap_or(false) {
+          let _ = window.native().set_cloaked(true);
+        }
+      } else {
+        tracing::info!("Updating window z-order: {window}");
+        if let Err(err) = window.native().set_z_order(&z_order) {
+          tracing::warn!("Failed to set window z-order: {}", err);
+        }
       }
     }
 
