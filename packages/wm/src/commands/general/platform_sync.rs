@@ -253,21 +253,26 @@ fn redraw_containers(
           let hwnd = window.native().hwnd();
 
           if is_incoming {
-            let Ok(rect) = window.to_rect().and_then(|r| {
-              window.total_border_delta().map(|d| r.apply_delta(&d, None))
-            }) else {
-              continue;
-            };
-            let surrogate = WorkspaceSurrogate::new_incoming(
-              hwnd,
-              &rect,
-              color,
-            )
-            .map_err(|e| {
-              tracing::warn!("Failed to create incoming surrogate: {e}.");
-              e
-            })
-            .ok();
+            let surrogate = window
+              .to_rect()
+              .and_then(|r| {
+                window.total_border_delta().map(|d| r.apply_delta(&d, None))
+              })
+              .ok()
+              .and_then(|rect| {
+                WorkspaceSurrogate::new_incoming(hwnd, &rect, color)
+                  .map_err(|e| {
+                    tracing::warn!(
+                      "Failed to create incoming surrogate: {e}."
+                    );
+                    e
+                  })
+                  .ok()
+              });
+            // Always register incoming windows even without a surrogate so
+            // `is_frozen_by_ws_animation` is true for all of them — this
+            // prevents the real window from being uncloaked before the
+            // animation ends.
             ws_windows.push((id, surrogate, true));
           } else {
             let current = state
@@ -320,34 +325,9 @@ fn redraw_containers(
             monitor_width,
             config,
           );
-        } else if has_outgoing && direction != 0 {
-          // Incoming workspace is empty: slide the outgoing workspace away.
-          // No incoming surrogates are needed and no windows need cloaking.
-          wm_platform::dwm_flush();
-
-          for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
-            if !*is_incoming {
-              if let Some(s) = surrogate {
-                s.show_initial();
-              }
-            }
-          }
-
-          let outgoing_only: Vec<_> = ws_windows
-            .into_iter()
-            .filter(|(_, _, is_incoming)| !*is_incoming)
-            .collect();
-          state.animation_manager.start_workspace_switch(
-            outgoing_only,
-            direction,
-            monitor_x,
-            monitor_width,
-            config,
-          );
         }
-        // If only incoming windows exist (outgoing workspace was empty), or
-        // direction == 0 (workspace not in config), skip the animation.
-        // Incoming windows will appear via the normal window_move animation.
+        // If the incoming workspace is empty, or direction == 0 (workspace not
+        // in config), skip the animation.
       }
     }
   }
@@ -502,10 +482,9 @@ fn redraw_containers(
       config.value.animations.window_move.enabled
     };
 
-    let should_use_animations = !is_floating
-      && !is_outgoing_switch
+    let should_use_animations = !is_outgoing_switch
       && !state.pending_sync.should_skip_animations()
-      && (anim_enabled || is_frozen_by_ws_animation);
+      && ((!is_floating && anim_enabled) || is_frozen_by_ws_animation);
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can

@@ -404,7 +404,16 @@ impl AnimationManager {
     #[cfg(target_os = "windows")]
     {
       state.animation_manager.pending_session_cleanup.clear();
-      // Drop workspace-switch surrogates after incoming windows are uncloaked.
+      // Flush before dropping workspace-switch surrogates. DWM thumbnails do
+      // not capture the window's compositor shadow, so shadows are absent
+      // while windows are cloaked and appear suddenly on uncloak. One flush
+      // after `platform_sync` (which unclocks real windows) lets DWM render
+      // one frame with the real windows — including their shadows — while the
+      // surrogates are still live. Dropping surrogates after that frame makes
+      // the transition seamless.
+      if state.animation_manager.pending_ws_cleanup.is_some() {
+        wm_platform::dwm_flush();
+      }
       state.animation_manager.pending_ws_cleanup = None;
     }
 

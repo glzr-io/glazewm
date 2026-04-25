@@ -1,6 +1,5 @@
 use std::{ffi::c_void, sync::OnceLock};
 
-use crate::Color;
 use windows::{
   core::{s, w},
   Win32::{
@@ -14,7 +13,7 @@ use windows::{
     System::LibraryLoader::{GetModuleHandleW, GetProcAddress},
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
-      SET_WINDOW_POS_FLAGS, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS,
+      SetWindowPos, SET_WINDOW_POS_FLAGS, SWP_NOACTIVATE, SWP_NOCOPYBITS,
       SWP_NOMOVE, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
       SWP_SHOWWINDOW, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
       WS_EX_TRANSPARENT, WS_POPUP,
@@ -22,12 +21,14 @@ use windows::{
   },
 };
 
-use crate::Rect;
+use crate::{Color, Rect};
 
-/// Ensures the surrogate window class is registered exactly once per process.
+/// Ensures the surrogate window class is registered exactly once per
+/// process.
 static SURROGATE_CLASS_REGISTERED: OnceLock<()> = OnceLock::new();
 
-/// Cached pointer to the undocumented `SetWindowCompositionAttribute` export.
+/// Cached pointer to the undocumented `SetWindowCompositionAttribute`
+/// export.
 static SET_WCA: OnceLock<Option<SetWindowCompositionAttributeFn>> =
   OnceLock::new();
 
@@ -37,7 +38,8 @@ type SetWindowCompositionAttributeFn =
 /// Accent state value for a solid-color fill.
 const ACCENT_ENABLE_GRADIENT: u32 = 1;
 
-/// `WCA_ACCENT_POLICY` attribute index for `SetWindowCompositionAttribute`.
+/// `WCA_ACCENT_POLICY` attribute index for
+/// `SetWindowCompositionAttribute`.
 const WCA_ACCENT_POLICY: u32 = 19;
 
 /// Undocumented accent policy passed to `SetWindowCompositionAttribute`.
@@ -58,7 +60,8 @@ struct WindowCompositionAttribData {
   cb_data: usize,
 }
 
-/// Default window procedure wrapper with the required `extern "system"` ABI.
+/// Default window procedure wrapper with the required `extern "system"`
+/// ABI.
 ///
 /// `DefWindowProcW` in windows-rs is generic and cannot be coerced to a
 /// bare function pointer directly.
@@ -104,8 +107,8 @@ fn get_set_wca() -> Option<SetWindowCompositionAttributeFn> {
       GetProcAddress(module, s!("SetWindowCompositionAttribute"))
     }?;
 
-    // SAFETY: `proc` is a valid export with the expected calling convention
-    // and parameter layout.
+    // SAFETY: `proc` is a valid export with the expected calling
+    // convention and parameter layout.
     Some(unsafe {
       std::mem::transmute::<
         unsafe extern "system" fn() -> isize,
@@ -156,7 +159,8 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
 
   // SAFETY: `hwnd` is a valid window handle. `data` and `policy` are
   // stack-allocated and remain live for the duration of this call. The
-  // struct layout matches the undocumented Win32 ABI for `WCA_ACCENT_POLICY`.
+  // struct layout matches the undocumented Win32 ABI for
+  // `WCA_ACCENT_POLICY`.
   unsafe { set_wca(hwnd, std::ptr::addr_of_mut!(data)) };
 }
 
@@ -169,9 +173,9 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
 /// clips the thumbnail to its current (animated) bounds, producing a curtain
 /// reveal rather than a fill artifact when the window grows.
 ///
-/// Returns the opaque thumbnail handle, or `None` if registration fails (e.g.
-/// same-window, invalid handle). The caller is responsible for calling
-/// [`DwmUnregisterThumbnail`] when done.
+/// Returns the opaque thumbnail handle, or `None` if registration fails
+/// (e.g. same-window, invalid handle). The caller is responsible for
+/// calling [`DwmUnregisterThumbnail`] when done.
 fn register_thumbnail(
   dest_hwnd: HWND,
   source_hwnd: HWND,
@@ -203,14 +207,15 @@ fn register_thumbnail(
     ..Default::default()
   };
 
-  // SAFETY: `thumbnail` is a valid handle returned by `DwmRegisterThumbnail`.
-  if unsafe {
-    DwmUpdateThumbnailProperties(thumbnail, &raw const props)
-  }
-  .is_err()
+  // SAFETY: `thumbnail` is a valid handle returned by
+  // `DwmRegisterThumbnail`.
+  if unsafe { DwmUpdateThumbnailProperties(thumbnail, &raw const props) }
+    .is_err()
   {
     // SAFETY: Same handle; unregister on failure.
-    unsafe { let _ = DwmUnregisterThumbnail(thumbnail); };
+    unsafe {
+      let _ = DwmUnregisterThumbnail(thumbnail);
+    };
     return None;
   }
 
@@ -227,32 +232,34 @@ fn register_thumbnail(
 /// a curtain reveal; for shrinking windows the thumbnail sits at target size
 /// and the transparent surrogate backdrop collapses around it.
 ///
-/// When `scale` is `true` (open animations), the thumbnail `rcDestination` is
-/// updated each frame to match the current surrogate size so DWM scales the
-/// source content to fit rather than clipping it. This produces a scale-in
-/// effect from the initial smaller rect to the target rect.
+/// When `scale` is `true` (open animations), the thumbnail `rcDestination`
+/// is updated each frame to match the current surrogate size so DWM scales
+/// the source content to fit rather than clipping it. This produces a
+/// scale-in effect from the initial smaller rect to the target rect.
 ///
 /// GlazeWM cloaks the real window while the overlay is active.
 ///
 /// Per-frame cost is one [`SetWindowPos`] call (plus one
-/// `DwmUpdateThumbnailProperties` when the thumbnail handle is valid). No GDI
-/// allocations occur.
+/// `DwmUpdateThumbnailProperties` when the thumbnail handle is valid). No
+/// GDI allocations occur.
 ///
-/// When the animation finishes the real window is uncloaked and this surrogate
-/// is dropped, which unregisters the thumbnail and destroys the overlay window.
+/// When the animation finishes the real window is uncloaked and this
+/// surrogate is dropped, which unregisters the thumbnail and destroys the
+/// overlay window.
 ///
 /// # Platform-specific
 ///
 /// Only available on Windows. Acrylic requires Windows 10 1803+; on older
-/// versions the backdrop degrades gracefully (no blur, thumbnail still shown).
+/// versions the backdrop degrades gracefully (no blur, thumbnail still
+/// shown).
 pub struct NativeSurrogate {
   /// Handle to the overlay window.
   hwnd: isize,
   /// DWM thumbnail handle, or `0` if registration failed.
   thumbnail: isize,
-  /// Whether to scale the thumbnail content to the current surrogate size each
-  /// frame. When `false` the thumbnail destination rect is pinned to the
-  /// target dimensions, producing a curtain-reveal effect.
+  /// Whether to scale the thumbnail content to the current surrogate size
+  /// each frame. When `false` the thumbnail destination rect is pinned
+  /// to the target dimensions, producing a curtain-reveal effect.
   scale: bool,
 }
 
@@ -267,17 +274,17 @@ impl NativeSurrogate {
   /// is fully transparent so only the DWM thumbnail is visible and gaps
   /// between windows remain see-through.
   ///
-  /// When `scale` is `true`, [`update`] scales the thumbnail content to the
-  /// current surrogate size on every frame (open animations). When `false`,
-  /// the thumbnail destination is pinned at target size, which clips the
-  /// content to the surrogate's bounds and creates a curtain-reveal effect
-  /// (move/resize animations).
+  /// When `scale` is `true`, [`update`] scales the thumbnail content to
+  /// the current surrogate size on every frame (open animations). When
+  /// `false`, the thumbnail destination is pinned at target size, which
+  /// clips the content to the surrogate's bounds and creates a
+  /// curtain-reveal effect (move/resize animations).
   ///
   /// When `initially_visible` is `false`, the surrogate window is created
-  /// hidden; the caller must call [`set_visible`] to reveal it. Pass `true`
-  /// for surrogate types that must appear immediately (e.g. resize sessions).
-  /// Workspace-switch surrogates pass `false` to avoid a one-frame flash
-  /// before the caller explicitly shows the window.
+  /// hidden; the caller must call [`set_visible`] to reveal it. Pass
+  /// `true` for surrogate types that must appear immediately (e.g.
+  /// resize sessions). Workspace-switch surrogates pass `false` to avoid
+  /// a one-frame flash before the caller explicitly shows the window.
   ///
   /// Returns an error if window creation fails.
   ///
@@ -290,6 +297,7 @@ impl NativeSurrogate {
     surrogate_color: Option<&Color>,
     scale: bool,
     initially_visible: bool,
+    use_acrylic: bool,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
@@ -404,14 +412,18 @@ impl NativeSurrogate {
         rect.y(),
         rect.width(),
         rect.height(),
-        SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_NOZORDER,
+        SWP_NOACTIVATE
+          | SWP_NOCOPYBITS
+          | SWP_NOSENDCHANGING
+          | SWP_NOZORDER,
       )
     }?;
 
     if self.thumbnail != 0 {
-      // When scaling, update rcDestination to the current surrogate size so
-      // DWM scales the full source content down to fit. When not scaling the
-      // destination rect stays pinned from creation (curtain-reveal effect).
+      // When scaling, update rcDestination to the current surrogate size
+      // so DWM scales the full source content down to fit. When not
+      // scaling the destination rect stays pinned from creation
+      // (curtain-reveal effect).
       let (flags, dest) = if self.scale {
         (
           DWM_TNP_OPACITY | DWM_TNP_RECTDESTINATION,
@@ -447,9 +459,9 @@ impl NativeSurrogate {
 
 impl Drop for NativeSurrogate {
   fn drop(&mut self) {
-    // SAFETY: `self.thumbnail` and `self.hwnd` are valid handles created in
-    // `create`. Thumbnail must be unregistered before the destination window
-    // is destroyed.
+    // SAFETY: `self.thumbnail` and `self.hwnd` are valid handles created
+    // in `create`. Thumbnail must be unregistered before the
+    // destination window is destroyed.
     unsafe {
       if self.thumbnail != 0 {
         let _ = DwmUnregisterThumbnail(self.thumbnail);

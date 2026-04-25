@@ -430,7 +430,9 @@ pub struct WorkspaceSwitchAnimationConfig {
   /// Optional solid-color backdrop for workspace-switch surrogate
   /// overlays.
   ///
-  /// When unset (default), Windows Acrylic blur-behind is used.
+  /// When unset (default), the surrogate backdrop is fully transparent so
+  /// only the DWM thumbnail content is visible and gaps between windows
+  /// remain see-through.
   ///
   /// # Platform-specific
   ///
