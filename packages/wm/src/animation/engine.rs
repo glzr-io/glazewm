@@ -69,19 +69,6 @@ fn ease_out_cubic(t: f32) -> f32 {
   1.0 - (1.0 - t).powi(3)
 }
 
-
-/// Interpolates a value with an easing function applied.
-pub fn interpolate_with_easing<T>(
-  start: &T,
-  end: &T,
-  progress: f32,
-  easing: &EasingFunction,
-  interpolate_fn: impl Fn(&T, &T, f32) -> T,
-) -> T {
-  let eased_progress = apply_easing(progress, easing);
-  interpolate_fn(start, end, eased_progress)
-}
-
 fn ease_out_spring(t: f32) -> f32 {
   if t <= 0.0 {
     return 0.0;

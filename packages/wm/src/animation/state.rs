@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use wm_common::{AnimationTypeConfig, EasingFunction};
 use wm_platform::{OpacityValue, Rect};
 
-use crate::animation::engine::{animation_progress, interpolate_with_easing};
+use crate::animation::engine::{animation_progress, apply_easing};
 
 /// State of an individual window animation.
 #[derive(Clone, Debug)]
@@ -52,31 +52,19 @@ impl WindowAnimationState {
 
   /// Gets the interpolated rect at the current animation progress.
   pub fn current_rect(&self) -> Rect {
-    let progress = self.progress();
-    interpolate_with_easing(
-      &self.start_rect,
-      &self.target_rect,
-      progress,
-      &self.easing,
-      |start, end, eased_progress| start.interpolate(end, eased_progress),
-    )
+    self
+      .start_rect
+      .interpolate(&self.target_rect, apply_easing(self.progress(), &self.easing))
   }
 
   /// Gets the interpolated opacity at the current animation progress.
   pub fn current_opacity(&self) -> Option<OpacityValue> {
-    if let (Some(start), Some(end)) = (&self.start_opacity, &self.target_opacity)
-    {
-      let progress = self.progress();
-      Some(interpolate_with_easing(
-        start,
-        end,
-        progress,
-        &self.easing,
-        |start, end, eased_progress| start.interpolate(end, eased_progress),
-      ))
-    } else {
-      None
-    }
+    let (Some(start), Some(end)) =
+      (&self.start_opacity, &self.target_opacity)
+    else {
+      return None;
+    };
+    Some(start.interpolate(end, apply_easing(self.progress(), &self.easing)))
   }
 }
 

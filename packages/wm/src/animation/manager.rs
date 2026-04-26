@@ -1,11 +1,15 @@
 use std::{
   collections::HashMap,
-  sync::{atomic::AtomicBool, atomic::Ordering, Arc},
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
+  time::{Duration, Instant},
 };
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::WindowState;
+use wm_common::{EasingFunction, WindowState};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
@@ -37,8 +41,12 @@ struct WorkspaceSwitchEntry {
 struct WorkspaceSwitchState {
   /// All participating windows keyed by window ID.
   windows: HashMap<Uuid, WorkspaceSwitchEntry>,
-  /// Progress driver. Only `progress()` and `easing` are used.
-  driver: WindowAnimationState,
+  /// When the animation started.
+  start_time: Instant,
+  /// Total animation duration.
+  duration: Duration,
+  /// Easing function applied to raw elapsed-time progress.
+  easing: EasingFunction,
   /// Slide direction: `+1` = target workspace is higher-index (incoming from
   /// right, outgoing to left). `-1` = opposite. `0` = fade in place.
   direction: i32,
@@ -123,7 +131,6 @@ impl AnimationManager {
   }
 
   /// Removes a window's animation and any associated resize session.
-  #[allow(dead_code)]
   pub fn remove_animation(&mut self, window_id: &Uuid) {
     self.animations.remove(window_id);
     #[cfg(target_os = "windows")]
@@ -172,19 +179,6 @@ impl AnimationManager {
   /// Returns all active animation window IDs.
   pub fn active_window_ids(&self) -> Vec<Uuid> {
     self.animations.keys().copied().collect()
-  }
-
-  /// Clears all animations and any associated sessions.
-  #[allow(dead_code)]
-  pub fn clear(&mut self) {
-    self.animations.clear();
-    #[cfg(target_os = "windows")]
-    {
-      self.resize_sessions.clear();
-      self.pending_session_cleanup.clear();
-      self.workspace_switch = None;
-      self.pending_ws_cleanup = None;
-    }
   }
 
   /// Drains all active and pending resize sessions and returns them.
@@ -275,16 +269,6 @@ impl AnimationManager {
     }
   }
 
-  /// Updates all active animations and redraws windows that are animating.
-  #[allow(dead_code)]
-  pub fn update(
-    &mut self,
-    state: &mut WmState,
-    config: &UserConfig,
-  ) -> anyhow::Result<()> {
-    Self::update_internal(state, config)
-  }
-
   /// Internal update, accessed through `WmState` to avoid double-borrow.
   pub(crate) fn update_internal(
     state: &mut WmState,
@@ -353,8 +337,8 @@ impl AnimationManager {
 
       if let Some(ws) = &mut state.animation_manager.workspace_switch {
         let raw_progress =
-          animation_progress(ws.driver.start_time, ws.driver.duration);
-        let eased = apply_easing(raw_progress, &ws.driver.easing);
+          animation_progress(ws.start_time, ws.duration);
+        let eased = apply_easing(raw_progress, &ws.easing);
 
         for entry in ws.windows.values_mut() {
           if let Some(ref mut s) = entry.surrogate {
@@ -640,20 +624,15 @@ impl AnimationManager {
     self.workspace_switch = None;
 
     let ws_config = &config.value.animations.workspace_switch;
-    let mut anim_config = ws_config.as_anim_type_config();
 
     // Scale duration proportionally to monitor width so animation speed
     // (px/s) stays constant across different screen widths. 1920 px is the
     // reference: narrower monitors keep the configured duration, wider ones
     // scale up so per-frame pixel steps remain equally smooth.
     const REFERENCE_WIDTH_PX: f32 = 1920.0;
-    anim_config.duration_ms = (anim_config.duration_ms as f32
+    let duration_ms = (ws_config.duration_ms as f32
       * (monitor_width as f32 / REFERENCE_WIDTH_PX).max(1.0))
       .round() as u32;
-
-    let dummy = Rect::from_xy(0, 0, 1, 1);
-    let driver =
-      WindowAnimationState::new_movement(dummy.clone(), dummy, &anim_config);
 
     let ws_windows: HashMap<Uuid, WorkspaceSwitchEntry> = windows
       .into_iter()
@@ -673,7 +652,9 @@ impl AnimationManager {
       );
       self.workspace_switch = Some(WorkspaceSwitchState {
         windows: ws_windows,
-        driver,
+        start_time: Instant::now(),
+        duration: Duration::from_millis(u64::from(duration_ms)),
+        easing: ws_config.easing.clone(),
         direction,
         monitor_x,
         monitor_width,

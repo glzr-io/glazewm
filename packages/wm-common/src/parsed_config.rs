@@ -451,21 +451,6 @@ impl Default for WorkspaceSwitchAnimationConfig {
   }
 }
 
-impl WorkspaceSwitchAnimationConfig {
-  /// Returns an [`AnimationTypeConfig`] compatible representation for use
-  /// with the shared animation engine.
-  ///
-  /// `threshold_px` is forced to `0` so the animation always fires.
-  pub fn as_anim_type_config(&self) -> AnimationTypeConfig {
-    AnimationTypeConfig {
-      enabled: self.enabled,
-      duration_ms: self.duration_ms,
-      easing: self.easing.clone(),
-      threshold_px: 0,
-      surrogate_color: self.surrogate_color.clone(),
-    }
-  }
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]

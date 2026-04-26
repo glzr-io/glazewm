@@ -65,7 +65,12 @@ impl WindowManager {
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
     let (animation_tick_tx, animation_tick_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(dispatcher, event_tx, exit_tx, animation_tick_tx);
+    let mut state = WmState::new(
+      dispatcher,
+      event_tx,
+      exit_tx,
+      animation_tick_tx,
+    );
     state.populate(config)?;
 
     // Start animation timer if `populate` created any animations. This

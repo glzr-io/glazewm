@@ -72,7 +72,6 @@ impl WorkspaceSurrogate {
     // current monitor's bounds.
     let inner =
       NativeSurrogate::create(hwnd, rect, rect, color, false, false, false)?;
-    inner.set_visible(false);
 
     Ok(Self {
       inner: Some(inner),

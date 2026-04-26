@@ -31,9 +31,6 @@ pub struct PendingSync {
   /// user config).
   needs_cursor_jump: bool,
 
-  /// Whether to skip animations for the current sync (e.g., during workspace switches).
-  skip_animations: bool,
-
   /// Window IDs on the incoming workspace that should slide in.
   workspace_switch_incoming: HashSet<Uuid>,
 
@@ -65,7 +62,6 @@ impl PendingSync {
     self.needs_focused_effect_update = false;
     self.needs_all_effects_update = false;
     self.needs_cursor_jump = false;
-    self.skip_animations = false;
     self.workspace_switch_incoming.clear();
     self.workspace_switch_outgoing.clear();
     self.workspace_switch_direction = 0;
@@ -134,16 +130,6 @@ impl PendingSync {
   pub fn queue_cursor_jump(&mut self) -> &mut Self {
     self.needs_cursor_jump = true;
     self
-  }
-
-  #[allow(dead_code)]
-  pub fn set_skip_animations(&mut self, skip: bool) -> &mut Self {
-    self.skip_animations = skip;
-    self
-  }
-
-  pub fn should_skip_animations(&self) -> bool {
-    self.skip_animations
   }
 
   pub fn needs_focus_update(&self) -> bool {
