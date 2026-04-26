@@ -253,6 +253,8 @@ fn redraw_containers(
           Vec::new();
         let mut monitor_x = 0i32;
         let mut monitor_width = 0i32;
+        let mut monitor_y = 0i32;
+        let mut monitor_height = 0i32;
 
         for window in windows_to_update.iter() {
           let id = window.id();
@@ -270,6 +272,8 @@ fn redraw_containers(
               let b = m.native_properties().bounds;
               monitor_x = b.x();
               monitor_width = b.width();
+              monitor_y = b.y();
+              monitor_height = b.height();
             }
           }
 
@@ -320,9 +324,9 @@ fn redraw_containers(
           ws_windows.iter().any(|(_, _, is_incoming)| *is_incoming);
 
         // Skip when direction == 0: workspace names were not found in the
-        // config (dynamically created workspaces), so `update_slide` would
-        // produce offset = 0, placing surrogates immediately at their target
-        // position and causing an instant flash instead of a slide.
+        // config (dynamically created workspaces), so the slide offset would
+        // be 0, placing surrogates at their target position immediately and
+        // causing an instant flash instead of a slide.
         if (has_outgoing || has_incoming) && direction != 0 {
           // Flush while the outgoing real windows are still composited. DWM
           // captures their surfaces during this frame. Outgoing surrogates sit
@@ -346,6 +350,8 @@ fn redraw_containers(
             direction,
             monitor_x,
             monitor_width,
+            monitor_y,
+            monitor_height,
             config,
           );
         }

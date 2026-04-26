@@ -9,7 +9,7 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::{EasingFunction, WindowState};
+use wm_common::{EasingFunction, WindowState, WorkspaceSwitchStyle};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
@@ -32,7 +32,7 @@ struct WorkspaceSwitchEntry {
   is_incoming: bool,
 }
 
-/// Shared state for all windows in a workspace-switch slide animation.
+/// Shared state for all windows in a workspace-switch animation.
 ///
 /// A single elapsed-time driver advances all surrogates in lock-step so every
 /// window translates by the same pixel offset on every frame, preserving the
@@ -47,13 +47,19 @@ struct WorkspaceSwitchState {
   duration: Duration,
   /// Easing function applied to raw elapsed-time progress.
   easing: EasingFunction,
+  /// Transition style (slide horizontal/vertical or fade).
+  style: WorkspaceSwitchStyle,
   /// Slide direction: `+1` = target workspace is higher-index (incoming from
-  /// right, outgoing to left). `-1` = opposite. `0` = fade in place.
+  /// the far edge, outgoing to the near edge). `-1` = opposite.
   direction: i32,
   /// Left x-coordinate of the animation monitor in screen pixels.
   monitor_x: i32,
   /// Width of the animation monitor in screen pixels.
   monitor_width: i32,
+  /// Top y-coordinate of the animation monitor in screen pixels.
+  monitor_y: i32,
+  /// Height of the animation monitor in screen pixels.
+  monitor_height: i32,
 }
 
 /// Result of [`AnimationManager::start_animation_if_needed`], describing
@@ -342,13 +348,26 @@ impl AnimationManager {
 
         for entry in ws.windows.values_mut() {
           if let Some(ref mut s) = entry.surrogate {
-            s.update_slide(
-              eased,
-              entry.is_incoming,
-              ws.direction,
-              ws.monitor_x,
-              ws.monitor_width,
-            );
+            match ws.style {
+              WorkspaceSwitchStyle::SlideHorizontal => {
+                s.update_slide_horizontal(
+                  eased,
+                  entry.is_incoming,
+                  ws.direction,
+                  ws.monitor_x,
+                  ws.monitor_width,
+                );
+              }
+              WorkspaceSwitchStyle::SlideVertical => {
+                s.update_slide_vertical(
+                  eased,
+                  entry.is_incoming,
+                  ws.direction,
+                  ws.monitor_y,
+                  ws.monitor_height,
+                );
+              }
+            }
           }
         }
 
@@ -606,7 +625,7 @@ impl AnimationManager {
       .unwrap_or(false)
   }
 
-  /// Installs a workspace-switch slide animation for the provided windows.
+  /// Installs a workspace-switch animation for the provided windows.
   ///
   /// Accepts pre-created [`WorkspaceSurrogate`] instances together with their
   /// incoming/outgoing flags. A shared driver advances all surrogates in
@@ -619,20 +638,15 @@ impl AnimationManager {
     direction: i32,
     monitor_x: i32,
     monitor_width: i32,
+    monitor_y: i32,
+    monitor_height: i32,
     config: &UserConfig,
   ) {
     self.workspace_switch = None;
 
     let ws_config = &config.value.animations.workspace_switch;
 
-    // Scale duration proportionally to monitor width so animation speed
-    // (px/s) stays constant across different screen widths. 1920 px is the
-    // reference: narrower monitors keep the configured duration, wider ones
-    // scale up so per-frame pixel steps remain equally smooth.
-    const REFERENCE_WIDTH_PX: f32 = 1920.0;
-    let duration_ms = (ws_config.duration_ms as f32
-      * (monitor_width as f32 / REFERENCE_WIDTH_PX).max(1.0))
-      .round() as u32;
+    let duration_ms = ws_config.duration_ms;
 
     let ws_windows: HashMap<Uuid, WorkspaceSwitchEntry> = windows
       .into_iter()
@@ -643,11 +657,11 @@ impl AnimationManager {
 
     if !ws_windows.is_empty() {
       tracing::info!(
-        "Starting workspace-switch slide: direction={}, monitor_x={}, \
-         monitor_width={}, windows={}",
+        "Starting workspace-switch animation: style={:?}, direction={}, \
+         monitor=({monitor_x},{monitor_y},{monitor_width}x{monitor_height}), \
+         windows={}",
+        ws_config.style,
         direction,
-        monitor_x,
-        monitor_width,
         ws_windows.len(),
       );
       self.workspace_switch = Some(WorkspaceSwitchState {
@@ -655,9 +669,12 @@ impl AnimationManager {
         start_time: Instant::now(),
         duration: Duration::from_millis(u64::from(duration_ms)),
         easing: ws_config.easing.clone(),
+        style: ws_config.style.clone(),
         direction,
         monitor_x,
         monitor_width,
+        monitor_y,
+        monitor_height,
       });
     } else {
       tracing::warn!("Workspace-switch skipped: no windows to animate.");

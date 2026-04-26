@@ -415,18 +415,31 @@ impl Default for AnimationsConfig {
   }
 }
 
-/// Animation config for workspace-switch slide transitions.
+/// Visual style of the workspace-switch transition.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceSwitchStyle {
+  /// Workspaces slide left/right (default).
+  #[default]
+  SlideHorizontal,
+  /// Workspaces slide up/down.
+  SlideVertical,
+}
+
+/// Animation config for workspace-switch transitions.
 ///
-/// When enabled, switching workspaces plays a slide animation: the
-/// outgoing workspace translates off-screen in the direction of the switch
-/// while the incoming workspace slides in from the opposite edge,
-/// constrained to the monitor on which the switch occurs.
+/// When `style` is `slide_horizontal` or `slide_vertical`, the outgoing
+/// workspace translates off-screen in the direction of the switch while the
+/// incoming workspace slides in from the opposite edge, constrained to the
+/// monitor on which the switch occurs.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WorkspaceSwitchAnimationConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
+  /// Transition style: `slide_horizontal` (default) or `slide_vertical`.
+  pub style: WorkspaceSwitchStyle,
   /// Optional solid-color backdrop for workspace-switch surrogate
   /// overlays.
   ///
@@ -446,6 +459,7 @@ impl Default for WorkspaceSwitchAnimationConfig {
       enabled: true,
       duration_ms: 300,
       easing: EasingFunction::EaseOutCubic,
+      style: WorkspaceSwitchStyle::default(),
       surrogate_color: None,
     }
   }
