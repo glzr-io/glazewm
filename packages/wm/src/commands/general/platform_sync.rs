@@ -27,14 +27,20 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  if state.pending_sync.needs_focus_update() {
-    sync_focus(&focused_container, state)?;
-  }
-
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
     redraw_containers(&focused_container, state, config)?;
+  }
+
+  // Focus is synced after `redraw_containers` so that the workspace-switch
+  // animation is already set up when `sync_focus` runs. This lets the
+  // deferral check in `sync_focus` correctly suppress `SetForegroundWindow`
+  // during the slide (the animation manager re-queues focus after it
+  // completes), preventing the OS from asynchronously uncloaking the
+  // incoming focused window mid-animation.
+  if state.pending_sync.needs_focus_update() {
+    sync_focus(&focused_container, state)?;
   }
 
   if state.pending_sync.needs_cursor_jump()
@@ -470,14 +476,9 @@ fn redraw_containers(
     // `true` for the full animation so that focus events during the slide do
     // not prematurely uncloak the real window.
     #[cfg(target_os = "windows")]
-    let is_frozen_by_ws_animation = config
-      .value
-      .animations
-      .workspace_switch
-      .enabled
-      && state
-        .animation_manager
-        .is_workspace_switch_incoming(&window.id());
+    let is_frozen_by_ws_animation = state
+      .animation_manager
+      .is_workspace_switch_incoming(&window.id());
     #[cfg(not(target_os = "windows"))]
     let is_frozen_by_ws_animation = false;
 
@@ -497,7 +498,6 @@ fn redraw_containers(
     };
 
     let should_use_animations = !is_outgoing_switch
-      && !state.pending_sync.should_skip_animations()
       && ((!is_floating && anim_enabled) || is_frozen_by_ws_animation);
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
