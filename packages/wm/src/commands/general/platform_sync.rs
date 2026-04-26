@@ -27,20 +27,14 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
-  // Redraw before transferring OS focus. During a workspace switch,
-  // `redraw_containers` creates surrogates and cloaks incoming windows
-  // before `SetForegroundWindow` is called. Calling `SetForegroundWindow`
-  // first can cause Windows to uncloak the incoming active window when it
-  // becomes the foreground window, making it appear at its final position
-  // for the duration of the animation.
+  if state.pending_sync.needs_focus_update() {
+    sync_focus(&focused_container, state)?;
+  }
+
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
     redraw_containers(&focused_container, state, config)?;
-  }
-
-  if state.pending_sync.needs_focus_update() {
-    sync_focus(&focused_container, state)?;
   }
 
   if state.pending_sync.needs_cursor_jump()
@@ -91,6 +85,23 @@ fn sync_focus(
   state: &mut WmState,
 ) -> anyhow::Result<()> {
   let native_window = focused_container.as_window_container().ok();
+
+  // Defer `SetForegroundWindow` while the focused window is an incoming
+  // participant in a workspace-switch slide. The OS may asynchronously
+  // remove the DWM cloak when a window becomes the foreground window,
+  // causing it to appear at its final position before the surrogate
+  // finishes. `AnimationManager::update_internal` re-queues the focus
+  // change once the animation completes and the windows are uncloaked.
+  #[cfg(target_os = "windows")]
+  if let Some(window) = &native_window {
+    if state.animation_manager.is_workspace_switch_active()
+      && state
+        .animation_manager
+        .is_workspace_switch_incoming(&window.id())
+    {
+      return Ok(());
+    }
+  }
 
   // Sets focus to the appropriate target:
   // - If the container is a window, focuses that window.
@@ -385,22 +396,9 @@ fn redraw_containers(
     // of a window. See `NativeWindow::raise` for more details.
     #[cfg(target_os = "windows")]
     if should_bring_to_front && !windows_to_redraw.contains(window) {
-      // While an incoming workspace-switch animation is active, skip the
-      // z-order update (which uses `SWP_SHOWWINDOW` and could reveal the
-      // pre-positioned real window) and instead re-cloak if the window was
-      // uncloaked — e.g. by `SetForegroundWindow` activating the window.
-      if state
-        .animation_manager
-        .is_workspace_switch_incoming(&window.id())
-      {
-        if !window.native().is_cloaked().unwrap_or(false) {
-          let _ = window.native().set_cloaked(true);
-        }
-      } else {
-        tracing::info!("Updating window z-order: {window}");
-        if let Err(err) = window.native().set_z_order(&z_order) {
-          tracing::warn!("Failed to set window z-order: {}", err);
-        }
+      tracing::info!("Updating window z-order: {window}");
+      if let Err(err) = window.native().set_z_order(&z_order) {
+        tracing::warn!("Failed to set window z-order: {}", err);
       }
     }
 

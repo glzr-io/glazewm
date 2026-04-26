@@ -392,6 +392,13 @@ impl AnimationManager {
           }
         }
       }
+
+      // Re-queue focus: `sync_focus` suppressed `SetForegroundWindow` while
+      // the animation was running to prevent the OS from asynchronously
+      // uncloaking the incoming focused window mid-slide. Now that the
+      // surrogates are done and incoming windows are about to be uncloaked,
+      // it is safe to transfer OS focus.
+      state.pending_sync.queue_focus_change();
     }
 
     if state.pending_sync.has_changes() {
@@ -590,6 +597,12 @@ impl AnimationManager {
       // disabled. Apply the final target rect directly.
       (AnimationPositionResult::Apply(target_rect), None)
     }
+  }
+
+  /// Returns `true` while a workspace-switch slide animation is in progress.
+  #[cfg(target_os = "windows")]
+  pub fn is_workspace_switch_active(&self) -> bool {
+    self.workspace_switch.is_some()
   }
 
   /// Returns `true` while `window_id` is an incoming participant in the
