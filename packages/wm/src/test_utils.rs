@@ -241,6 +241,7 @@ impl Workspace {
       display_name,
       bind_to_monitor: None,
       keep_alive: false,
+      toggle_on_refocus: None,
     };
 
     let workspace = Self::new(config, gaps_config, tiling_direction);

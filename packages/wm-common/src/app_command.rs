@@ -431,4 +431,7 @@ pub struct InvokeUpdateWorkspaceConfig {
 
   #[clap(long)]
   pub keep_alive: Option<bool>,
+
+  #[clap(long)]
+  pub toggle_on_refocus: Option<bool>,
 }

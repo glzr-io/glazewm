@@ -361,17 +361,24 @@ impl WmState {
   ) -> anyhow::Result<(Option<String>, Option<Workspace>)> {
     let (name, workspace) = match target {
       WorkspaceTarget::Name(name) => {
+        let ws_toggle = origin_workspace.config().toggle_on_refocus;
         #[allow(clippy::match_bool)]
         match origin_workspace.config().name == name {
           false => (Some(name.clone()), self.workspace_by_name(&name)),
           // Toggle the workspace if it's already focused.
-          true if config.value.general.toggle_workspace_on_refocus => (
-            self.recent_workspace_name.clone(),
-            self
-              .recent_workspace_name
-              .as_ref()
-              .and_then(|name| self.workspace_by_name(name)),
-          ),
+          true
+            if (config.value.general.toggle_workspace_on_refocus
+              && ws_toggle != Some(false))
+              || ws_toggle == Some(true) =>
+          {
+            (
+              self.recent_workspace_name.clone(),
+              self
+                .recent_workspace_name
+                .as_ref()
+                .and_then(|name| self.workspace_by_name(name)),
+            )
+          }
           true => (None, None),
         }
       }
