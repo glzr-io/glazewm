@@ -71,7 +71,9 @@ pub fn handle_window_focused(
     // Handle focus events from windows on hidden workspaces. For example,
     // if Discord is forcefully shown by the OS when it's on a hidden
     // workspace, switch focus to Discord's workspace.
-    if window.display_state() == DisplayState::Hidden {
+    if window.display_state() == DisplayState::Hidden
+      && !workspace.is_displayed()
+    {
       info!("Focusing off-screen window: {window}");
 
       focus_workspace(

@@ -451,20 +451,6 @@ fn redraw_containers(
     let previous_target =
       state.window_target_positions.get(&window.id()).cloned();
 
-    // For already-shown windows with no recorded target (e.g. a window being
-    // repositioned by a neighbour spawn before its own first target was
-    // written), use the native frame as the animation start so the window
-    // animates instead of snapping. Newly managed windows (`Showing`) are
-    // excluded — they should appear directly at their tiling position.
-    let previous_target =
-      if window.display_state() == DisplayState::Shown
-        && previous_target.is_none()
-      {
-        window.native().frame().ok()
-      } else {
-        previous_target
-      };
-
     // Always record the latest target position.
     state
       .window_target_positions
