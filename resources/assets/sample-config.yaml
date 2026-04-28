@@ -34,9 +34,6 @@ animations:
     # surrogate_color: "#1a1a1a"
 
   # Animation settings for workspace-switch transitions.
-  # Duration is automatically scaled to the monitor dimension along the
-  # slide axis so speed stays consistent across screen sizes
-  # (reference: 1920px horizontal, 1080px vertical).
   workspace_switch:
     enabled: true
     duration_ms: 300
@@ -268,10 +265,6 @@ keybindings:
   # is pressed again.
   - commands: ["wm-toggle-pause"]
     bindings: ["alt+shift+p"]
-
-  # Toggles window animations on and off.
-  - commands: ["wm-toggle-animations"]
-    bindings: ["alt+shift+n"]
 
   # Change tiling direction. This determines where new tiling windows will
   # be inserted.
