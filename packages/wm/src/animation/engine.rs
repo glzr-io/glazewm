@@ -28,7 +28,41 @@ pub fn apply_easing(progress: f32, easing: &EasingFunction) -> f32 {
     EasingFunction::EaseInCubic => ease_in_cubic(progress),
     EasingFunction::EaseOutCubic => ease_out_cubic(progress),
     EasingFunction::EaseOutSpring => ease_out_spring(progress),
+    EasingFunction::CubicBezier(x1, y1, x2, y2) => {
+      cubic_bezier(*x1, *y1, *x2, *y2, progress)
+    }
   }
+}
+
+/// Evaluates a CSS cubic bezier at the given `x` progress (0.0 to 1.0).
+///
+/// Control points `(x1, y1)` and `(x2, y2)` define the curve between the
+/// implicit anchors `(0, 0)` and `(1, 1)`. Uses Newton-Raphson iteration
+/// to find the curve parameter `t` such that `Bx(t) = x`, then returns
+/// `By(t)`.
+fn cubic_bezier(x1: f32, y1: f32, x2: f32, y2: f32, x: f32) -> f32 {
+  let cx = 3.0 * x1;
+  let bx = 3.0 * (x2 - x1) - cx;
+  let ax = 1.0 - cx - bx;
+
+  let cy = 3.0 * y1;
+  let by_ = 3.0 * (y2 - y1) - cy;
+  let ay = 1.0 - cy - by_;
+
+  let sample_x = |t: f32| ((ax * t + bx) * t + cx) * t;
+  let sample_dx = |t: f32| (3.0 * ax * t + 2.0 * bx) * t + cx;
+  let sample_y = |t: f32| ((ay * t + by_) * t + cy) * t;
+
+  let mut t = x;
+  for _ in 0..8 {
+    let dx = sample_dx(t);
+    if dx.abs() < 1e-6 {
+      break;
+    }
+    t = (t - (sample_x(t) - x) / dx).clamp(0.0, 1.0);
+  }
+
+  sample_y(t)
 }
 
 /// Quadratic ease-in-out function.

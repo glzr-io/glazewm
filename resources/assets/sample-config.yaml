@@ -3,8 +3,13 @@ animations:
   window_move:
     enabled: true
     duration_ms: 150
-    # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
-    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic', 'ease_out_spring'
+    # Easing function. Named options: 'linear', 'ease_in', 'ease_out',
+    # 'ease_in_out', 'ease_in_cubic', 'ease_out_cubic', 'ease_in_out_cubic',
+    # 'ease_out_spring'. Custom cubic bezier: 'cubic_bezier(x1, y1, x2, y2)'
+    # where x1/x2 must be in [0, 1]; y1/y2 may exceed that range for
+    # overshoot. Examples:
+    #   "cubic_bezier(0.16, 1, 0.3, 1)"  - expo-out (fast start, smooth stop)
+    #   "cubic_bezier(0.4, 0, 0.2, 1)"   - Material Design standard
     easing: "ease_in_out"
     # Minimum pixel distance required to trigger movement animations.
     # Helps prevent animations from starting on very small position changes.
@@ -21,8 +26,7 @@ animations:
   window_resize:
     enabled: true
     duration_ms: 150
-    # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
-    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic', 'ease_out_spring'
+    # See 'window_move.easing' for available options.
     easing: "ease_in_out"
     # Minimum pixel distance required to trigger resize animations.
     # Default: 10
@@ -36,8 +40,7 @@ animations:
   workspace_switch:
     enabled: true
     duration_ms: 300
-    # Easing function: 'linear', 'ease_in_out', 'ease_in', 'ease_out',
-    # 'ease_in_out_cubic', 'ease_in_cubic', 'ease_out_cubic', 'ease_out_spring'
+    # See 'window_move.easing' for available options.
     easing: "ease_out_cubic"
     # Transition style: 'slide_horizontal' (default), 'slide_vertical'
     style: "slide_horizontal"

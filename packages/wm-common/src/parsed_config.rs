@@ -501,8 +501,7 @@ impl Default for AnimationTypeConfig {
   }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum EasingFunction {
   Linear,
   #[default]
@@ -513,6 +512,87 @@ pub enum EasingFunction {
   EaseInCubic,
   EaseOutCubic,
   EaseOutSpring,
+  /// Custom CSS cubic bezier curve: `cubic_bezier(x1, y1, x2, y2)`.
+  ///
+  /// The two control points `(x1, y1)` and `(x2, y2)` define the shape
+  /// between the implicit anchors `(0, 0)` and `(1, 1)`. `x1` and `x2`
+  /// must be in `[0, 1]`; `y1` and `y2` may exceed that range to produce
+  /// overshoot.
+  CubicBezier(f32, f32, f32, f32),
+}
+
+impl Eq for EasingFunction {}
+
+impl<'de> Deserialize<'de> for EasingFunction {
+  fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+    let s = String::deserialize(d)?;
+    match s.as_str() {
+      "linear" => Ok(EasingFunction::Linear),
+      "ease_in_out" => Ok(EasingFunction::EaseInOut),
+      "ease_in" => Ok(EasingFunction::EaseIn),
+      "ease_out" => Ok(EasingFunction::EaseOut),
+      "ease_in_out_cubic" => Ok(EasingFunction::EaseInOutCubic),
+      "ease_in_cubic" => Ok(EasingFunction::EaseInCubic),
+      "ease_out_cubic" => Ok(EasingFunction::EaseOutCubic),
+      "ease_out_spring" => Ok(EasingFunction::EaseOutSpring),
+      s => {
+        if let Some(inner) = s
+          .strip_prefix("cubic_bezier(")
+          .and_then(|s| s.strip_suffix(')'))
+        {
+          let parts: Vec<&str> = inner.split(',').collect();
+          if parts.len() != 4 {
+            return Err(serde::de::Error::custom(
+              "cubic_bezier requires exactly 4 arguments: \
+               cubic_bezier(x1, y1, x2, y2)",
+            ));
+          }
+          let mut floats = [0f32; 4];
+          for (i, part) in parts.iter().enumerate() {
+            floats[i] = part.trim().parse::<f32>().map_err(|_| {
+              serde::de::Error::custom(format!(
+                "cubic_bezier argument {} is not a valid number: {}",
+                i + 1,
+                part.trim()
+              ))
+            })?;
+          }
+          let [x1, y1, x2, y2] = floats;
+          if !(0.0..=1.0).contains(&x1) || !(0.0..=1.0).contains(&x2) {
+            return Err(serde::de::Error::custom(
+              "cubic_bezier x1 and x2 must be in [0, 1]",
+            ));
+          }
+          Ok(EasingFunction::CubicBezier(x1, y1, x2, y2))
+        } else {
+          Err(serde::de::Error::custom(format!(
+            "unknown easing function '{s}'; valid values: linear, \
+             ease_in, ease_out, ease_in_out, ease_in_cubic, \
+             ease_out_cubic, ease_in_out_cubic, ease_out_spring, \
+             cubic_bezier(x1, y1, x2, y2)"
+          )))
+        }
+      }
+    }
+  }
+}
+
+impl Serialize for EasingFunction {
+  fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+    match self {
+      EasingFunction::Linear => s.serialize_str("linear"),
+      EasingFunction::EaseInOut => s.serialize_str("ease_in_out"),
+      EasingFunction::EaseIn => s.serialize_str("ease_in"),
+      EasingFunction::EaseOut => s.serialize_str("ease_out"),
+      EasingFunction::EaseInOutCubic => s.serialize_str("ease_in_out_cubic"),
+      EasingFunction::EaseInCubic => s.serialize_str("ease_in_cubic"),
+      EasingFunction::EaseOutCubic => s.serialize_str("ease_out_cubic"),
+      EasingFunction::EaseOutSpring => s.serialize_str("ease_out_spring"),
+      EasingFunction::CubicBezier(x1, y1, x2, y2) => s.serialize_str(
+        &format!("cubic_bezier({x1}, {y1}, {x2}, {y2})"),
+      ),
+    }
+  }
 }
 
 /// Helper function for setting a default value for a boolean field.
