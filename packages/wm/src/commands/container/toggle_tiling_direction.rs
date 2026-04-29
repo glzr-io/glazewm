@@ -3,8 +3,8 @@ use wm_common::{TilingDirection, WmEvent};
 
 use super::{flatten_split_container, wrap_in_split_container};
 use crate::{
-  models::{Container, DirectionContainer, SplitContainer, TilingWindow},
-  traits::{CommonGetters, TilingDirectionGetters},
+  models::{Container, DirectionContainer, SplitContainer, TilingWindow, WindowContainer},
+  traits::{CommonGetters, TilingDirectionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -78,6 +78,27 @@ fn toggle_window_direction(
   )?;
 
   Ok(split_container.into())
+}
+
+pub fn auto_set_tiling_direction(
+  container: &Container,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let Ok(WindowContainer::TilingWindow(window)) =
+    container.as_window_container()
+  else {
+    return Ok(());
+  };
+
+  let frame = window.native_properties().frame;
+  let direction = if frame.width() > frame.height() {
+    TilingDirection::Horizontal
+  } else {
+    TilingDirection::Vertical
+  };
+
+  set_tiling_direction(container.clone(), state, config, &direction)
 }
 
 pub fn set_tiling_direction(

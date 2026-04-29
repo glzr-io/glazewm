@@ -5,10 +5,11 @@ use wm_platform::NativeWindow;
 
 use crate::{
   commands::{
-    container::set_focused_descendant, window::run_window_rules,
+    container::{auto_set_tiling_direction, set_focused_descendant},
+    window::run_window_rules,
     workspace::focus_workspace,
   },
-  models::WorkspaceTarget,
+  models::{Container, WorkspaceTarget},
   traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -83,6 +84,17 @@ pub fn handle_window_focused(
 
     // Update the WM's focus state.
     set_focused_descendant(&window.clone().into(), None);
+
+    if config.value.general.auto_set_tiling_direction {
+      _ = auto_set_tiling_direction(
+        &Container::from(window.clone()),
+        state,
+        config,
+      )
+      .inspect_err(|e| {
+        tracing::warn!("Failed to auto-set tiling direction: {e}")
+      });
+    }
 
     // Run window rules for focus events.
     run_window_rules(
