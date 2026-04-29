@@ -5,8 +5,8 @@ use uuid::Uuid;
 #[cfg(target_os = "windows")]
 use wm_common::TitleBarVisibility;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, WindowState,
-  WmEvent,
+  ContainerDto, FloatingStateConfig, FullscreenStateConfig,
+  InvokeCommand, TilingDirection, WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
@@ -44,7 +44,7 @@ use crate::{
   },
   ipc_server::IpcServer,
   models::{Container, WorkspaceTarget},
-  traits::{CommonGetters, WindowGetters},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -180,6 +180,46 @@ impl WindowManager {
     }
 
     Ok(new_subject_container_id)
+  }
+
+  pub fn process_wm_event(
+    &mut self,
+    event: &WmEvent,
+    config: &UserConfig,
+  ) -> anyhow::Result<()> {
+    if !config.value.general.auto_set_tiling_direction {
+      return Ok(());
+    }
+
+    let Some(window_id) = auto_tiling_window_id(event) else {
+      return Ok(());
+    };
+
+    let Some(container) = self.state.container_by_id(window_id) else {
+      return Ok(());
+    };
+
+    let Ok(window) = container.as_window_container() else {
+      return Ok(());
+    };
+
+    if window.state() != WindowState::Tiling {
+      return Ok(());
+    }
+
+    let rect = window.to_rect()?;
+    let Some(tiling_direction) =
+      auto_tiling_direction(rect.width(), rect.height())
+    else {
+      return Ok(());
+    };
+
+    set_tiling_direction(
+      window.into(),
+      &mut self.state,
+      config,
+      &tiling_direction,
+    )
   }
 
   pub fn run_commands(
@@ -811,5 +851,89 @@ impl WindowManager {
         tracing::warn!("{:?}", err);
       }
     }
+  }
+}
+
+fn auto_tiling_window_id(event: &WmEvent) -> Option<Uuid> {
+  let container = match event {
+    WmEvent::FocusChanged { focused_container }
+    | WmEvent::FocusedContainerMoved { focused_container } => {
+      focused_container
+    }
+    _ => return None,
+  };
+
+  match container {
+    ContainerDto::Window(window) => Some(window.id),
+    _ => None,
+  }
+}
+
+fn auto_tiling_direction(
+  width: i32,
+  height: i32,
+) -> Option<TilingDirection> {
+  match width.cmp(&height) {
+    std::cmp::Ordering::Less => Some(TilingDirection::Vertical),
+    std::cmp::Ordering::Greater => Some(TilingDirection::Horizontal),
+    std::cmp::Ordering::Equal => None,
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use wm_common::{DisplayState, WindowDto};
+  use wm_platform::{Rect, RectDelta};
+
+  #[test]
+  fn extracts_window_id_from_supported_events() {
+    let window_id = Uuid::new_v4();
+    let event = WmEvent::FocusChanged {
+      focused_container: ContainerDto::Window(WindowDto {
+        id: window_id,
+        parent_id: None,
+        has_focus: true,
+        tiling_size: Some(1.0),
+        width: 800,
+        height: 600,
+        x: 0,
+        y: 0,
+        state: WindowState::Tiling,
+        prev_state: None,
+        display_state: DisplayState::Shown,
+        border_delta: RectDelta::zero(),
+        floating_placement: Rect::from_xy(0, 0, 800, 600),
+        handle: 0,
+        title: String::new(),
+        #[cfg(target_os = "windows")]
+        class_name: String::new(),
+        process_name: String::new(),
+        active_drag: None,
+      }),
+    };
+
+    assert_eq!(auto_tiling_window_id(&event), Some(window_id));
+  }
+
+  #[test]
+  fn chooses_vertical_for_taller_windows() {
+    assert_eq!(
+      auto_tiling_direction(600, 900),
+      Some(TilingDirection::Vertical)
+    );
+  }
+
+  #[test]
+  fn chooses_horizontal_for_wider_windows() {
+    assert_eq!(
+      auto_tiling_direction(1200, 700),
+      Some(TilingDirection::Horizontal)
+    );
+  }
+
+  #[test]
+  fn skips_square_windows() {
+    assert_eq!(auto_tiling_direction(800, 800), None);
   }
 }

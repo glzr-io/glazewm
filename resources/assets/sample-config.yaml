@@ -11,6 +11,10 @@ general:
   # Commands to run after the WM config is reloaded.
   config_reload_commands: []
 
+  # Whether to automatically set the focused tiling window's insertion
+  # direction based on whether it is wider or taller.
+  auto_set_tiling_direction: false
+
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
 
