@@ -12,7 +12,6 @@ use wm_platform::{CornerStyle, OpacityValue};
 use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
-  commands::container::auto_set_tiling_direction,
   models::{Container, WindowContainer},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
@@ -28,13 +27,6 @@ pub fn platform_sync(
 
   if state.pending_sync.needs_focus_update() {
     sync_focus(&focused_container, state)?;
-
-    if config.value.general.auto_set_tiling_direction {
-      _ = auto_set_tiling_direction(&focused_container, state, config)
-        .inspect_err(|e| {
-          tracing::warn!("Failed to auto-set tiling direction: {e}")
-        });
-    }
   }
 
   if !state.pending_sync.containers_to_redraw().is_empty()

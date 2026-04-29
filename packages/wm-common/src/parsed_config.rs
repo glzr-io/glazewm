@@ -96,11 +96,6 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
-
-  /// Whether to automatically set the tiling direction based on the
-  /// focused window's aspect ratio (wider -> horizontal, taller ->
-  /// vertical).
-  pub auto_set_tiling_direction: bool,
 }
 
 impl Default for GeneralConfig {
@@ -123,7 +118,6 @@ impl Default for GeneralConfig {
         }
       },
       show_all_in_taskbar: false,
-      auto_set_tiling_direction: false,
     }
   }
 }
