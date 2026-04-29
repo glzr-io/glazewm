@@ -243,6 +243,10 @@ async fn start_wm(
       Some(wm_event) = wm.event_rx.recv() => {
         tracing::debug!("Received WM event: {:?}", wm_event);
 
+        if let Err(err) = wm.process_wm_event(&wm_event, &config) {
+          tracing::error!("{:?}", err);
+        }
+
         // Disable mouse listener when the WM is paused.
         if let WmEvent::PauseChanged { is_paused } = wm_event {
           let _ = mouse_listener.enable(!is_paused);

@@ -73,6 +73,10 @@ pub struct GeneralConfig {
   /// Config for automatically moving the cursor.
   pub cursor_jump: CursorJumpConfig,
 
+  /// Whether to automatically set the focused tiling window's insertion
+  /// direction based on its aspect ratio.
+  pub auto_set_tiling_direction: bool,
+
   /// Whether to automatically focus windows underneath the cursor.
   pub focus_follows_cursor: bool,
 
@@ -102,6 +106,7 @@ impl Default for GeneralConfig {
   fn default() -> Self {
     GeneralConfig {
       cursor_jump: CursorJumpConfig::default(),
+      auto_set_tiling_direction: false,
       focus_follows_cursor: false,
       toggle_workspace_on_refocus: true,
       startup_commands: vec![],
