@@ -822,10 +822,13 @@ fn reposition_window(
 
           // When there's a mismatch between the DPI of the monitor and the
           // window, the window might be sized incorrectly after the first
-          // move. If we set the position twice, inconsistencies after the
-          // first move are resolved.
+          // move. Setting the position twice resolves inconsistencies from
+          // the first call. The flag is cleared after so this only runs
+          // once per DPI-change event, not on every subsequent animation
+          // frame.
           if window.has_pending_dpi_adjustment() {
             window.native().set_window_pos(z_order, rect, swp_flags)?;
+            window.set_has_pending_dpi_adjustment(false);
           }
         }
       }
