@@ -99,6 +99,14 @@ pub struct AnimationManager {
   /// `platform_sync` call unclocks the incoming real windows.
   #[cfg(target_os = "windows")]
   pending_ws_cleanup: Option<WorkspaceSwitchState>,
+  /// Workspace name deferred while a switch animation is in progress.
+  ///
+  /// When a second `focus_workspace` fires during a running animation, only
+  /// the most recent target is kept here. The animation completes normally
+  /// and then this switch is executed, so rapid key presses collapse into a
+  /// single final transition.
+  #[cfg(target_os = "windows")]
+  pub pending_ws_name: Option<String>,
 }
 
 impl AnimationManager {
@@ -116,6 +124,8 @@ impl AnimationManager {
       workspace_switch: None,
       #[cfg(target_os = "windows")]
       pending_ws_cleanup: None,
+      #[cfg(target_os = "windows")]
+      pending_ws_name: None,
     }
   }
 
