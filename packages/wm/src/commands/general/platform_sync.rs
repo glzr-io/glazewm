@@ -328,15 +328,8 @@ fn redraw_containers(
         // be 0, placing surrogates at their target position immediately and
         // causing an instant flash instead of a slide.
         if (has_outgoing || has_incoming) && direction != 0 {
-          // Flush while the outgoing real windows are still composited. DWM
-          // captures their surfaces during this frame. Outgoing surrogates sit
-          // BELOW the real windows in z-order (hWndInsertAfter = source_hwnd),
-          // so show_initial() after the flush has no visual effect — the real
-          // window still covers them. One flush is sufficient because the source
-          // data is already available from the compositor when show_initial()
-          // makes the surrogates visible.
-          wm_platform::dwm_flush();
-
+          // DWM thumbnails are live surface captures — the source data is
+          // already available from the compositor without an explicit flush.
           for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
             if !*is_incoming {
               if let Some(s) = surrogate {
