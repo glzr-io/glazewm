@@ -164,12 +164,34 @@ impl WorkspaceSurrogate {
     // Source-window-local start of the visible strip.
     let src_start = vis_start - current;
 
+    // When a window exits the trailing edge of the monitor (`src_start == 0`
+    // and the window still extends past `monitor_end`), both the surrogate
+    // position and size would change every frame, creating a rendering
+    // asymmetry. Fix: anchor the surrogate at `monitor_end - axis_size` and
+    // shift only `rcDestination` inward so no `SetWindowPos` position change
+    // occurs. The uncovered surrogate area is transparent (WS_POPUP default).
+    let trailing_exit = src_start == 0 && current + axis_size > monitor_end;
+
     // Update the DWM thumbnail: show only the visible slice of source
     // content, mapped 1:1 onto the constrained surrogate rect.
     let (rc_src, rc_dst) = if is_vertical {
+      if trailing_exit {
+        let dest_top = axis_size - constrained;
+        (
+          RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
+          RECT { left: 0, top: dest_top, right: perp_size, bottom: axis_size },
+        )
+      } else {
+        (
+          RECT { left: 0, top: src_start, right: perp_size, bottom: src_start + constrained },
+          RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
+        )
+      }
+    } else if trailing_exit {
+      let dest_left = axis_size - constrained;
       (
-        RECT { left: 0, top: src_start, right: perp_size, bottom: src_start + constrained },
-        RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
+        RECT { left: 0, top: 0, right: constrained, bottom: perp_size },
+        RECT { left: dest_left, top: 0, right: axis_size, bottom: perp_size },
       )
     } else {
       (
@@ -179,11 +201,18 @@ impl WorkspaceSurrogate {
     };
     self.inner.set_thumbnail_rects(rc_src, rc_dst);
 
-    // Position the surrogate window at the constrained (monitor-clamped) rect.
-    let constrained_rect = if is_vertical {
-      Rect::from_xy(perp_pos, vis_start, perp_size, constrained)
+    // For trailing-exit: fix the surrogate at `monitor_end - axis_size` so
+    // only `rcDestination` changes each frame (no position movement).
+    let (surr_pos, surr_size) = if trailing_exit {
+      (monitor_end - axis_size, axis_size)
     } else {
-      Rect::from_xy(vis_start, perp_pos, constrained, perp_size)
+      (vis_start, constrained)
+    };
+
+    let constrained_rect = if is_vertical {
+      Rect::from_xy(perp_pos, surr_pos, perp_size, surr_size)
+    } else {
+      Rect::from_xy(surr_pos, perp_pos, surr_size, perp_size)
     };
     let _ = self.inner.reposition(&constrained_rect);
 
