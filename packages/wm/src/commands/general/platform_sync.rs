@@ -341,15 +341,14 @@ fn redraw_containers(
         // be 0, placing surrogates at their target position immediately and
         // causing an instant flash instead of a slide.
         if (has_outgoing || has_incoming) && direction != 0 {
-          // Flush while the outgoing real windows are still composited. DWM
-          // captures their surfaces during this frame. Outgoing surrogates sit
-          // BELOW the real windows in z-order (hWndInsertAfter = source_hwnd),
-          // so show_initial() after the flush has no visual effect — the real
-          // window still covers them. One flush is sufficient because the source
-          // data is already available from the compositor when show_initial()
-          // makes the surrogates visible.
+          // First flush: all outgoing windows are still composited and all
+          // thumbnails (outgoing and incoming) have just been registered.
+          // DWM captures every thumbnail source in this frame so the
+          // outgoing surrogate content is guaranteed warm.
           wm_platform::dwm_flush();
 
+          // Show outgoing surrogates immediately so they cover the real
+          // windows before those windows are cloaked later in this call.
 
           for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
             if !*is_incoming {
@@ -357,6 +356,16 @@ fn redraw_containers(
                 s.show_initial();
               }
             }
+          }
+
+          // Second flush: gives DWM one more composition cycle to capture
+          // the incoming thumbnails. Cloaked or corner-hidden source
+          // windows may not be updated in DWM's first pass after
+          // registration; this extra frame ensures the incoming surrogate
+          // shows real content on its very first visible tick rather than
+          // a blank or stale frame.
+          if has_incoming {
+            wm_platform::dwm_flush();
           }
 
           state.animation_manager.start_workspace_switch(
