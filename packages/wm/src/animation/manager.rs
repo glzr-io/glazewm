@@ -630,10 +630,16 @@ impl AnimationManager {
     }
   }
 
-  /// Returns `true` while a workspace-switch slide animation is in progress.
+  /// Returns `true` while a workspace-switch slide animation is in progress
+  /// or its surrogates are still live during post-animation cleanup.
+  ///
+  /// Includes `pending_ws_cleanup` so that callers (e.g. tab-bar visibility,
+  /// focus deferral) stay in their animation-active state until surrogates
+  /// are fully dropped, preventing a one-frame flash between animation
+  /// completion and surrogate teardown.
   #[cfg(target_os = "windows")]
   pub fn is_workspace_switch_active(&self) -> bool {
-    self.workspace_switch.is_some()
+    self.workspace_switch.is_some() || self.pending_ws_cleanup.is_some()
   }
 
   /// Returns `true` while `window_id` is an incoming participant in the
