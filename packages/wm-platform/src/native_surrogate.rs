@@ -36,8 +36,6 @@ type SetWindowCompositionAttributeFn =
 
 /// Accent state value for a solid-color fill.
 const ACCENT_ENABLE_GRADIENT: u32 = 1;
-/// Accent state value for Windows 10 1803+ Acrylic blur-behind.
-const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
 
 /// `WCA_ACCENT_POLICY` attribute index for `SetWindowCompositionAttribute`.
 const WCA_ACCENT_POLICY: u32 = 19;
@@ -117,31 +115,30 @@ fn get_set_wca() -> Option<SetWindowCompositionAttributeFn> {
   })
 }
 
-/// Applies a backdrop effect to `hwnd` via the undocumented
+/// Applies a solid-color backdrop to `hwnd` via the undocumented
 /// `SetWindowCompositionAttribute` API (Windows 10 1607+).
 ///
-/// When `color` is `Some`, a solid-color fill (`ACCENT_ENABLE_GRADIENT`) is
-/// applied using the provided RGBA color. When `None`, Windows Acrylic
-/// blur-behind is used (requires Windows 10 1803+; degrades gracefully on
-/// older versions by showing no backdrop at all rather than an error).
+/// When `color` is `None`, no accent is applied — DWM's default transparent
+/// backing store is used so the border-extension area around the DWM thumbnail
+/// is genuinely see-through.
 ///
 /// This is a no-op when the API is unavailable (pre-Windows 10 1607).
 fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
-  let Some(set_wca) = get_set_wca() else {
+  let Some(c) = color else {
     return;
   };
 
-  let (accent_state, gradient_color) = match color {
-    Some(c) => {
-      // The undocumented `gradient_color` field uses ABGR byte order:
-      // alpha in the high byte, then blue, green, red in the low byte.
-      let abgr = (u32::from(c.a) << 24)
-        | (u32::from(c.b) << 16)
-        | (u32::from(c.g) << 8)
-        | u32::from(c.r);
-      (ACCENT_ENABLE_GRADIENT, abgr)
-    }
-    None => (ACCENT_ENABLE_ACRYLICBLURBEHIND, 0x0000_0000),
+  // The undocumented `gradient_color` field uses ABGR byte order:
+  // alpha in the high byte, then blue, green, red in the low byte.
+  let abgr = (u32::from(c.a) << 24)
+    | (u32::from(c.b) << 16)
+    | (u32::from(c.g) << 8)
+    | u32::from(c.r);
+
+  let (accent_state, gradient_color) = (ACCENT_ENABLE_GRADIENT, abgr);
+
+  let Some(set_wca) = get_set_wca() else {
+    return;
   };
 
   let mut policy = AccentPolicy {
@@ -267,8 +264,9 @@ impl NativeSurrogate {
   /// `source_hwnd` is registered at `target_rect` dimensions to display the
   /// window's final rendered content. The surrogate window starts at
   /// `source_rect` and animates toward `target_rect`. When `surrogate_color`
-  /// is `Some`, the backdrop is a solid-color fill; when `None`, Windows
-  /// Acrylic blur-behind is used.
+  /// is `Some`, the backdrop is a solid-color fill; when `None`, the backdrop
+  /// is fully transparent so only the DWM thumbnail is visible and gaps between
+  /// windows remain see-through.
   ///
   /// When `scale` is `true`, [`update`] scales the thumbnail content to the
   /// current surrogate size on every frame (open animations). When `false`,
@@ -315,16 +313,13 @@ impl NativeSurrogate {
       ));
     }
 
-    // Apply the backdrop. When the thumbnail is opaque this is only visible
-    // in areas the thumbnail doesn't cover (acrylic fills the remainder when
-    // the surrogate is larger than the thumbnail's pinned target rect).
     apply_backdrop(hwnd, surrogate_color);
 
     // Register the DWM thumbnail at target dimensions so the thumbnail always
     // shows the real window's final rendered content (the real window is
     // pre-positioned to target_rect at session start). The surrogate clips the
     // thumbnail to its current animated bounds. Failure is non-fatal: the
-    // surrogate falls back to acrylic-only.
+    // surrogate still shows its backdrop color if configured.
     let thumbnail = register_thumbnail(
       hwnd,
       source_hwnd,

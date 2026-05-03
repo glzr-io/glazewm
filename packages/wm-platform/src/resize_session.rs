@@ -38,8 +38,8 @@ impl ResizeSession {
   /// The surrogate displays the real window's live content via a
   /// `DwmRegisterThumbnail` with a pinned `rcSource` equal to the original
   /// window size, so the thumbnail is never scaled regardless of how the
-  /// source window is resized underneath. Acrylic fills the area around it as
-  /// the surrogate grows toward `target_rect`.
+  /// source window is resized underneath. The area outside the thumbnail
+  /// is transparent, so gaps between windows remain visible during animation.
   ///
   /// When the surrogate is successfully created the real window is immediately
   /// repositioned to `target_rect` while hidden beneath the overlay. Because
