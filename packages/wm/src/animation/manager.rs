@@ -356,12 +356,30 @@ impl AnimationManager {
           animation_progress(ws.start_time, ws.duration);
         let eased = apply_easing(raw_progress, &ws.easing);
 
+        // Complete early once eased progress reaches 99% — EaseOutCubic
+        // (and similar decelerating curves) spend the final ~22% of wall
+        // time covering the last 1% of distance, which looks "stuck" at
+        // the destination. Spring and cubic-bezier can overshoot past 1.0,
+        // so they always run to full wall-clock duration.
+        let ws_done = match &ws.easing {
+          EasingFunction::EaseOutSpring | EasingFunction::CubicBezier(..) => {
+            raw_progress >= 1.0
+          }
+          _ => raw_progress >= 1.0 || eased >= 0.99,
+        };
+
+        // When completing early (eased < 1.0), snap surrogates to 1.0 so
+        // they sit exactly at the final window position. Without this, a
+        // ~1% gap between surrogate and the just-uncloaked real window
+        // exposes the desktop for one frame.
+        let eased_final = if ws_done { 1.0 } else { eased };
+
         for entry in ws.windows.values_mut() {
           if let Some(ref mut s) = entry.surrogate {
             match ws.style {
               WorkspaceSwitchStyle::SlideHorizontal => {
                 s.update_slide_horizontal(
-                  eased,
+                  eased_final,
                   entry.is_incoming,
                   ws.direction,
                   ws.monitor_x,
@@ -370,7 +388,7 @@ impl AnimationManager {
               }
               WorkspaceSwitchStyle::SlideVertical => {
                 s.update_slide_vertical(
-                  eased,
+                  eased_final,
                   entry.is_incoming,
                   ws.direction,
                   ws.monitor_y,
@@ -381,7 +399,7 @@ impl AnimationManager {
           }
         }
 
-        if raw_progress >= 1.0 {
+        if ws_done {
           Some(ws.windows.keys().copied().collect())
         } else {
           None

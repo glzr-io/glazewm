@@ -39,22 +39,35 @@ impl WindowAnimationState {
     }
   }
 
-  /// Gets the current animation progress (0.0 to 1.0).
-  pub fn progress(&self) -> f32 {
-    animation_progress(self.start_time, self.duration)
+  /// Gets the effective eased progress, returning 1.0 when the animation
+  /// is considered complete.
+  ///
+  /// For non-overshooting easing functions, snaps to 1.0 once the eased
+  /// value reaches 0.99. Decelerating curves (e.g. `EaseOutCubic`) spend
+  /// roughly 22% of wall time covering the last 1% of distance, which
+  /// makes windows look "stuck" at their destination. `EaseOutSpring` and
+  /// `CubicBezier` can overshoot past 1.0, so they always run to the full
+  /// wall-clock duration to preserve the overshoot/bounce.
+  fn effective_progress(&self) -> f32 {
+    let raw = animation_progress(self.start_time, self.duration);
+    let eased = apply_easing(raw, &self.easing);
+    let done = match &self.easing {
+      EasingFunction::EaseOutSpring | EasingFunction::CubicBezier(..) => {
+        raw == 1.0
+      }
+      _ => raw == 1.0 || eased >= 0.99,
+    };
+    if done { 1.0 } else { eased }
   }
 
   /// Whether the animation has completed.
-  /// NOTE: Progress is clamped to [0.0, 1.0], so exact comparison is safe.
   pub fn is_complete(&self) -> bool {
-    self.progress() == 1.0
+    self.effective_progress() == 1.0
   }
 
   /// Gets the interpolated rect at the current animation progress.
   pub fn current_rect(&self) -> Rect {
-    self
-      .start_rect
-      .interpolate(&self.target_rect, apply_easing(self.progress(), &self.easing))
+    self.start_rect.interpolate(&self.target_rect, self.effective_progress())
   }
 
   /// Gets the interpolated opacity at the current animation progress.
@@ -64,7 +77,7 @@ impl WindowAnimationState {
     else {
       return None;
     };
-    Some(start.interpolate(end, apply_easing(self.progress(), &self.easing)))
+    Some(start.interpolate(end, self.effective_progress()))
   }
 }
 
