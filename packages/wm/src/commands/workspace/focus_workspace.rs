@@ -1,13 +1,15 @@
 use anyhow::Context;
 use tracing::info;
 
+use wm_common::WindowState;
+
 use super::activate_workspace;
 use crate::{
   commands::{
     container::set_focused_descendant, workspace::deactivate_workspace,
   },
   models::WorkspaceTarget,
-  traits::CommonGetters,
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -74,10 +76,13 @@ pub fn focus_workspace(
     );
     state.pending_sync.set_workspace_switch_direction(direction);
 
-    // Mark windows on the incoming workspace to slide in.
+    // Mark windows on the incoming workspace to slide in. Minimized windows
+    // are excluded — they have no visible content to animate and including
+    // them causes flicker when the animation system tries to snapshot them.
     for window in target_workspace
       .descendants()
       .filter_map(|c| c.as_window_container().ok())
+      .filter(|w| w.state() != WindowState::Minimized)
     {
       state
         .pending_sync
@@ -85,10 +90,12 @@ pub fn focus_workspace(
     }
 
     // Cancel in-flight animations for outgoing windows and mark them for
-    // the outgoing surrogate slide-out.
+    // the outgoing surrogate slide-out. Minimized windows are excluded for
+    // the same reason as above.
     for window in displayed_workspace
       .descendants()
       .filter_map(|c| c.as_window_container().ok())
+      .filter(|w| w.state() != WindowState::Minimized)
     {
       state.animation_manager.remove_animation(&window.id());
       state
