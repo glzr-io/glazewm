@@ -169,31 +169,13 @@ impl WindowManager {
   }
 
   /// Updates all active animations and redraws windows that are animating.
-  ///
-  /// After the animation completes, executes any workspace switch that was
-  /// deferred via `AnimationManager::pending_ws_name`.
   pub fn update_animations(
     &mut self,
     config: &UserConfig,
   ) -> anyhow::Result<()> {
     use crate::animation::AnimationManager;
-    AnimationManager::update_internal(&mut self.state, config)?;
-
-    #[cfg(target_os = "windows")]
-    if !self.state.animation_manager.is_workspace_switch_active() {
-      if let Some(name) =
-        self.state.animation_manager.pending_ws_name.take()
-      {
-        focus_workspace(
-          WorkspaceTarget::Name(name),
-          &mut self.state,
-          config,
-        )?;
-        platform_sync(&mut self.state, config)?;
-      }
-    }
-
-    Ok(())
+    // Access animation_manager through state to avoid double borrow
+    AnimationManager::update_internal(&mut self.state, config)
   }
 
   pub fn process_commands(

@@ -32,17 +32,6 @@ pub fn focus_workspace(
   let (target_workspace_name, target_workspace) =
     state.workspace_by_target(&focused_workspace, target, config)?;
 
-  // If a workspace-switch animation is already running, store the requested
-  // workspace name and return. The animation completes at its own pace and
-  // `update_animations` picks up the pending name afterwards, so rapid key
-  // presses collapse into a single final transition instead of queuing up
-  // multiple back-to-back animations.
-  #[cfg(target_os = "windows")]
-  if state.animation_manager.is_workspace_switch_active() {
-    state.animation_manager.pending_ws_name = target_workspace_name;
-    return Ok(());
-  }
-
   // Retrieve or activate the target workspace by its name.
   let target_workspace = match target_workspace {
     Some(_) => anyhow::Ok(target_workspace),

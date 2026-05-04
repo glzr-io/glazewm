@@ -188,9 +188,8 @@ async fn start_wm(
   loop {
     let res = tokio::select! {
       // biased: evaluated top-to-bottom when multiple futures are ready
-      // simultaneously. Shutdown signals are checked first, then keybindings
-      // so that input is never blocked by in-flight animation ticks, then
-      // animation ticks, then all other events.
+      // simultaneously. Shutdown signals are checked first, animation ticks
+      // second so that window/input events never delay mid-animation frames.
       biased;
       _ = signal::ctrl_c() => {
         tracing::info!("Received SIGINT signal.");
@@ -203,10 +202,6 @@ async fn start_wm(
       Some(()) = tray.exit_rx.recv() => {
         tracing::info!("Exiting through system tray.");
         break;
-      },
-      Some(event) = keybinding_listener.next_event() => {
-        tracing::debug!("Received keyboard event: {:?}", event);
-        wm.process_event(PlatformEvent::Keybinding(event), &mut config)
       },
       Some(()) = wm.animation_tick_rx.recv() => {
         wm.update_animations(&config)
@@ -222,6 +217,10 @@ async fn start_wm(
       Some(()) = display_listener.next_event() => {
         tracing::debug!("Received display settings changed event.");
         wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
+      },
+      Some(event) = keybinding_listener.next_event() => {
+        tracing::debug!("Received keyboard event: {:?}", event);
+        wm.process_event(PlatformEvent::Keybinding(event), &mut config)
       }
       _ = cleanup_interval.tick() => {
         if wm.state.is_paused {
