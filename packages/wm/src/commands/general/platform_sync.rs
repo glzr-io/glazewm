@@ -1,11 +1,10 @@
 use anyhow::Context;
 #[cfg(target_os = "windows")]
 use wm_common::WindowEffectConfig;
-use tokio::task;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use wm_common::{
-  CursorJumpTrigger, DisplayState, EasingFunction, HideCorner, HideMethod,
-  UniqueExt, WindowState, WmEvent,
+  CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
+  WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
@@ -451,6 +450,7 @@ fn redraw_containers(
 
 fn reposition_window(
   window: &WindowContainer,
+  logical_rect: &Rect,
   hide_corner: HideCorner,
   // LINT: `z_order` is only used on Windows.
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
@@ -463,9 +463,7 @@ fn reposition_window(
   has_surrogate: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let rect = window
-    .to_rect()?
-    .apply_delta(&window.total_border_delta()?, None);
+  let rect = logical_rect.apply_delta(&window.total_border_delta()?, None);
 
   // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
   // to the corner of the monitor.

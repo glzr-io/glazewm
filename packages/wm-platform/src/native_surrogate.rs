@@ -164,10 +164,11 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
 /// `width × height`.
 ///
 /// Both `rcSource` and `rcDestination` are set to `{0, 0, width, height}`.
-/// Callers should pass the animation's **target** dimensions so the thumbnail
-/// always shows the real window's final rendered content. The surrogate window
-/// clips the thumbnail to its current (animated) bounds, producing a curtain
-/// reveal rather than an acrylic-fill artifact when the window grows.
+/// Callers should pass `max(source, target)` dimensions so the thumbnail
+/// always fills the surrogate at the start of animation. For growing windows
+/// this equals the target (curtain reveal); for shrinking windows this equals
+/// the source (content is clipped from the trailing edge as the surrogate
+/// shrinks). The surrogate window clips the thumbnail to its current bounds.
 ///
 /// Returns the opaque thumbnail handle, or `None` if registration fails (e.g.
 /// same-window, invalid handle). The caller is responsible for calling
@@ -220,13 +221,11 @@ fn register_thumbnail(
 /// Lightweight overlay window used during move/resize animations.
 ///
 /// At animation start the overlay is placed over the real app window at the
-/// source rect. Windows Acrylic blur-behind is applied as the backdrop, and a
-/// DWM thumbnail of the real window is rendered on top — pinned to the
-/// animation's **target** dimensions so the thumbnail always shows the final
-/// window content. The surrogate window clips the thumbnail to its current
-/// animated bounds: for growing windows this produces a curtain reveal of the
-/// final content; for shrinking windows the final content sits at target size
-/// with acrylic filling the collapsing remainder.
+/// source rect. A DWM thumbnail of the real window is rendered on top — pinned
+/// to `max(source, target)` dimensions so it always fills the surrogate
+/// entirely. For growing windows this equals the target, creating a curtain
+/// reveal of the final content; for shrinking windows this equals the source,
+/// so the surrogate clips the trailing edge as it collapses.
 ///
 /// When `scale` is `true` (open animations), the thumbnail `rcDestination` is
 /// updated each frame to match the current surrogate size so DWM scales the
@@ -261,12 +260,12 @@ impl NativeSurrogate {
   /// Creates a surrogate overlay and positions it above `source_hwnd`.
   ///
   /// The overlay is shown without activating it. A DWM thumbnail of
-  /// `source_hwnd` is registered at `target_rect` dimensions to display the
-  /// window's final rendered content. The surrogate window starts at
-  /// `source_rect` and animates toward `target_rect`. When `surrogate_color`
-  /// is `Some`, the backdrop is a solid-color fill; when `None`, the backdrop
-  /// is fully transparent so only the DWM thumbnail is visible and gaps between
-  /// windows remain see-through.
+  /// `source_hwnd` is registered at `max(source_rect, target_rect)` dimensions
+  /// so it always fills the surrogate completely at the start of animation.
+  /// The surrogate window starts at `source_rect` and animates toward
+  /// `target_rect`. When `surrogate_color` is `Some`, the backdrop is a
+  /// solid-color fill; when `None`, the backdrop is fully transparent so only
+  /// the DWM thumbnail is visible.
   ///
   /// When `scale` is `true`, [`update`] scales the thumbnail content to the
   /// current surrogate size on every frame (open animations). When `false`,
@@ -315,18 +314,15 @@ impl NativeSurrogate {
 
     apply_backdrop(hwnd, surrogate_color);
 
-    // Register the DWM thumbnail at target dimensions so the thumbnail always
-    // shows the real window's final rendered content (the real window is
-    // pre-positioned to target_rect at session start). The surrogate clips the
-    // thumbnail to its current animated bounds. Failure is non-fatal: the
-    // surrogate still shows its backdrop color if configured.
-    let thumbnail = register_thumbnail(
-      hwnd,
-      source_hwnd,
-      target_rect.width(),
-      target_rect.height(),
-    )
-    .unwrap_or(0);
+    // Register the thumbnail at max(source, target) dimensions so it always
+    // fills the surrogate completely at animation start. For growing windows
+    // this equals the target (curtain reveal of final content); for shrinking
+    // windows this equals the source, and the surrogate clips it from the
+    // trailing edge as it shrinks. Failure is non-fatal.
+    let thumb_w = source_rect.width().max(target_rect.width());
+    let thumb_h = source_rect.height().max(target_rect.height());
+    let thumbnail =
+      register_thumbnail(hwnd, source_hwnd, thumb_w, thumb_h).unwrap_or(0);
 
     // Place the surrogate immediately above `source_hwnd` in the Z-order
     // and show it without activating it.

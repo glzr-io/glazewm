@@ -424,11 +424,9 @@ pub struct AnimationTypeConfig {
   pub threshold_px: u32,
   /// Optional solid-color backdrop for the surrogate overlay window.
   ///
-  /// When set, the surrogate uses a flat color fill instead of Windows
-  /// Acrylic blur-behind. Accepts an HTML hex color string with optional
-  /// alpha component (e.g. `"#1a1a1a"` or `"#1a1a1aCC"`).
-  ///
-  /// When unset (default), Acrylic blur-behind is used (Windows 10 1803+).
+  /// Accepts an HTML hex color string with optional alpha component (e.g.
+  /// `"#1a1a1a"` or `"#1a1a1aCC"`). When unset (default), the surrogate
+  /// backdrop is fully transparent.
   ///
   /// # Platform-specific
   ///
@@ -545,77 +543,4 @@ where
   {
     Ok(method)
   }
-}
-
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default, rename_all(serialize = "camelCase"))]
-pub struct AnimationsConfig {
-  /// Animation settings for pure window translations (position changes only).
-  pub window_move: AnimationTypeConfig,
-  /// Animation settings for operations that change window size.
-  pub window_resize: AnimationTypeConfig,
-  /// Maximum frame rate for animations in Hz. The animation timer will
-  /// not exceed this rate even if the monitor supports higher refresh rates.
-  /// Default: 120 Hz
-  pub max_frame_rate: u32,
-}
-
-impl Default for AnimationsConfig {
-  fn default() -> Self {
-    AnimationsConfig {
-      window_move: AnimationTypeConfig::default(),
-      window_resize: AnimationTypeConfig::default(),
-      max_frame_rate: 120,
-    }
-  }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default, rename_all(serialize = "camelCase"))]
-pub struct AnimationTypeConfig {
-  pub enabled: bool,
-  pub duration_ms: u32,
-  pub easing: EasingFunction,
-  /// Minimum pixel distance required to trigger movement animations.
-  /// Helps prevent animations from starting on very small position changes.
-  /// Increase this value on high-DPI displays to reduce sensitivity.
-  pub threshold_px: u32,
-  /// Optional solid-color backdrop for the surrogate overlay window.
-  ///
-  /// When set, the surrogate uses a flat color fill instead of Windows
-  /// Acrylic blur-behind. Accepts an HTML hex color string with optional
-  /// alpha component (e.g. `"#1a1a1a"` or `"#1a1a1aCC"`).
-  ///
-  /// When unset (default), Acrylic blur-behind is used (Windows 10 1803+).
-  ///
-  /// # Platform-specific
-  ///
-  /// Only has an effect on Windows; ignored on macOS.
-  pub surrogate_color: Option<Color>,
-}
-
-impl Default for AnimationTypeConfig {
-  fn default() -> Self {
-    AnimationTypeConfig {
-      enabled: true,
-      duration_ms: 150,
-      easing: EasingFunction::EaseInOut,
-      threshold_px: 10,
-      surrogate_color: None,
-    }
-  }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EasingFunction {
-  Linear,
-  #[default]
-  EaseInOut,
-  EaseIn,
-  EaseOut,
-  EaseInOutCubic,
-  EaseInCubic,
-  EaseOutCubic,
 }

@@ -168,8 +168,7 @@ impl AnimationManager {
 
       if let Some(container) = state.focused_container() {
         if let Some(monitor) = CommonGetters::monitor(&container) {
-          let refresh_rate =
-            monitor.native_properties().refresh_rate.unwrap_or(60);
+          let refresh_rate = monitor.native_properties().refresh_rate;
           let capped_rate =
             refresh_rate.min(config.value.animations.max_frame_rate);
           frame_time_ms = 1000 / capped_rate.max(60);

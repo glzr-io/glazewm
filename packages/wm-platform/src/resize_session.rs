@@ -35,17 +35,14 @@ pub struct ResizeSession {
 impl ResizeSession {
   /// Creates a resize session with a DWM surrogate overlay.
   ///
-  /// The surrogate displays the real window's live content via a
-  /// `DwmRegisterThumbnail` with a pinned `rcSource` equal to the original
-  /// window size, so the thumbnail is never scaled regardless of how the
-  /// source window is resized underneath. The area outside the thumbnail
-  /// is transparent, so gaps between windows remain visible during animation.
-  ///
-  /// When the surrogate is successfully created the real window is immediately
-  /// repositioned to `target_rect` while hidden beneath the overlay. Because
-  /// `rcSource` is pinned, this does not affect the thumbnail content. The
-  /// window renders at the correct final size for the entire animation so
-  /// uncloaking at animation end requires no repaint and produces no flicker.
+  /// The surrogate thumbnail is registered at `max(source, target)` dimensions
+  /// so it always fills the surrogate at animation start with no transparent
+  /// gap. For growing windows (target ≥ source) the real window is immediately
+  /// pre-positioned to `target_rect` so it renders at the final size beneath
+  /// the overlay; the curtain reveal then progressively uncovers that content.
+  /// For shrinking windows the real window stays at its current size so DWM
+  /// captures the full original content; the surrogate clips it from the
+  /// trailing edge as it collapses.
   ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
@@ -72,11 +69,16 @@ impl ResizeSession {
         }
       };
 
-    // Pre-position the real window at the target rect while it is covered by
-    // the surrogate. The pinned `rcSource` on the thumbnail means this resize
-    // does not affect the displayed content. By animation end the window will
-    // have already rendered at the correct size, making uncloak flicker-free.
-    if surrogate.is_some() {
+    // Pre-position the real window at the target rect only when the window is
+    // growing (or staying the same size). For growing windows the real window
+    // pre-renders at the larger target size so the thumbnail always shows the
+    // final content (curtain reveal). For shrinking windows, keep the window
+    // at source size so DWM captures the full original content — the surrogate
+    // clips it from the trailing edge as it collapses.
+    let is_growing = target_rect.width() >= source_rect.width()
+      && target_rect.height() >= source_rect.height();
+
+    if surrogate.is_some() && is_growing {
       let r = target_rect;
 
       // SAFETY: `hwnd` is a valid top-level window handle. `SWP_NOZORDER`
