@@ -1,7 +1,8 @@
 use windows::Win32::{
-  Foundation::HWND,
+  Foundation::{HWND, RECT},
+  Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS},
   UI::WindowsAndMessaging::{
-    IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
+    GetWindowRect, IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
     SWP_NOSENDCHANGING, SWP_NOZORDER,
   },
 };
@@ -26,22 +27,26 @@ pub struct ResizeSession {
   /// issues with windows-rs handle types. Set to `0` by `pre_commit` when
   /// the window has been destroyed.
   hwnd: isize,
-  /// Final target rect for the real window.
+  /// Final target rect for the real window (physical, including invisible
+  /// border).
   target_rect: Rect,
   /// Surrogate overlay; `None` if creation failed.
   surrogate: Option<NativeSurrogate>,
+  /// Invisible border insets (left, top, right, bottom) of the source window
+  /// in physical pixels. Applied when converting physical rects to the logical
+  /// (visible-content) rects that the surrogate is sized to.
+  border_inset: RECT,
 }
 
 impl ResizeSession {
   /// Creates a resize session with a DWM surrogate overlay.
   ///
-  /// The surrogate displays the real window's live content via a
-  /// `DwmRegisterThumbnail` pinned to the **target** dimensions so the
-  /// thumbnail always shows the final rendered content. The real window is
-  /// immediately pre-positioned to `target_rect` while hidden beneath the
-  /// overlay; because `rcSource` is pinned, this does not affect the displayed
-  /// content. By animation end the window will have already rendered at the
-  /// correct size, making uncloak flicker-free.
+  /// The surrogate is positioned at the **logical** rect (physical minus
+  /// invisible border) so it does not overlap the configured window gap.
+  /// The DWM thumbnail is pinned to the **target** logical dimensions so it
+  /// always shows the final rendered content. The real window is immediately
+  /// pre-positioned to `target_rect` (physical) while hidden beneath the
+  /// overlay.
   ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
@@ -56,22 +61,33 @@ impl ResizeSession {
     surrogate_color: Option<&Color>,
     scale: bool,
   ) -> crate::Result<Self> {
-    let surrogate =
-      match NativeSurrogate::create(hwnd, source_rect, target_rect, surrogate_color, scale, true) {
-        Ok(s) => Some(s),
-        Err(err) => {
-          tracing::warn!(
-            "Failed to create surrogate: {err}. Falling back to direct \
-             animation."
-          );
-          None
-        }
-      };
+    let border_inset = compute_border_inset(hwnd);
 
-    // Pre-position the real window at the target rect while it is covered by
-    // the surrogate. The pinned `rcSource` on the thumbnail means this resize
-    // does not affect the displayed content. By animation end the window will
-    // have already rendered at the correct size, making uncloak flicker-free.
+    let surrogate = match NativeSurrogate::create(
+      hwnd,
+      source_rect,
+      target_rect,
+      surrogate_color,
+      scale,
+      true,
+      true,
+      border_inset,
+    ) {
+      Ok(s) => Some(s),
+      Err(err) => {
+        tracing::warn!(
+          "Failed to create surrogate: {err}. Falling back to direct \
+           animation."
+        );
+        None
+      }
+    };
+
+    // Pre-position the real window at the physical target rect while it is
+    // covered by the surrogate. The pinned `rcSource` on the thumbnail means
+    // this resize does not affect the displayed content. By animation end the
+    // window will have already rendered at the correct size, making uncloak
+    // flicker-free.
     if surrogate.is_some() {
       let r = target_rect;
 
@@ -95,6 +111,7 @@ impl ResizeSession {
       hwnd: hwnd.0,
       target_rect: target_rect.clone(),
       surrogate,
+      border_inset,
     })
   }
 
@@ -105,11 +122,15 @@ impl ResizeSession {
 
   /// Updates the surrogate to the current animation frame position and opacity.
   ///
+  /// `current_rect` is the physical animated rect; it is converted to the
+  /// logical rect before being applied to the surrogate window.
+  ///
   /// `opacity` maps to the DWM thumbnail opacity (0 = transparent, 255 =
   /// opaque). Pass `255` for resize animations where no fade is needed.
   pub fn update(&mut self, current_rect: &Rect, opacity: u8) {
     if let Some(surrogate) = &mut self.surrogate {
-      if let Err(err) = surrogate.update(current_rect, opacity) {
+      let logical = to_logical(current_rect, &self.border_inset);
+      if let Err(err) = surrogate.update(&logical, opacity) {
         tracing::warn!("Surrogate update failed: {err}.");
       }
     }
@@ -187,7 +208,8 @@ impl ResizeSession {
     }
 
     if let Some(surrogate) = &mut self.surrogate {
-      if let Err(err) = surrogate.update(&self.target_rect.clone(), 255) {
+      let logical = to_logical(&self.target_rect.clone(), &self.border_inset);
+      if let Err(err) = surrogate.update(&logical, 255) {
         tracing::warn!("Surrogate pre-commit update failed: {err}.");
       }
     }
@@ -237,5 +259,52 @@ impl ResizeSession {
     }?;
 
     Ok(())
+  }
+}
+
+/// Converts a physical rect to logical by subtracting the invisible border
+/// inset on each side.
+fn to_logical(rect: &Rect, inset: &RECT) -> Rect {
+  Rect::from_ltrb(
+    rect.left + inset.left,
+    rect.top + inset.top,
+    rect.right - inset.right,
+    rect.bottom - inset.bottom,
+  )
+}
+
+/// Computes the invisible border insets of `hwnd` in physical pixels.
+///
+/// Windows adds a transparent resize border (~7 px on left, right, bottom;
+/// none on top) outside the visible window frame. Compares `GetWindowRect`
+/// with `DWMWA_EXTENDED_FRAME_BOUNDS` to obtain per-side inset values.
+///
+/// Returns a zeroed `RECT` if either API call fails.
+fn compute_border_inset(hwnd: HWND) -> RECT {
+  let mut window = RECT::default();
+  let mut frame = RECT::default();
+
+  // SAFETY: `hwnd` is a valid window handle. Both output pointers are valid
+  // stack-allocated `RECT`s live for the duration of the call.
+  let ok = unsafe {
+    GetWindowRect(hwnd, std::ptr::from_mut(&mut window).cast()).is_ok()
+      && DwmGetWindowAttribute(
+        hwnd,
+        DWMWA_EXTENDED_FRAME_BOUNDS,
+        std::ptr::addr_of_mut!(frame).cast(),
+        std::mem::size_of::<RECT>() as u32,
+      )
+      .is_ok()
+  };
+
+  if ok {
+    RECT {
+      left: (frame.left - window.left).max(0),
+      top: (frame.top - window.top).max(0),
+      right: (window.right - frame.right).max(0),
+      bottom: (window.bottom - frame.bottom).max(0),
+    }
+  } else {
+    RECT::default()
   }
 }

@@ -41,8 +41,16 @@ impl WorkspaceSurrogate {
     rect: &Rect,
     color: Option<&Color>,
   ) -> crate::Result<Self> {
-    let inner =
-      NativeSurrogate::create(hwnd, rect, rect, color, false, false)?;
+    let inner = NativeSurrogate::create(
+      hwnd,
+      rect,
+      rect,
+      color,
+      false,
+      false,
+      false,
+      RECT::default(),
+    )?;
     Ok(Self {
       inner: Some(inner),
       rect: rect.clone(),
@@ -70,8 +78,17 @@ impl WorkspaceSurrogate {
     // Create the surrogate at the final rect but keep it hidden. The first
     // `update_slide` call will position and reveal it when it enters the
     // current monitor's bounds.
-    let inner =
-      NativeSurrogate::create(hwnd, rect, rect, color, false, false)?;
+    let inner = NativeSurrogate::create(
+      hwnd,
+      rect,
+      rect,
+      color,
+      false,
+      false,
+      false,
+      RECT::default(),
+    )?;
+    inner.set_visible(false);
 
     Ok(Self {
       inner: Some(inner),

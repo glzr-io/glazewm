@@ -21,6 +21,7 @@ use windows::{
   },
 };
 
+
 use crate::{Color, Rect};
 
 /// Ensures the surrogate window class is registered exactly once per
@@ -164,14 +165,18 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
   unsafe { set_wca(hwnd, std::ptr::addr_of_mut!(data)) };
 }
 
-/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd` sized to
-/// `width × height`.
+
+/// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd`.
 ///
-/// Both `rcSource` and `rcDestination` are set to `{0, 0, width, height}`.
-/// Callers should pass the animation's **target** dimensions so the thumbnail
-/// always shows the real window's final rendered content. The surrogate window
-/// clips the thumbnail to its current (animated) bounds, producing a curtain
-/// reveal rather than a fill artifact when the window grows.
+/// `logical_width` and `logical_height` are the visible content dimensions
+/// of the source window (physical size minus invisible border). `border_inset`
+/// gives the per-side border widths in the source window's coordinate space.
+///
+/// `rcSource` is set to the visible content area of the source window
+/// (offset by `border_inset`). `rcDestination` fills the surrogate at
+/// `{0, 0, logical_width, logical_height}` — callers are expected to have
+/// already sized the surrogate to the logical rect. When `border_inset` is
+/// all-zero the behaviour is identical to passing the full physical dimensions.
 ///
 /// Returns the opaque thumbnail handle, or `None` if registration fails
 /// (e.g. same-window, invalid handle). The caller is responsible for
@@ -179,18 +184,28 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
 fn register_thumbnail(
   dest_hwnd: HWND,
   source_hwnd: HWND,
-  width: i32,
-  height: i32,
+  logical_width: i32,
+  logical_height: i32,
+  border_inset: RECT,
 ) -> Option<isize> {
   // SAFETY: Both handles are valid top-level windows.
   let thumbnail =
     unsafe { DwmRegisterThumbnail(dest_hwnd, source_hwnd).ok()? };
 
-  let pinned_rect = RECT {
+  // `rcSource` starts at the border inset so invisible-border pixels are
+  // excluded; those pixels render as black in DWM thumbnails. `rcDestination`
+  // fills the whole (logical-sized) surrogate from (0, 0).
+  let src_rect = RECT {
+    left: border_inset.left,
+    top: border_inset.top,
+    right: border_inset.left + logical_width,
+    bottom: border_inset.top + logical_height,
+  };
+  let dst_rect = RECT {
     left: 0,
     top: 0,
-    right: width,
-    bottom: height,
+    right: logical_width,
+    bottom: logical_height,
   };
 
   let props = DWM_THUMBNAIL_PROPERTIES {
@@ -199,8 +214,8 @@ fn register_thumbnail(
       | DWM_TNP_OPACITY
       | DWM_TNP_VISIBLE
       | DWM_TNP_SOURCECLIENTAREAONLY,
-    rcDestination: pinned_rect,
-    rcSource: pinned_rect,
+    rcDestination: dst_rect,
+    rcSource: src_rect,
     opacity: 255,
     fVisible: true.into(),
     fSourceClientAreaOnly: false.into(),
@@ -286,6 +301,11 @@ impl NativeSurrogate {
   /// resize sessions). Workspace-switch surrogates pass `false` to avoid
   /// a one-frame flash before the caller explicitly shows the window.
   ///
+  /// `border_inset` shrinks the surrogate from the physical rect to the
+  /// logical (visible-content) rect, preventing the surrogate from occupying
+  /// the configured window gap. Pass `RECT::default()` to keep the full
+  /// physical size (workspace-switch surrogates).
+  ///
   /// Returns an error if window creation fails.
   ///
   /// [`update`]: NativeSurrogate::update
@@ -297,11 +317,16 @@ impl NativeSurrogate {
     surrogate_color: Option<&Color>,
     scale: bool,
     initially_visible: bool,
+    _use_acrylic: bool,
+    border_inset: RECT,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
-    let src_w = source_rect.width();
-    let src_h = source_rect.height();
+    // Shrink to logical rect so the surrogate does not occupy the window gap.
+    let src_x = source_rect.x() + border_inset.left;
+    let src_y = source_rect.y() + border_inset.top;
+    let src_w = source_rect.width() - border_inset.left - border_inset.right;
+    let src_h = source_rect.height() - border_inset.top - border_inset.bottom;
 
     // SAFETY: Class name is the static literal registered above.
     let hwnd = unsafe {
@@ -310,8 +335,8 @@ impl NativeSurrogate {
         w!("GlazeWM_Surrogate"),
         w!(""),
         WS_POPUP,
-        source_rect.x(),
-        source_rect.y(),
+        src_x,
+        src_y,
         src_w,
         src_h,
         None,
@@ -349,16 +374,21 @@ impl NativeSurrogate {
 
     apply_backdrop(hwnd, surrogate_color);
 
-    // Register the DWM thumbnail at target dimensions so the thumbnail always
-    // shows the real window's final rendered content (the real window is
+    // Register the DWM thumbnail at logical target dimensions so the thumbnail
+    // always shows the real window's final rendered content (the real window is
     // pre-positioned to target_rect at session start). The surrogate clips the
     // thumbnail to its current animated bounds. Failure is non-fatal: the
     // surrogate still shows its backdrop color if configured.
+    let logical_target_w =
+      target_rect.width() - border_inset.left - border_inset.right;
+    let logical_target_h =
+      target_rect.height() - border_inset.top - border_inset.bottom;
     let thumbnail = register_thumbnail(
       hwnd,
       source_hwnd,
-      target_rect.width(),
-      target_rect.height(),
+      logical_target_w,
+      logical_target_h,
+      border_inset,
     )
     .unwrap_or(0);
 
