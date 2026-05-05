@@ -17,7 +17,8 @@ use wm_platform::{
 use crate::{
   commands::{
     container::{
-      focus_container_by_id, focus_in_direction, set_tiling_direction,
+      focus_container_by_id, focus_in_direction,
+      focus_in_direction_with_wrap, set_tiling_direction,
       toggle_tiling_direction,
     },
     general::{
@@ -26,7 +27,8 @@ use crate::{
     },
     monitor::focus_monitor,
     window::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
+      ignore_window, move_window_in_direction,
+      move_window_in_direction_with_wrap, move_window_to_workspace,
       resize_window, set_window_position, set_window_size,
       update_window_state, WindowPositionTarget,
     },
@@ -268,6 +270,15 @@ impl WindowManager {
           focus_in_direction(&subject_container, direction, state)?;
         }
 
+        if let Some(direction) = &args.direction_workspace_wrap {
+          focus_in_direction_with_wrap(
+            &subject_container,
+            direction,
+            state,
+            config,
+          )?;
+        }
+
         if let Some(direction) = &args.workspace_in_direction {
           focus_workspace(
             WorkspaceTarget::Direction(direction.clone()),
@@ -343,6 +354,26 @@ impl WindowManager {
               move_window_in_direction(
                 window.clone(),
                 direction,
+                state,
+                config,
+              )?;
+            }
+
+            if let Some(direction) = &args.direction_workspace_wrap {
+              move_window_in_direction_with_wrap(
+                window.clone(),
+                direction,
+                false,
+                state,
+                config,
+              )?;
+            }
+
+            if let Some(direction) = &args.direction_workspace_wrap_focus {
+              move_window_in_direction_with_wrap(
+                window.clone(),
+                direction,
+                true,
                 state,
                 config,
               )?;
