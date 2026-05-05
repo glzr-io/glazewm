@@ -313,6 +313,9 @@ pub struct InvokeFocusCommand {
   pub direction: Option<Direction>,
 
   #[clap(long)]
+  pub direction_workspace_wrap: Option<Direction>,
+
+  #[clap(long)]
   pub container_id: Option<Uuid>,
 
   #[clap(long)]
@@ -353,6 +356,15 @@ pub struct InvokeMoveCommand {
   /// Direction to move the window.
   #[clap(long)]
   pub direction: Option<Direction>,
+
+  /// Move the window to the adjacent workspace (and place it in the
+  /// opposite direction) when it's at the edge of the screen.
+  #[clap(long)]
+  pub direction_workspace_wrap: Option<Direction>,
+
+  // Independent parameters for moving the window and following the focus
+  #[clap(long)]
+  pub direction_workspace_wrap_focus: Option<Direction>,
 
   /// Move window to workspace in specified direction.
   #[clap(long)]
