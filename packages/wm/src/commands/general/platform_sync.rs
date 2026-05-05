@@ -684,7 +684,7 @@ fn redraw_containers(
           }
         }
       }
-      AnimationPositionResult::Apply(rect_to_use) => {
+      AnimationPositionResult::Apply(_) => {
         // Only omit `SWP_ASYNCWINDOWPOS` when a surrogate is active for this
         // window — adjacent windows must stay in lock-step with the overlay.
         // For pure moves (no surrogate) async is correct and avoids blocking
@@ -699,7 +699,6 @@ fn redraw_containers(
 
         if let Err(err) = reposition_window(
           window,
-          &rect_to_use,
           *hide_corner,
           &z_order,
           is_visible,
