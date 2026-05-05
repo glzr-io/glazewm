@@ -48,7 +48,6 @@ impl WorkspaceSurrogate {
       color,
       false,
       false,
-      false,
       RECT::default(),
     )?;
     Ok(Self {
@@ -85,10 +84,8 @@ impl WorkspaceSurrogate {
       color,
       false,
       false,
-      false,
       RECT::default(),
     )?;
-    inner.set_visible(false);
 
     Ok(Self {
       inner: Some(inner),

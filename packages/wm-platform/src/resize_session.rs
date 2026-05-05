@@ -70,7 +70,6 @@ impl ResizeSession {
       surrogate_color,
       scale,
       true,
-      true,
       border_inset,
     ) {
       Ok(s) => Some(s),

@@ -317,7 +317,6 @@ impl NativeSurrogate {
     surrogate_color: Option<&Color>,
     scale: bool,
     initially_visible: bool,
-    _use_acrylic: bool,
     border_inset: RECT,
   ) -> crate::Result<Self> {
     ensure_class_registered();
