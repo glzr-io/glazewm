@@ -654,7 +654,7 @@ fn redraw_containers(
 
 fn reposition_window(
   window: &WindowContainer,
-  logical_rect: &Rect,
+  rect: &Rect,
   hide_corner: HideCorner,
   // LINT: `z_order` is only used on Windows.
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
@@ -667,8 +667,6 @@ fn reposition_window(
   has_surrogate: bool,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let rect = logical_rect.apply_delta(&window.total_border_delta()?, None);
-
   // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
   // to the corner of the monitor.
   if config.value.general.hide_method == HideMethod::PlaceInCorner
@@ -709,7 +707,7 @@ fn reposition_window(
     window.native().resize(rect.width(), rect.height())?;
   } else {
     #[cfg(target_os = "macos")]
-    window.native().set_frame(&rect)?;
+    window.native().set_frame(rect)?;
 
     #[cfg(target_os = "windows")]
     {
@@ -739,7 +737,7 @@ fn reposition_window(
       if should_restore {
         // Restoring to position has the same effect as `ShowWindow` with
         // `SW_RESTORE`, but doesn't cause a flicker.
-        window.native().restore(Some(&rect))?;
+        window.native().restore(Some(rect))?;
       }
 
       // During animation frames, omit `SWP_ASYNCWINDOWPOS` so that adjacent
@@ -765,19 +763,19 @@ fn reposition_window(
             window.native().maximize()?;
           }
 
-          window.native().set_window_pos(z_order, &rect, swp_flags)?;
+          window.native().set_window_pos(z_order, rect, swp_flags)?;
         }
         _ => {
           swp_flags |= SWP_FRAMECHANGED;
 
-          window.native().set_window_pos(z_order, &rect, swp_flags)?;
+          window.native().set_window_pos(z_order, rect, swp_flags)?;
 
           // When there's a mismatch between the DPI of the monitor and the
           // window, the window might be sized incorrectly after the first
           // move. If we set the position twice, inconsistencies after the
           // first move are resolved.
           if window.has_pending_dpi_adjustment() {
-            window.native().set_window_pos(z_order, &rect, swp_flags)?;
+            window.native().set_window_pos(z_order, rect, swp_flags)?;
           }
         }
       }

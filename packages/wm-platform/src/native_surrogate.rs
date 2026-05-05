@@ -5,10 +5,10 @@ use windows::{
   Win32::{
     Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Dwm::{
-      DwmRegisterThumbnail, DwmUnregisterThumbnail,
-      DwmUpdateThumbnailProperties, DWM_THUMBNAIL_PROPERTIES,
-      DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_RECTSOURCE,
-      DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE,
+      DwmExtendFrameIntoClientArea, DwmRegisterThumbnail,
+      DwmUnregisterThumbnail, DwmUpdateThumbnailProperties,
+      DWM_THUMBNAIL_PROPERTIES, DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION,
+      DWM_TNP_RECTSOURCE, DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE,
     },
     System::LibraryLoader::{GetModuleHandleW, GetProcAddress},
     UI::WindowsAndMessaging::{
@@ -325,6 +325,26 @@ impl NativeSurrogate {
       return Err(crate::Error::Platform(
         "Failed to create surrogate window.".to_string(),
       ));
+    }
+
+    // Extend the DWM glass sheet over the entire client area so that regions
+    // not covered by the DWM thumbnail are transparent rather than opaque
+    // black (which is the GDI default for a `WS_POPUP` with a null background
+    // brush). The thumbnail is composited on top of this transparent sheet, so
+    // only the thumbnail area shows content; everything else is see-through.
+    {
+      use windows::Win32::UI::Controls::MARGINS;
+      let margins = MARGINS {
+        cxLeftWidth: -1,
+        cxRightWidth: -1,
+        cyTopHeight: -1,
+        cyBottomHeight: -1,
+      };
+      // SAFETY: `hwnd` is a valid window handle. `margins` is stack-allocated
+      // and live for the duration of this call.
+      unsafe {
+        let _ = DwmExtendFrameIntoClientArea(hwnd, &raw const margins);
+      }
     }
 
     apply_backdrop(hwnd, surrogate_color);
