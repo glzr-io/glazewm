@@ -67,40 +67,49 @@ pub fn focus_workspace(
     set_focused_descendant(&container_to_focus, None);
     state.pending_sync.queue_focus_change();
 
-    // Derive slide direction before queuing redraws so `platform_sync` can
-    // build per-window surrogates with the correct direction.
-    let direction = workspace_switch_direction(
-      &target_workspace.config().name,
-      &focused_workspace.config().name,
-      config,
-    );
-    state.pending_sync.set_workspace_switch_direction(direction);
+    // Only set up the workspace-switch slide animation when the target
+    // workspace differs from what is currently displayed on its monitor.
+    // For cross-monitor focus switches (e.g. focusing workspace 8 which is
+    // already displayed on monitor 2), `target == displayed`, so no
+    // workspace layout change occurs on the target monitor and no slide
+    // should play.
+    if target_workspace.id() != displayed_workspace.id() {
+      // Derive slide direction before queuing redraws so `platform_sync`
+      // can build per-window surrogates with the correct direction.
+      let direction = workspace_switch_direction(
+        &target_workspace.config().name,
+        &focused_workspace.config().name,
+        config,
+      );
+      state.pending_sync.set_workspace_switch_direction(direction);
 
-    // Mark windows on the incoming workspace to slide in. Minimized windows
-    // are excluded — they have no visible content to animate and including
-    // them causes flicker when the animation system tries to snapshot them.
-    for window in target_workspace
-      .descendants()
-      .filter_map(|c| c.as_window_container().ok())
-      .filter(|w| w.state() != WindowState::Minimized)
-    {
-      state
-        .pending_sync
-        .setup_workspace_switch_incoming(window.id());
-    }
+      // Mark windows on the incoming workspace to slide in. Minimized
+      // windows are excluded — they have no visible content to animate and
+      // including them causes flicker when the animation system tries to
+      // snapshot them.
+      for window in target_workspace
+        .descendants()
+        .filter_map(|c| c.as_window_container().ok())
+        .filter(|w| w.state() != WindowState::Minimized)
+      {
+        state
+          .pending_sync
+          .setup_workspace_switch_incoming(window.id());
+      }
 
-    // Cancel in-flight animations for outgoing windows and mark them for
-    // the outgoing surrogate slide-out. Minimized windows are excluded for
-    // the same reason as above.
-    for window in displayed_workspace
-      .descendants()
-      .filter_map(|c| c.as_window_container().ok())
-      .filter(|w| w.state() != WindowState::Minimized)
-    {
-      state.animation_manager.remove_animation(&window.id());
-      state
-        .pending_sync
-        .setup_workspace_switch_outgoing(window.id());
+      // Cancel in-flight animations for outgoing windows and mark them for
+      // the outgoing surrogate slide-out. Minimized windows are excluded
+      // for the same reason as above.
+      for window in displayed_workspace
+        .descendants()
+        .filter_map(|c| c.as_window_container().ok())
+        .filter(|w| w.state() != WindowState::Minimized)
+      {
+        state.animation_manager.remove_animation(&window.id());
+        state
+          .pending_sync
+          .setup_workspace_switch_outgoing(window.id());
+      }
     }
 
     // Display the workspace to switch focus to.
