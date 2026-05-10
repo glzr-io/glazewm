@@ -1,30 +1,25 @@
 use crate::{platform_impl, Dispatcher, NativeWindow, OpacityValue, Rect};
 
-/// Shared context for animation windows.
+/// Shared context used by [`AnimationWindow`] instances. Holds GPU
+/// resources that can be shared between animations.
 ///
-/// Allows for batching updates across animation windows. Internally, this
-/// holds thread-safe GPU resources that can be shared between animation
-/// window instances.
+/// Exposes a [`AnimationContext::transaction`] method for batching updates
+/// across animation windows.
 pub struct AnimationContext {
   inner: platform_impl::AnimationContext,
 }
 
 impl AnimationContext {
-  /// Creates a new shared animation context.
+  /// Creates a new [`AnimationContext`].
   pub fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     let inner = platform_impl::AnimationContext::new(dispatcher)?;
     Ok(Self { inner })
   }
 
-  /// Executes `update_fn` inside a compositor transaction, committing all
-  /// pending changes once `update_fn` returns.
+  /// Executes `update_fn` inside a compositor transaction.
   ///
-  /// # Platform-specific
-  ///
-  /// - **macOS**: `update_fn` runs inside a single `CATransaction` on the
-  ///   main thread, so `F: Send` and `R: Send` are required.
-  /// - **Windows**: `update_fn` runs inline on the calling thread followed
-  ///   by a `DirectComposition` commit.
+  /// Used with [`AnimationWindow::update`] to commit all updates together
+  /// when `update_fn` returns.
   pub fn transaction<F, R>(
     &self,
     update_fn: F,
@@ -38,25 +33,40 @@ impl AnimationContext {
   }
 }
 
-/// Per-window overlay for animating a single window transition.
+/// A screenshot of a [`NativeWindow`] that can be animated performantly.
 ///
-/// # Platform-specific
+/// # Example usage
 ///
-/// - **macOS**: A transparent `NSWindow` with a single `CALayer`, ordered
-///   just above the source window. Core Animation handles GPU compositing.
-/// - **Windows**: A layered overlay `HWND` with a `IDCompositionVisual`,
-///   using `DirectComposition` for GPU compositing and
-///   `Windows.Graphics.Capture` for screenshots.
+///   1. Swap in the `AnimationWindow` with the `NativeWindow`,
+///   2. Perform animation.
+///   3. Swap out the `AnimationWindow`.
+///
+/// ```no_run,compile_fail
+/// let frame = real_window.frame()?;
+/// let anim_window = AnimationWindow::new(context, real_window, frame, /* .. */)?;
+///
+/// # Hide the real window at the animation end position.
+/// real_window.set_frame(frame.translate_in_direction(Direction::Left, 100))?;
+/// real_window.set_transparency(&OpacityValue::from_alpha(0))?;
+///
+/// for i in 1..100 {
+///   context.transaction(|| {
+///     anim_window.update(frame.translate_in_direction(Direction::Left, i), None))
+///   })??;
+/// }
+///
+/// real_window.set_transparency(&OpacityValue::from_alpha(u8::MAX));
+/// anim_window.destroy()?;
+/// ```
 pub struct AnimationWindow {
   inner: platform_impl::AnimationWindow,
 }
 
 impl AnimationWindow {
-  /// Creates a new `AnimationWindow` for a single window animation.
+  /// Creates a new [`AnimationWindow`].
   ///
-  /// Captures a screenshot of `window` and creates an overlay spanning
-  /// the union of `start_rect` and `target_rect`, ordered just above
-  /// the source window.
+  /// The `outer_rect` should span the bounds of the start and end
+  /// rects of the animation.
   pub fn new(
     context: &AnimationContext,
     window: &NativeWindow,
@@ -77,16 +87,14 @@ impl AnimationWindow {
     Ok(Self { inner })
   }
 
-  /// Resizes the overlay to cover the union of `start_rect` and
-  /// `target_rect`.
+  /// Resizes the window.
   ///
-  /// Preserves the existing screenshot and z-order. Used when an
-  /// animation's target changes mid-flight.
+  /// Called when an animation's target rect changes mid-flight.
   pub fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
     self.inner.resize(outer_rect)
   }
 
-  /// Updates the layer position and opacity within the overlay.
+  /// Updates the layer position and opacity within the window.
   ///
   /// Does not commit; should be called within
   /// `AnimationContext::transaction` for the change to take effect.
@@ -98,7 +106,7 @@ impl AnimationWindow {
     self.inner.update(inner_rect, opacity)
   }
 
-  /// Destroys the overlay window and releases GPU resources.
+  /// Destroys the window and releases GPU resources.
   pub fn destroy(self) -> crate::Result<()> {
     self.inner.destroy()
   }

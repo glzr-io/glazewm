@@ -51,20 +51,13 @@ use crate::{
   Rect, ThreadBound,
 };
 
-/// Guard ensuring the overlay window class is registered at most once.
-static OVERLAY_CLASS: OnceLock<()> = OnceLock::new();
-
 struct Direct3DDevice(IDirect3DDevice);
 unsafe impl Send for Direct3DDevice {}
 
 struct GraphicsCaptureItemInterop(IGraphicsCaptureItemInterop);
 unsafe impl Send for GraphicsCaptureItemInterop {}
 
-/// Shared GPU context for all animation windows.
-///
-/// Holds a single D3D11 device, `DirectComposition` device, and
-/// pre-warmed WGC capture objects, avoiding the overhead of creating
-/// heavyweight GPU/WGC objects per animation.
+/// Platform-specific implementation of [`AnimationContext`].
 pub(crate) struct AnimationContext {
   _d3d_device: ID3D11Device,
   d3d_context: ThreadBound<ID3D11DeviceContext>,
@@ -74,8 +67,7 @@ pub(crate) struct AnimationContext {
 }
 
 impl AnimationContext {
-  /// Creates a shared D3D11 + `DirectComposition` device pair and
-  /// pre-warms WGC capture objects (WinRT device, interop factory).
+  /// Implements [`AnimationContext::new`].
   pub(crate) fn new(dispatcher: &Dispatcher) -> crate::Result<Self> {
     dispatcher.dispatch_sync(|| {
       COM_INIT.with(|_| {
@@ -111,8 +103,7 @@ impl AnimationContext {
     })?
   }
 
-  /// Executes `update_fn` and then commits all pending `DirectComposition`
-  /// changes to the compositor in a single batch.
+  /// Implements [`AnimationContext::transaction`].
   pub(crate) fn transaction<F, R>(
     &self,
     update_fn: F,
@@ -135,8 +126,7 @@ impl AnimationContext {
     })?
   }
 
-  /// Creates a D3D11 device with BGRA support (required by
-  /// DirectComposition).
+  /// Creates a D3D11 device.
   fn create_d3d11_device(
   ) -> crate::Result<(ID3D11Device, ID3D11DeviceContext)> {
     let mut device: Option<ID3D11Device> = None;
@@ -147,6 +137,7 @@ impl AnimationContext {
         None,
         D3D_DRIVER_TYPE_HARDWARE,
         None,
+        // BGRA support is required by DirectComposition.
         D3D11_CREATE_DEVICE_BGRA_SUPPORT,
         Some(&[D3D_FEATURE_LEVEL_11_0]),
         D3D11_SDK_VERSION,
@@ -174,33 +165,22 @@ impl AnimationContext {
 
 unsafe impl Sync for AnimationContext {}
 
-/// Per-window overlay for animating a single window transition.
-///
-/// Each `AnimationWindow` creates its own transparent HWND sized to the
-/// bounding box of the animation's start and target rects. The HWND is
-/// ordered just above the source window via `SetWindowPos`, preserving
-/// z-order among non-animated windows.
-///
-/// The contained DirectComposition visual is repositioned each tick; the
-/// HWND frame stays fixed for the lifetime of the animation.
+/// Platform-specific implementation of [`AnimationWindow`].
 pub(crate) struct AnimationWindow {
   handle: isize,
   dcomp_device: ThreadBound<IDCompositionDesktopDevice>,
   _dcomp_target: ThreadBound<IDCompositionTarget>,
   dcomp_visual: ThreadBound<IDCompositionVisual3>,
   scale_transform: ThreadBound<IDCompositionScaleTransform>,
-  /// Rect of the captured source texture (for scale calculations).
+  /// Frame of the screen capture (for scale calculations).
   src_inner_rect: Rect,
-  /// Frame of the overlay HWND in screen coordinates.
+  /// Frame of the `AnimationWindow`.
   outer_rect: Rect,
-  /// Dispatcher for running HWND operations on the event loop thread.
   dispatcher: Dispatcher,
 }
 
 impl AnimationWindow {
-  /// Creates a transparent overlay HWND covering `outer_rect`, captures
-  /// a screenshot of `window` via WGC, and orders the overlay just
-  /// above the source window.
+  /// Implements [`AnimationWindow::new`].
   pub(crate) fn new(
     context: &AnimationContext,
     window: &NativeWindow,
@@ -209,7 +189,7 @@ impl AnimationWindow {
     opacity: Option<OpacityValue>,
     dispatcher: &Dispatcher,
   ) -> crate::Result<Self> {
-    let captured = CapturedFrame::new(window.inner.hwnd(), context)?;
+    let captured = CapturedFrame::new(window.inner.hwnd().0, context)?;
 
     dispatcher.dispatch_sync(|| {
       COM_INIT.with(|_| {
@@ -285,11 +265,7 @@ impl AnimationWindow {
     })?
   }
 
-  /// Resizes the overlay HWND to cover `outer_rect`, updating the
-  /// stored origin.
-  ///
-  /// Called when an animation's target changes mid-flight so the
-  /// existing screenshot and z-order are preserved.
+  /// Implements [`AnimationWindow::resize`].
   pub(crate) fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
     self.outer_rect = outer_rect.clone();
 
@@ -307,11 +283,7 @@ impl AnimationWindow {
     .map_err(crate::Error::from)
   }
 
-  /// Repositions the DirectComposition visual within the overlay HWND
-  /// and updates opacity.
-  ///
-  /// The HWND frame is never changed; only the visual moves. Must be
-  /// called inside `AnimationContext::transaction`.
+  /// Implements [`AnimationWindow::update`].
   pub(crate) fn update(
     &self,
     inner_rect: &Rect,
@@ -329,9 +301,11 @@ impl AnimationWindow {
     })?
   }
 
-  /// Repositions the `DirectComposition` visual to `inner_rect` relative
-  /// to `outer_rect`, scales it to fill the target dimensions, and
-  /// optionally sets opacity.
+  /// Updates the `IDCompositionVisual3` position and opacity within the
+  /// window.
+  ///
+  /// The window's frame isn't changed; only the visual with the screen
+  /// capture is updated.
   ///
   /// Shared by [`AnimationWindow::new`] and [`AnimationWindow::update`].
   /// Must be called inside `AnimationContext::transaction`.
@@ -370,17 +344,13 @@ impl AnimationWindow {
     Ok(())
   }
 
-  /// Tears down `DirectComposition` resources and destroys the overlay
-  /// HWND.
-  ///
-  /// Clears the visual tree and commits before releasing COM objects so
-  /// the compositor does not retain stale GPU surfaces.
+  /// Implements [`AnimationWindow::destroy`].
   pub(crate) fn destroy(self) -> crate::Result<()> {
     self.dispatcher.dispatch_sync(|| {
       COM_INIT.with(|_| {
         unsafe {
-          // Clear the surface reference so the compositor releases the GPU
-          // resource immediately on the next commit.
+          // Clear the surface so that the compositor releases the GPU
+          // resources on the next commit.
           if let Err(err) = self.dcomp_visual.with(|dcomp_visual| {
             dcomp_visual.SetContent(None::<&windows::core::IUnknown>)
           }) {
@@ -401,15 +371,17 @@ impl AnimationWindow {
     })
   }
 
-  /// Creates the overlay HWND for a single animation, sized to the given
-  /// rect and ordered just above `source_hwnd`.
+  /// Creates the window, ordered above `source_hwnd`.
   fn create_window(
     source_hwnd: isize,
     rect: &Rect,
   ) -> crate::Result<isize> {
-    OVERLAY_CLASS.get_or_init(|| {
+    const CLASS_NAME: PCWSTR = w!("AnimationWindow");
+
+    static CLASS_REGISTERED: Once = Once::new();
+    CLASS_REGISTERED.call_once(|| {
       let wnd_class = WNDCLASSW {
-        lpszClassName: w!("AnimationOverlay"),
+        lpszClassName: CLASS_NAME,
         lpfnWndProc: Some(AnimationWindow::overlay_wnd_proc),
         ..Default::default()
       };
@@ -419,7 +391,7 @@ impl AnimationWindow {
     let hwnd = unsafe {
       CreateWindowExW(
         WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
-        w!("AnimationOverlay"),
+        CLASS_NAME,
         w!(""),
         WS_POPUP,
         rect.x(),
@@ -435,11 +407,11 @@ impl AnimationWindow {
 
     if hwnd.0 == 0 {
       return Err(crate::Error::Platform(
-        "Failed to create overlay window.".to_string(),
+        "Failed to create animation window.".to_string(),
       ));
     }
 
-    // Order the overlay just above the source window and show it.
+    // Order the animation window just above the source window and show it.
     unsafe {
       SetWindowPos(
         hwnd,
@@ -464,17 +436,14 @@ impl AnimationWindow {
   ) -> LRESULT {
     // Route all mouse inputs to the window below.
     if msg == WM_NCHITTEST {
-      return LRESULT(HTTRANSPARENT as isize);
+      LRESULT(HTTRANSPARENT as isize)
+    } else {
+      DefWindowProcW(hwnd, msg, wparam, lparam)
     }
-    DefWindowProcW(hwnd, msg, wparam, lparam)
   }
 
-  /// Copies the contents of `src_texture` into a DComp `surface` via
-  /// `BeginDraw`/`EndDraw`.
-  ///
-  /// `BeginDraw` may return an atlas texture larger than the surface, so
-  /// `CopySubresourceRegion` is used with the returned offset rather than
-  /// `CopyResource` (which requires matching dimensions).
+  /// Copies the contents of a 2D texture into a DirectComposition
+  /// surface.
   fn copy_texture_to_surface(
     context: &ID3D11DeviceContext,
     src_texture: &ID3D11Texture2D,
@@ -505,10 +474,7 @@ impl AnimationWindow {
   }
 }
 
-/// Captured WGC frame with its underlying texture.
-///
-/// Holds the frame, session, and pool alive until the texture has been
-/// consumed (e.g. copied into a `DirectComposition` surface).
+/// A screen capture of a window via `Windows.Graphics.Capture`.
 struct CapturedFrame {
   texture: ID3D11Texture2D,
   frame: Direct3D11CaptureFrame,
@@ -517,19 +483,16 @@ struct CapturedFrame {
 }
 
 impl CapturedFrame {
-  /// Captures a single frame of `hwnd` via Windows.Graphics.Capture.
+  /// Captures a single frame of a given window.
   ///
-  /// Reuses the cached interop factory and WinRT device from
-  /// `AnimationContext`. A fresh frame pool is created per capture
-  /// because WGC pools cannot be reliably reused across sessions.
-  ///
-  /// Perf: ~35-60ms. Single-frame captures require waiting for DWM to
-  /// produce the next composed frame (i.e. up to 16.7ms at 60Hz).
-  fn new(hwnd: HWND, context: &AnimationContext) -> crate::Result<Self> {
-    // SAFETY: HWND is valid per the caller's contract.
+  /// Perf: ~35-60ms. Capturing the frame requires waiting for DWM to
+  /// produce a new frame (i.e. up to 16.7ms at 60Hz).
+  fn new(hwnd: isize, context: &AnimationContext) -> crate::Result<Self> {
     let capture_item: GraphicsCaptureItem =
       unsafe { context.capture_interop.0.CreateForWindow(hwnd)? };
 
+    // NOTE: `Direct3D11CaptureFramePool` cannot be reused across captures,
+    // so we can't store it in `AnimationContext`.
     let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
       &context.winrt_device.0,
       DirectXPixelFormat::B8G8R8A8UIntNormalized,
@@ -567,8 +530,6 @@ impl CapturedFrame {
 
     let surface = frame.Surface()?;
     let access: IDirect3DDxgiInterfaceAccess = surface.cast()?;
-
-    // SAFETY: The WGC surface wraps a valid D3D11 texture.
     let texture: ID3D11Texture2D = unsafe { access.GetInterface()? };
 
     Ok(Self {

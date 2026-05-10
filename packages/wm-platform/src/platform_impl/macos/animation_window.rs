@@ -17,26 +17,18 @@ use crate::{
   Dispatcher, NativeWindow, OpacityValue, Rect, ThreadBound, WindowId,
 };
 
-/// Shared animation context for macOS.
-///
-/// Core Animation manages GPU resources automatically, so no shared
-/// device context is needed. The context provides `transaction` to batch
-/// multiple `CALayer` updates into a single `CATransaction` on the main
-/// thread.
+/// Platform-specific implementation of [`AnimationContext`].
 pub(crate) struct AnimationContext;
 
 impl AnimationContext {
-  /// Creates a shared animation context.
+  /// Implements [`AnimationContext::new`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn new(_dispatcher: &Dispatcher) -> crate::Result<Self> {
     Ok(Self)
   }
 
-  /// Executes `update_fn` inside a single `CATransaction` on the main
-  /// thread.
-  ///
-  /// All `CALayer` mutations performed by `update_fn` are batched into one
-  /// implicit-animation-free commit.
+  /// Implements [`AnimationContext::transaction`].
+  #[allow(clippy::unused_self)]
   pub(crate) fn transaction<F, R>(
     &self,
     update_fn: F,
@@ -56,16 +48,7 @@ impl AnimationContext {
   }
 }
 
-/// Per-window overlay for animating a single window transition.
-///
-/// Each `AnimationWindow` creates its own transparent `NSWindow` sized to
-/// the bounding box of the animation's start and target rects. The window
-/// is ordered just above the source window via
-/// `orderWindow_relativeTo`, preserving z-order among non-animated
-/// windows.
-///
-/// The contained `CALayer` is repositioned each tick; the `NSWindow`
-/// frame stays fixed for the lifetime of the animation.
+/// Platform-specific implementation of [`AnimationWindow`].
 pub(crate) struct AnimationWindow {
   ns_window: ThreadBound<Retained<NSWindow>>,
   layer: ThreadBound<Retained<CALayer>>,
@@ -78,9 +61,7 @@ pub(crate) struct AnimationWindow {
 }
 
 impl AnimationWindow {
-  /// Creates a transparent `NSWindow` covering the union of `start_rect`
-  /// and `target_rect`, captures a screenshot of `window`, and orders the
-  /// overlay just above the source window.
+  /// Implements [`AnimationWindow::new`].
   pub(crate) fn new(
     _context: &AnimationContext,
     window: &NativeWindow,
@@ -102,7 +83,7 @@ impl AnimationWindow {
         // SAFETY: `Dispatcher::dispatch_sync` runs on the main thread.
         let mtm = unsafe { MainThreadMarker::new_unchecked() };
 
-        // Get height of the primary display, needed for CG↔AppKit
+        // Get height of the primary display, needed for CG<->AppKit
         // coordinate conversion.
         let display_height =
           dispatcher.primary_display()?.bounds()?.height();
@@ -123,8 +104,8 @@ impl AnimationWindow {
         ns_window.setIgnoresMouseEvents(true);
 
         // SAFETY: `NSWindow` is normally released on close, but when the
-        // `Retained<NSWindow>` field is dropped, it sends another
-        // `release` which then segfaults due to double-free.
+        // `Retained<NSWindow>` field is dropped, it will also send a
+        // release call and segfault.
         unsafe { ns_window.setReleasedWhenClosed(false) };
 
         let content_view =
@@ -154,7 +135,7 @@ impl AnimationWindow {
         let scale_factor =
           dispatcher.nearest_display(window)?.scale_factor()?;
 
-        // Images need to be scaled by the scale factor of the display
+        // Image needs to be scaled by the scale factor of the display
         // containing the window.
         #[allow(clippy::cast_precision_loss)]
         let image_width =
@@ -205,11 +186,7 @@ impl AnimationWindow {
     })
   }
 
-  /// Resizes the `NSWindow` to cover the union of `start_rect` and
-  /// `target_rect`, updating the stored CG origin.
-  ///
-  /// Called when an animation's target changes mid-flight so the
-  /// existing screenshot and z-order are preserved.
+  /// Implements [`AnimationWindow::resize`].
   pub(crate) fn resize(&mut self, outer_rect: &Rect) -> crate::Result<()> {
     self.outer_rect = outer_rect.clone();
 
@@ -232,22 +209,25 @@ impl AnimationWindow {
     })
   }
 
-  /// Removes the overlay window from the screen.
+  /// Implements [`AnimationWindow::destroy`].
   pub(crate) fn destroy(self) -> crate::Result<()> {
     self.ns_window.with(|ns_window| ns_window.close())
   }
 
-  /// Repositions the layer within the window to the given rect and
-  /// updates opacity.
+  /// Updates the `CALayer` position and opacity within the window.
   ///
-  /// The `NSWindow` frame is never changed; only the `CALayer` moves.
+  /// The window's frame isn't changed; only the layer with the screen
+  /// screen capture is updated.
+  ///
+  /// Shared by [`AnimationWindow::new`] and [`AnimationWindow::update`].
+  /// Must be called inside `AnimationContext::transaction`.
   fn update_layer(
     layer: &Retained<CALayer>,
     inner_rect: &Rect,
     outer_rect: &Rect,
     opacity: Option<&OpacityValue>,
   ) {
-    // `inner_rect` needs to be positioned relative to `outer_rect`.
+    // `inner_rect` needs to be positioned relative to the window's frame.
     let offset_rect = Rect::from_xy(
       inner_rect.x() - outer_rect.x(),
       inner_rect.y() - outer_rect.y(),
@@ -264,13 +244,13 @@ impl AnimationWindow {
   }
 }
 
-/// Captured screenshot of a window via `CGWindowListCreateImage`.
+/// A screen capture of a window via `CGWindowListCreateImage`.
 struct CapturedFrame {
   cg_image: CFRetained<CGImage>,
 }
 
 impl CapturedFrame {
-  /// Captures a single frame of the window with the given ID.
+  /// Captures a single frame of a given window.
   #[allow(deprecated)]
   fn new(window_id: WindowId) -> crate::Result<Self> {
     // Use `CGRectNull` to capture the minimum rectangle that encloses the
