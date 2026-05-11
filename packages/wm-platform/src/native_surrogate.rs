@@ -276,6 +276,8 @@ pub struct NativeSurrogate {
   /// each frame. When `false` the thumbnail destination rect is pinned
   /// to the target dimensions, producing a curtain-reveal effect.
   scale: bool,
+  /// Cached visibility state; guards against redundant `ShowWindow` calls.
+  is_visible: bool,
 }
 
 impl NativeSurrogate {
@@ -418,6 +420,7 @@ impl NativeSurrogate {
       hwnd: hwnd.0,
       thumbnail,
       scale,
+      is_visible: initially_visible,
     })
   }
 
@@ -433,7 +436,13 @@ impl NativeSurrogate {
   }
 
   /// Shows or hides the surrogate overlay window without activating it.
-  pub fn set_visible(&self, visible: bool) {
+  ///
+  /// No-op when the window is already in the requested state.
+  pub fn set_visible(&mut self, visible: bool) {
+    if self.is_visible == visible {
+      return;
+    }
+    self.is_visible = visible;
     use windows::Win32::UI::WindowsAndMessaging::{
       ShowWindow, SW_HIDE, SW_SHOWNOACTIVATE,
     };
@@ -443,6 +452,100 @@ impl NativeSurrogate {
         HWND(self.hwnd),
         if visible { SW_SHOWNOACTIVATE } else { SW_HIDE },
       );
+    }
+  }
+
+  /// Repositions the surrogate overlay to `rect` without touching the DWM
+  /// thumbnail properties.
+  ///
+  /// Use this when the thumbnail is managed separately (e.g. workspace-switch
+  /// slide animations that update `rcSource`/`rcDestination` independently).
+  pub fn reposition(&self, rect: &Rect) -> crate::Result<()> {
+    // SAFETY: `HWND(self.hwnd)` is the overlay created in `create` and remains
+    // valid until `drop`. `SWP_NOZORDER` makes `hWndInsertAfter` irrelevant.
+    unsafe {
+      SetWindowPos(
+        HWND(self.hwnd),
+        HWND(0),
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
+        SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_NOZORDER,
+      )
+    }?;
+    Ok(())
+  }
+
+  /// Sets the DWM thumbnail visibility flag without changing any other
+  /// thumbnail properties.
+  ///
+  /// No-op when no thumbnail was registered.
+  pub fn set_thumbnail_visible(&self, visible: bool) {
+    if self.thumbnail == 0 {
+      return;
+    }
+    let props = DWM_THUMBNAIL_PROPERTIES {
+      dwFlags: DWM_TNP_VISIBLE,
+      fVisible: visible.into(),
+      ..Default::default()
+    };
+    // SAFETY: `self.thumbnail` is a valid handle. `props` is stack-allocated.
+    unsafe {
+      let _ = DwmUpdateThumbnailProperties(self.thumbnail, &raw const props);
+    }
+  }
+
+  /// Sets the DWM thumbnail opacity without changing any other thumbnail
+  /// properties.
+  ///
+  /// No-op when no thumbnail was registered.
+  pub fn set_thumbnail_opacity(&self, opacity: u8) {
+    if self.thumbnail == 0 {
+      return;
+    }
+    let props = DWM_THUMBNAIL_PROPERTIES {
+      dwFlags: DWM_TNP_OPACITY,
+      opacity,
+      ..Default::default()
+    };
+    // SAFETY: `self.thumbnail` is a valid handle. `props` is stack-allocated.
+    unsafe {
+      let _ = DwmUpdateThumbnailProperties(self.thumbnail, &raw const props);
+    }
+  }
+
+  /// Updates the DWM thumbnail source and destination rects and opacity in a
+  /// single call.
+  ///
+  /// `rc_src` is the source-window-local rect to sample from; `rc_dst` is the
+  /// surrogate-local rect to render into. Always forces `fVisible = true` and
+  /// `fSourceClientAreaOnly = false`. No-op when no thumbnail was registered.
+  pub fn set_thumbnail_rects(
+    &self,
+    rc_src: RECT,
+    rc_dst: RECT,
+    opacity: u8,
+  ) {
+    if self.thumbnail == 0 {
+      return;
+    }
+    let props = DWM_THUMBNAIL_PROPERTIES {
+      dwFlags: DWM_TNP_RECTSOURCE
+        | DWM_TNP_RECTDESTINATION
+        | DWM_TNP_OPACITY
+        | DWM_TNP_VISIBLE
+        | DWM_TNP_SOURCECLIENTAREAONLY,
+      rcSource: rc_src,
+      rcDestination: rc_dst,
+      opacity,
+      fVisible: true.into(),
+      fSourceClientAreaOnly: false.into(),
+      ..Default::default()
+    };
+    // SAFETY: `self.thumbnail` is a valid handle. `props` is stack-allocated.
+    unsafe {
+      let _ = DwmUpdateThumbnailProperties(self.thumbnail, &raw const props);
     }
   }
 

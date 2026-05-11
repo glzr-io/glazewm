@@ -1,11 +1,4 @@
-use windows::Win32::{
-  Foundation::{HWND, RECT},
-  Graphics::Dwm::{
-    DwmUpdateThumbnailProperties, DWM_THUMBNAIL_PROPERTIES,
-    DWM_TNP_OPACITY, DWM_TNP_RECTDESTINATION, DWM_TNP_RECTSOURCE,
-    DWM_TNP_SOURCECLIENTAREAONLY, DWM_TNP_VISIBLE,
-  },
-};
+use windows::Win32::Foundation::{HWND, RECT};
 
 use crate::{Color, NativeSurrogate, Rect};
 
@@ -20,25 +13,25 @@ use crate::{Color, NativeSurrogate, Rect};
 /// the correct content slice, so the surrogate window never extends onto
 /// an adjacent monitor.
 pub struct WorkspaceSurrogate {
-  inner: Option<NativeSurrogate>,
+  inner: NativeSurrogate,
   /// Final screen rect of the window (target position for incoming, current
   /// screen rect for outgoing).
   pub rect: Rect,
-  /// Whether the surrogate is currently shown.
-  is_visible: bool,
   /// DWM thumbnail opacity (0–255) derived from the window-effects config.
   opacity: u8,
 }
 
 impl WorkspaceSurrogate {
-  /// Creates a surrogate for an outgoing workspace window at its current
-  /// position.
+  /// Creates a hidden surrogate for a workspace-switch slide animation.
   ///
-  /// The surrogate is created hidden. Call [`show_initial`] before cloaking
-  /// the real window to make the surrogate visible without a blank frame.
+  /// The surrogate is created hidden. For outgoing windows, call
+  /// [`show_initial`] before cloaking the real window to avoid a blank frame.
+  /// For incoming windows, [`slide_axis`] reveals the surrogate as soon as it
+  /// enters the monitor's visible area.
   ///
   /// [`show_initial`]: WorkspaceSurrogate::show_initial
-  pub fn new_outgoing(
+  /// [`slide_axis`]: WorkspaceSurrogate::slide_axis
+  pub fn new(
     hwnd: HWND,
     rect: &Rect,
     color: Option<&Color>,
@@ -53,51 +46,7 @@ impl WorkspaceSurrogate {
       false,
       RECT::default(),
     )?;
-    Ok(Self {
-      inner: Some(inner),
-      rect: rect.clone(),
-      is_visible: false,
-      opacity,
-    })
-  }
-
-  /// Creates a surrogate for an incoming workspace window.
-  ///
-  /// The surrogate is created hidden — it will be shown by [`update_slide`]
-  /// as soon as it enters the monitor's visible area. The real window is
-  /// left at its current position and cloaked by the caller; the DWM
-  /// thumbnail captures its compositor content regardless of position.
-  /// Passing `initially_visible: false` to [`NativeSurrogate::create`]
-  /// prevents a one-frame flash of the surrogate at the target rect before
-  /// the animation has started.
-  ///
-  /// [`update_slide`]: WorkspaceSurrogate::update_slide
-  /// [`NativeSurrogate::create`]: crate::NativeSurrogate::create
-  pub fn new_incoming(
-    hwnd: HWND,
-    rect: &Rect,
-    color: Option<&Color>,
-    opacity: u8,
-  ) -> crate::Result<Self> {
-    // Create the surrogate at the final rect but keep it hidden. The first
-    // `update_slide` call will position and reveal it when it enters the
-    // current monitor's bounds.
-    let inner = NativeSurrogate::create(
-      hwnd,
-      rect,
-      rect,
-      color,
-      false,
-      false,
-      RECT::default(),
-    )?;
-
-    Ok(Self {
-      inner: Some(inner),
-      rect: rect.clone(),
-      is_visible: false,
-      opacity,
-    })
+    Ok(Self { inner, rect: rect.clone(), opacity })
   }
 
   /// Hides the DWM thumbnail without destroying it or hiding the surrogate window.
@@ -108,21 +57,7 @@ impl WorkspaceSurrogate {
   /// configured opacity), producing a double-blend that appears fully opaque
   /// for one frame.
   pub fn hide_thumbnail(&mut self) {
-    let Some(ref inner) = self.inner else {
-      return;
-    };
-    let thumbnail = inner.thumbnail();
-    if thumbnail != 0 {
-      let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: DWM_TNP_VISIBLE,
-        fVisible: false.into(),
-        ..Default::default()
-      };
-      // SAFETY: `thumbnail` is a valid handle and `props` is stack-allocated.
-      unsafe {
-        let _ = DwmUpdateThumbnailProperties(thumbnail, &raw const props);
-      }
-    }
+    self.inner.set_thumbnail_visible(false);
   }
 
   /// Shows the surrogate at full opacity covering its full rect.
@@ -134,12 +69,8 @@ impl WorkspaceSurrogate {
   ///
   /// [`apply_effect_opacity`]: WorkspaceSurrogate::apply_effect_opacity
   pub fn show_initial(&mut self) {
-    let Some(ref mut inner) = self.inner else {
-      return;
-    };
-    let _ = inner.update(&self.rect, u8::MAX);
-    inner.set_visible(true);
-    self.is_visible = true;
+    let _ = self.inner.update(&self.rect, u8::MAX);
+    self.inner.set_visible(true);
   }
 
   /// Updates the DWM thumbnail opacity to the configured `opacity` without
@@ -149,22 +80,7 @@ impl WorkspaceSurrogate {
   /// effect opacity is applied without causing a double-blend with the
   /// real window underneath.
   pub fn apply_effect_opacity(&mut self) {
-    let Some(ref inner) = self.inner else {
-      return;
-    };
-    let thumbnail = inner.thumbnail();
-    if thumbnail != 0 {
-      let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: DWM_TNP_OPACITY,
-        opacity: self.opacity,
-        ..Default::default()
-      };
-      // SAFETY: `thumbnail` is a valid handle. `props` is stack-allocated and
-      // remains live for the duration of this call.
-      unsafe {
-        let _ = DwmUpdateThumbnailProperties(thumbnail, &raw const props);
-      }
-    }
+    self.inner.set_thumbnail_opacity(self.opacity);
   }
 
   /// Advances the surrogate along the horizontal axis to `eased_progress`
@@ -183,14 +99,7 @@ impl WorkspaceSurrogate {
     monitor_x: i32,
     monitor_width: i32,
   ) {
-    self.slide_axis(
-      eased_progress,
-      is_incoming,
-      direction,
-      monitor_x,
-      monitor_width,
-      false,
-    );
+    self.slide_axis(eased_progress, is_incoming, direction, monitor_x, monitor_width, false);
   }
 
   /// Advances the surrogate along the vertical axis to `eased_progress`
@@ -208,14 +117,7 @@ impl WorkspaceSurrogate {
     monitor_y: i32,
     monitor_height: i32,
   ) {
-    self.slide_axis(
-      eased_progress,
-      is_incoming,
-      direction,
-      monitor_y,
-      monitor_height,
-      true,
-    );
+    self.slide_axis(eased_progress, is_incoming, direction, monitor_y, monitor_height, true);
   }
 
   /// Advances the surrogate along either axis. `is_vertical = false` slides
@@ -230,10 +132,6 @@ impl WorkspaceSurrogate {
     monitor_size: i32,
     is_vertical: bool,
   ) {
-    let Some(ref mut inner) = self.inner else {
-      return;
-    };
-
     // Incoming: start at +direction*size offset, end at 0.
     // Outgoing: start at 0, end at -direction*size offset.
     let offset = if is_incoming {
@@ -258,10 +156,7 @@ impl WorkspaceSurrogate {
 
     if vis_start >= vis_end {
       // Completely off-screen: hide to prevent rendering on adjacent monitors.
-      if self.is_visible {
-        inner.set_visible(false);
-        self.is_visible = false;
-      }
+      self.inner.set_visible(false);
       return;
     }
 
@@ -271,49 +166,18 @@ impl WorkspaceSurrogate {
 
     // Update the DWM thumbnail: show only the visible slice of source
     // content, mapped 1:1 onto the constrained surrogate rect.
-    let thumbnail = inner.thumbnail();
-    if thumbnail != 0 {
-      let (rc_src, rc_dst) = if is_vertical {
-        (
-          RECT {
-            left: 0,
-            top: src_start,
-            right: perp_size,
-            bottom: src_start + constrained,
-          },
-          RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
-        )
-      } else {
-        (
-          RECT {
-            left: src_start,
-            top: 0,
-            right: src_start + constrained,
-            bottom: perp_size,
-          },
-          RECT { left: 0, top: 0, right: constrained, bottom: perp_size },
-        )
-      };
-
-      let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: DWM_TNP_RECTSOURCE
-          | DWM_TNP_RECTDESTINATION
-          | DWM_TNP_OPACITY
-          | DWM_TNP_VISIBLE
-          | DWM_TNP_SOURCECLIENTAREAONLY,
-        rcSource: rc_src,
-        rcDestination: rc_dst,
-        opacity: self.opacity,
-        fVisible: true.into(),
-        fSourceClientAreaOnly: false.into(),
-        ..Default::default()
-      };
-      // SAFETY: `thumbnail` is a valid handle. `props` is stack-allocated
-      // and remains live for the duration of this call.
-      unsafe {
-        let _ = DwmUpdateThumbnailProperties(thumbnail, &raw const props);
-      }
-    }
+    let (rc_src, rc_dst) = if is_vertical {
+      (
+        RECT { left: 0, top: src_start, right: perp_size, bottom: src_start + constrained },
+        RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
+      )
+    } else {
+      (
+        RECT { left: src_start, top: 0, right: src_start + constrained, bottom: perp_size },
+        RECT { left: 0, top: 0, right: constrained, bottom: perp_size },
+      )
+    };
+    self.inner.set_thumbnail_rects(rc_src, rc_dst, self.opacity);
 
     // Position the surrogate window at the constrained (monitor-clamped) rect.
     let constrained_rect = if is_vertical {
@@ -321,11 +185,8 @@ impl WorkspaceSurrogate {
     } else {
       Rect::from_xy(vis_start, perp_pos, constrained, perp_size)
     };
-    let _ = inner.update(&constrained_rect, self.opacity);
+    let _ = self.inner.reposition(&constrained_rect);
 
-    if !self.is_visible {
-      inner.set_visible(true);
-      self.is_visible = true;
-    }
+    self.inner.set_visible(true);
   }
 }

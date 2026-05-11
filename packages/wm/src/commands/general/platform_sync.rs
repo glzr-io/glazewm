@@ -299,7 +299,7 @@ fn redraw_containers(
               })
               .ok()
               .and_then(|rect| {
-                WorkspaceSurrogate::new_incoming(hwnd, &rect, color, opacity)
+                WorkspaceSurrogate::new(hwnd, &rect, color, opacity)
                   .map_err(|e| {
                     tracing::warn!(
                       "Failed to create incoming surrogate: {e}."
@@ -321,7 +321,7 @@ fn redraw_containers(
               .or_else(|| window.native().frame().ok())
               .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
             let surrogate =
-              WorkspaceSurrogate::new_outgoing(hwnd, &current, color, opacity)
+              WorkspaceSurrogate::new(hwnd, &current, color, opacity)
                 .map_err(|e| {
                   tracing::warn!("Failed to create outgoing surrogate: {e}.");
                   e
