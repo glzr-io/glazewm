@@ -6,6 +6,34 @@ use wm_platform::{
 
 use crate::app_command::InvokeCommand;
 
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  const DEFAULT_CONFIG: &str =
+    include_str!("../../../resources/default-config.yaml");
+  const ZEBAR_START: &str = "%userprofile%/.glzr/zebar/start.bat";
+
+  #[test]
+  fn default_config_deserializes() {
+    serde_yaml::from_str::<ParsedConfig>(DEFAULT_CONFIG).unwrap();
+  }
+
+  #[test]
+  fn default_config_guards_zebar_startup_command() {
+    let zebar_startup_command = DEFAULT_CONFIG
+      .lines()
+      .find(|line| line.contains(ZEBAR_START))
+      .unwrap();
+
+    assert!(zebar_startup_command.contains("if exist"));
+    assert_ne!(
+      zebar_startup_command.trim(),
+      format!("- 'shell-exec {ZEBAR_START}'")
+    );
+  }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct ParsedConfig {
