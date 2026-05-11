@@ -25,6 +25,10 @@ pub(crate) struct NativeWindow {
   pub(crate) application: Application,
 }
 
+fn has_active_drag() -> bool {
+  false
+}
+
 impl NativeWindow {
   /// Creates an instance of `NativeWindow`.
   #[must_use]
@@ -165,6 +169,12 @@ impl NativeWindow {
     Ok(
       self.application.bundle_id() == Some("com.apple.finder".to_string()),
     )
+  }
+
+  /// Implements [`NativeWindow::has_active_drag`].
+  #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+  pub(crate) fn has_active_drag(&self) -> crate::Result<bool> {
+    Ok(has_active_drag())
   }
 
   /// Implements [`NativeWindow::set_frame`].
