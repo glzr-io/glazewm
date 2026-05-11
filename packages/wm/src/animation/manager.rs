@@ -435,10 +435,11 @@ impl AnimationManager {
       // Flush before dropping workspace-switch surrogates. DWM thumbnails do
       // not capture the window's compositor shadow, so shadows are absent
       // while windows are cloaked and appear suddenly on uncloak. One flush
-      // after `platform_sync` (which unclocks real windows) lets DWM render
+      // after `platform_sync` (which uncloaks real windows) lets DWM render
       // one frame with the real windows — including their shadows — while the
-      // surrogates are still live. Dropping surrogates after that frame makes
-      // the transition seamless.
+      // surrogates are still live. Per-window thumbnail hides were already
+      // issued inside `platform_sync` immediately after each `set_cloaked(false)`
+      // call, so this flush shows only real windows without double-blend.
       if state.animation_manager.pending_ws_cleanup.is_some() {
         wm_platform::dwm_flush();
       }
@@ -526,6 +527,10 @@ impl AnimationManager {
     // Only used on Windows to capture the window for the surrogate.
     #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
     native_window: &NativeWindow,
+    // Opacity from window-effects config; used as surrogate opacity when the
+    // animation has no per-frame fade component.
+    #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+    effect_opacity: u8,
     config: &UserConfig,
   ) -> (AnimationPositionResult, Option<OpacityValue>) {
     let existing_animation = self.get_animation(&window_id).cloned();
@@ -576,6 +581,7 @@ impl AnimationManager {
             &target_rect,
             anim_config.surrogate_color.as_ref(),
             false,
+            effect_opacity,
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);
@@ -604,7 +610,7 @@ impl AnimationManager {
       #[cfg(target_os = "windows")]
       if let Some(session) = self.resize_sessions.get_mut(&window_id) {
         let opacity_u8 =
-          opacity.as_ref().map(|o| o.to_alpha()).unwrap_or(255);
+          opacity.as_ref().map(|o| o.to_alpha()).unwrap_or(session.effect_opacity);
         session.update(&current_rect, opacity_u8);
         if session.has_surrogate() {
           return (AnimationPositionResult::Frozen, None);
@@ -702,6 +708,46 @@ impl AnimationManager {
       });
     } else {
       tracing::warn!("Workspace-switch skipped: no windows to animate.");
+    }
+  }
+
+  /// Applies the configured effect opacity to all outgoing workspace-switch
+  /// surrogates.
+  ///
+  /// Called after the outgoing real windows have been cloaked so the
+  /// thumbnail opacity transitions from the fully-opaque `show_initial` state
+  /// to the configured effect opacity without causing a double-blend frame.
+  #[cfg(target_os = "windows")]
+  pub fn apply_outgoing_surrogate_opacities(&mut self) {
+    let Some(ref mut ws) = self.workspace_switch else {
+      return;
+    };
+    for entry in ws.windows.values_mut() {
+      if !entry.is_incoming {
+        if let Some(ref mut s) = entry.surrogate {
+          s.apply_effect_opacity();
+        }
+      }
+    }
+  }
+
+  /// Hides the workspace-switch surrogate thumbnail for a single window in
+  /// `pending_ws_cleanup`.
+  ///
+  /// Called immediately after `set_cloaked(false)` for each incoming window
+  /// so the surrogate thumbnail disappears at the same DWM composition event
+  /// as the window uncloak, eliminating the double-blend frame that would
+  /// occur if thumbnail hide were deferred until after all windows are
+  /// processed.
+  #[cfg(target_os = "windows")]
+  pub fn hide_pending_ws_cleanup_surrogate(&mut self, window_id: Uuid) {
+    let Some(ref mut ws) = self.pending_ws_cleanup else {
+      return;
+    };
+    if let Some(entry) = ws.windows.get_mut(&window_id) {
+      if let Some(ref mut s) = entry.surrogate {
+        s.hide_thumbnail();
+      }
     }
   }
 }

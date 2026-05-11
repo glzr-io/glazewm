@@ -36,6 +36,12 @@ pub struct ResizeSession {
   /// in physical pixels. Applied when converting physical rects to the logical
   /// (visible-content) rects that the surrogate is sized to.
   border_inset: RECT,
+  /// DWM thumbnail opacity (0–255) from the window-effects config.
+  ///
+  /// Used as the surrogate opacity when the animation has no per-frame fade
+  /// component, so the thumbnail matches the real window's `SetLayeredWindowAttributes`
+  /// opacity throughout the move/resize.
+  pub effect_opacity: u8,
 }
 
 impl ResizeSession {
@@ -60,6 +66,7 @@ impl ResizeSession {
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
     scale: bool,
+    effect_opacity: u8,
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
 
@@ -111,6 +118,7 @@ impl ResizeSession {
       target_rect: target_rect.clone(),
       surrogate,
       border_inset,
+      effect_opacity,
     })
   }
 
@@ -208,7 +216,7 @@ impl ResizeSession {
 
     if let Some(surrogate) = &mut self.surrogate {
       let logical = to_logical(&self.target_rect.clone(), &self.border_inset);
-      if let Err(err) = surrogate.update(&logical, 255) {
+      if let Err(err) = surrogate.update(&logical, self.effect_opacity) {
         tracing::warn!("Surrogate pre-commit update failed: {err}.");
       }
     }

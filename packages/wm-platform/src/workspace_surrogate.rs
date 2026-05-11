@@ -26,6 +26,8 @@ pub struct WorkspaceSurrogate {
   pub rect: Rect,
   /// Whether the surrogate is currently shown.
   is_visible: bool,
+  /// DWM thumbnail opacity (0–255) derived from the window-effects config.
+  opacity: u8,
 }
 
 impl WorkspaceSurrogate {
@@ -40,6 +42,7 @@ impl WorkspaceSurrogate {
     hwnd: HWND,
     rect: &Rect,
     color: Option<&Color>,
+    opacity: u8,
   ) -> crate::Result<Self> {
     let inner = NativeSurrogate::create(
       hwnd,
@@ -54,6 +57,7 @@ impl WorkspaceSurrogate {
       inner: Some(inner),
       rect: rect.clone(),
       is_visible: false,
+      opacity,
     })
   }
 
@@ -73,6 +77,7 @@ impl WorkspaceSurrogate {
     hwnd: HWND,
     rect: &Rect,
     color: Option<&Color>,
+    opacity: u8,
   ) -> crate::Result<Self> {
     // Create the surrogate at the final rect but keep it hidden. The first
     // `update_slide` call will position and reveal it when it enters the
@@ -91,20 +96,75 @@ impl WorkspaceSurrogate {
       inner: Some(inner),
       rect: rect.clone(),
       is_visible: false,
+      opacity,
     })
+  }
+
+  /// Hides the DWM thumbnail without destroying it or hiding the surrogate window.
+  ///
+  /// Called immediately before the post-animation `DwmFlush` so the flush
+  /// frame shows only the uncloaked real windows. Without this, DWM blends the
+  /// thumbnail (at configured opacity) on top of the real window (also at
+  /// configured opacity), producing a double-blend that appears fully opaque
+  /// for one frame.
+  pub fn hide_thumbnail(&mut self) {
+    let Some(ref inner) = self.inner else {
+      return;
+    };
+    let thumbnail = inner.thumbnail();
+    if thumbnail != 0 {
+      let props = DWM_THUMBNAIL_PROPERTIES {
+        dwFlags: DWM_TNP_VISIBLE,
+        fVisible: false.into(),
+        ..Default::default()
+      };
+      // SAFETY: `thumbnail` is a valid handle and `props` is stack-allocated.
+      unsafe {
+        let _ = DwmUpdateThumbnailProperties(thumbnail, &raw const props);
+      }
+    }
   }
 
   /// Shows the surrogate at full opacity covering its full rect.
   ///
-  /// Must be called on outgoing surrogates before the real window is cloaked
-  /// so there is no blank frame between cloaking and the first slide tick.
+  /// Always uses opacity `255` (fully opaque) so the surrogate completely
+  /// covers the real window before it is cloaked, avoiding a double-blend
+  /// frame. Call [`apply_effect_opacity`] after the real window is cloaked to
+  /// reduce the thumbnail to the configured `opacity`.
+  ///
+  /// [`apply_effect_opacity`]: WorkspaceSurrogate::apply_effect_opacity
   pub fn show_initial(&mut self) {
     let Some(ref mut inner) = self.inner else {
       return;
     };
-    let _ = inner.update(&self.rect, 255);
+    let _ = inner.update(&self.rect, u8::MAX);
     inner.set_visible(true);
     self.is_visible = true;
+  }
+
+  /// Updates the DWM thumbnail opacity to the configured `opacity` without
+  /// changing the surrogate window position or size.
+  ///
+  /// Call this after the real window has been cloaked so the thumbnail's
+  /// effect opacity is applied without causing a double-blend with the
+  /// real window underneath.
+  pub fn apply_effect_opacity(&mut self) {
+    let Some(ref inner) = self.inner else {
+      return;
+    };
+    let thumbnail = inner.thumbnail();
+    if thumbnail != 0 {
+      let props = DWM_THUMBNAIL_PROPERTIES {
+        dwFlags: DWM_TNP_OPACITY,
+        opacity: self.opacity,
+        ..Default::default()
+      };
+      // SAFETY: `thumbnail` is a valid handle. `props` is stack-allocated and
+      // remains live for the duration of this call.
+      unsafe {
+        let _ = DwmUpdateThumbnailProperties(thumbnail, &raw const props);
+      }
+    }
   }
 
   /// Advances the surrogate along the horizontal axis to `eased_progress`
@@ -243,7 +303,7 @@ impl WorkspaceSurrogate {
           | DWM_TNP_SOURCECLIENTAREAONLY,
         rcSource: rc_src,
         rcDestination: rc_dst,
-        opacity: 255,
+        opacity: self.opacity,
         fVisible: true.into(),
         fSourceClientAreaOnly: false.into(),
         ..Default::default()
@@ -261,7 +321,7 @@ impl WorkspaceSurrogate {
     } else {
       Rect::from_xy(vis_start, perp_pos, constrained, perp_size)
     };
-    let _ = inner.update(&constrained_rect, 255);
+    let _ = inner.update(&constrained_rect, self.opacity);
 
     if !self.is_visible {
       inner.set_visible(true);

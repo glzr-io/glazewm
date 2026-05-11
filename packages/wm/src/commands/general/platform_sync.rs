@@ -279,6 +279,18 @@ fn redraw_containers(
 
           let hwnd = window.native().hwnd();
 
+          let effect_cfg =
+            if window.id() == focused_container.id() {
+              &config.value.window_effects.focused_window
+            } else {
+              &config.value.window_effects.other_windows
+            };
+          let opacity = if effect_cfg.transparency.enabled {
+            effect_cfg.transparency.opacity.to_alpha()
+          } else {
+            u8::MAX
+          };
+
           if is_incoming {
             let surrogate = window
               .to_rect()
@@ -287,7 +299,7 @@ fn redraw_containers(
               })
               .ok()
               .and_then(|rect| {
-                WorkspaceSurrogate::new_incoming(hwnd, &rect, color)
+                WorkspaceSurrogate::new_incoming(hwnd, &rect, color, opacity)
                   .map_err(|e| {
                     tracing::warn!(
                       "Failed to create incoming surrogate: {e}."
@@ -308,12 +320,13 @@ fn redraw_containers(
               .cloned()
               .or_else(|| window.native().frame().ok())
               .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
-            let surrogate = WorkspaceSurrogate::new_outgoing(hwnd, &current, color)
-              .map_err(|e| {
-                tracing::warn!("Failed to create outgoing surrogate: {e}.");
-                e
-              })
-              .ok();
+            let surrogate =
+              WorkspaceSurrogate::new_outgoing(hwnd, &current, color, opacity)
+                .map_err(|e| {
+                  tracing::warn!("Failed to create outgoing surrogate: {e}.");
+                  e
+                })
+                .ok();
             ws_windows.push((id, surrogate, false));
           }
         }
@@ -499,12 +512,23 @@ fn redraw_containers(
       if is_frozen_by_ws_animation {
         (AnimationPositionResult::Frozen, None)
       } else {
+        let effect_cfg = if window.id() == focused_container.id() {
+          &config.value.window_effects.focused_window
+        } else {
+          &config.value.window_effects.other_windows
+        };
+        let effect_opacity = if effect_cfg.transparency.enabled {
+          effect_cfg.transparency.opacity.to_alpha()
+        } else {
+          u8::MAX
+        };
         state.animation_manager.start_animation_if_needed(
           window.id(),
           is_resize,
           target_rect.clone(),
           previous_target,
           &*native_ref,
+          effect_opacity,
           config,
         )
       }
@@ -514,6 +538,7 @@ fn redraw_containers(
         is_resize,
         target_rect.clone(),
         previous_target,
+        u8::MAX,
         config,
       )
     } else {
@@ -604,6 +629,15 @@ fn redraw_containers(
         #[cfg(target_os = "windows")]
         if is_visible {
           let _ = window.native().set_cloaked(false);
+
+          // Hide the workspace-switch surrogate thumbnail immediately after
+          // uncloaking so both changes land in the same DWM composition frame.
+          // Deferring the hide until after the full main loop would leave the
+          // thumbnail visible during the remaining window processing time,
+          // producing a multi-frame double-blend when transparency is enabled.
+          state
+            .animation_manager
+            .hide_pending_ws_cleanup_surrogate(window.id());
         }
       }
     }
@@ -648,6 +682,12 @@ fn redraw_containers(
       }
     }
   }
+
+  // Apply effect opacity to outgoing surrogates now that the real windows
+  // have been cloaked. This removes the double-blend that would occur if
+  // the surrogate's configured opacity were set before cloaking.
+  #[cfg(target_os = "windows")]
+  state.animation_manager.apply_outgoing_surrogate_opacities();
 
   Ok(())
 }
