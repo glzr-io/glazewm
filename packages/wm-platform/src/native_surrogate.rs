@@ -237,6 +237,17 @@ fn register_thumbnail(
   Some(thumbnail)
 }
 
+/// Converts a physical `Rect` to logical by subtracting the invisible border
+/// inset on each side.
+pub(crate) fn to_logical(rect: &Rect, inset: &RECT) -> Rect {
+  Rect::from_ltrb(
+    rect.left + inset.left,
+    rect.top + inset.top,
+    rect.right - inset.right,
+    rect.bottom - inset.bottom,
+  )
+}
+
 /// Lightweight overlay window used during move/resize animations.
 ///
 /// At animation start the overlay is placed over the real app window at the
@@ -246,11 +257,6 @@ fn register_thumbnail(
 /// thumbnail to its current animated bounds: for growing windows this produces
 /// a curtain reveal; for shrinking windows the thumbnail sits at target size
 /// and the transparent surrogate backdrop collapses around it.
-///
-/// When `scale` is `true` (open animations), the thumbnail `rcDestination`
-/// is updated each frame to match the current surrogate size so DWM scales
-/// the source content to fit rather than clipping it. This produces a
-/// scale-in effect from the initial smaller rect to the target rect.
 ///
 /// GlazeWM cloaks the real window while the overlay is active.
 ///
@@ -272,10 +278,6 @@ pub struct NativeSurrogate {
   hwnd: isize,
   /// DWM thumbnail handle, or `0` if registration failed.
   thumbnail: isize,
-  /// Whether to scale the thumbnail content to the current surrogate size
-  /// each frame. When `false` the thumbnail destination rect is pinned
-  /// to the target dimensions, producing a curtain-reveal effect.
-  scale: bool,
   /// Cached visibility state; guards against redundant `ShowWindow` calls.
   is_visible: bool,
 }
@@ -290,12 +292,6 @@ impl NativeSurrogate {
   /// is `Some`, the backdrop is a solid-color fill; when `None`, the backdrop
   /// is fully transparent so only the DWM thumbnail is visible and gaps
   /// between windows remain see-through.
-  ///
-  /// When `scale` is `true`, [`update`] scales the thumbnail content to
-  /// the current surrogate size on every frame (open animations). When
-  /// `false`, the thumbnail destination is pinned at target size, which
-  /// clips the content to the surrogate's bounds and creates a
-  /// curtain-reveal effect (move/resize animations).
   ///
   /// When `initially_visible` is `false`, the surrogate window is created
   /// hidden; the caller must call [`set_visible`] to reveal it. Pass
@@ -317,17 +313,13 @@ impl NativeSurrogate {
     source_rect: &Rect,
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
-    scale: bool,
     initially_visible: bool,
     border_inset: RECT,
   ) -> crate::Result<Self> {
     ensure_class_registered();
 
     // Shrink to logical rect so the surrogate does not occupy the window gap.
-    let src_x = source_rect.x() + border_inset.left;
-    let src_y = source_rect.y() + border_inset.top;
-    let src_w = source_rect.width() - border_inset.left - border_inset.right;
-    let src_h = source_rect.height() - border_inset.top - border_inset.bottom;
+    let logical_src = to_logical(source_rect, &border_inset);
 
     // SAFETY: Class name is the static literal registered above.
     let hwnd = unsafe {
@@ -336,10 +328,10 @@ impl NativeSurrogate {
         w!("GlazeWM_Surrogate"),
         w!(""),
         WS_POPUP,
-        src_x,
-        src_y,
-        src_w,
-        src_h,
+        logical_src.x(),
+        logical_src.y(),
+        logical_src.width(),
+        logical_src.height(),
         None,
         None,
         None,
@@ -380,15 +372,12 @@ impl NativeSurrogate {
     // pre-positioned to target_rect at session start). The surrogate clips the
     // thumbnail to its current animated bounds. Failure is non-fatal: the
     // surrogate still shows its backdrop color if configured.
-    let logical_target_w =
-      target_rect.width() - border_inset.left - border_inset.right;
-    let logical_target_h =
-      target_rect.height() - border_inset.top - border_inset.bottom;
+    let logical_target = to_logical(target_rect, &border_inset);
     let thumbnail = register_thumbnail(
       hwnd,
       source_hwnd,
-      logical_target_w,
-      logical_target_h,
+      logical_target.width(),
+      logical_target.height(),
       border_inset,
     )
     .unwrap_or(0);
@@ -419,7 +408,6 @@ impl NativeSurrogate {
     Ok(Self {
       hwnd: hwnd.0,
       thumbnail,
-      scale,
       is_visible: initially_visible,
     })
   }
@@ -427,12 +415,6 @@ impl NativeSurrogate {
   /// Returns the raw handle of the surrogate overlay window.
   pub fn hwnd(&self) -> HWND {
     HWND(self.hwnd)
-  }
-
-  /// Returns the DWM thumbnail handle, or `0` if thumbnail registration
-  /// failed at creation time.
-  pub fn thumbnail(&self) -> isize {
-    self.thumbnail
   }
 
   /// Shows or hides the surrogate overlay window without activating it.
@@ -571,28 +553,11 @@ impl NativeSurrogate {
     }?;
 
     if self.thumbnail != 0 {
-      // When scaling, update rcDestination to the current surrogate size
-      // so DWM scales the full source content down to fit. When not
-      // scaling the destination rect stays pinned from creation
-      // (curtain-reveal effect).
-      let (flags, dest) = if self.scale {
-        (
-          DWM_TNP_OPACITY | DWM_TNP_RECTDESTINATION,
-          RECT {
-            left: 0,
-            top: 0,
-            right: rect.width(),
-            bottom: rect.height(),
-          },
-        )
-      } else {
-        (DWM_TNP_OPACITY, RECT::default())
-      };
-
+      // The thumbnail destination rect is pinned to the target size from
+      // creation (curtain-reveal effect); only opacity is updated per frame.
       let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: flags,
+        dwFlags: DWM_TNP_OPACITY,
         opacity,
-        rcDestination: dest,
         ..Default::default()
       };
 

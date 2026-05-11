@@ -7,7 +7,7 @@ use windows::Win32::{
   },
 };
 
-use crate::{Color, NativeSurrogate, Rect};
+use crate::{native_surrogate::to_logical, Color, NativeSurrogate, Rect};
 
 /// Tracks a single window's resize/move animation and manages its surrogate
 /// overlay.
@@ -65,7 +65,6 @@ impl ResizeSession {
     source_rect: &Rect,
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
-    scale: bool,
     effect_opacity: u8,
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
@@ -75,7 +74,6 @@ impl ResizeSession {
       source_rect,
       target_rect,
       surrogate_color,
-      scale,
       true,
       border_inset,
     ) {
@@ -267,17 +265,6 @@ impl ResizeSession {
 
     Ok(())
   }
-}
-
-/// Converts a physical rect to logical by subtracting the invisible border
-/// inset on each side.
-fn to_logical(rect: &Rect, inset: &RECT) -> Rect {
-  Rect::from_ltrb(
-    rect.left + inset.left,
-    rect.top + inset.top,
-    rect.right - inset.right,
-    rect.bottom - inset.bottom,
-  )
 }
 
 /// Computes the invisible border insets of `hwnd` in physical pixels.

@@ -580,7 +580,6 @@ impl AnimationManager {
             &start_rect,
             &target_rect,
             anim_config.surrogate_color.as_ref(),
-            false,
             effect_opacity,
           ) {
             Ok(session) => {
