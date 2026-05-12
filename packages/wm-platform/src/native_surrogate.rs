@@ -133,7 +133,7 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
   };
 
   // The undocumented `gradient_color` field uses ABGR byte order:
-  // alpha in the high byte, then blue, green, red in the low byte.
+  // alpha in the high byte, then blue, green, red in the low bytes.
   let abgr = (u32::from(c.a) << 24)
     | (u32::from(c.b) << 16)
     | (u32::from(c.g) << 8)
