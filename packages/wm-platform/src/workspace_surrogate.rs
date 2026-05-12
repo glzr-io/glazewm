@@ -42,6 +42,7 @@ impl WorkspaceSurrogate {
       rect,
       rect,
       color,
+      opacity,
       false,
       RECT::default(),
     )?;
@@ -79,7 +80,7 @@ impl WorkspaceSurrogate {
   /// effect opacity is applied without causing a double-blend with the
   /// real window underneath.
   pub fn apply_effect_opacity(&mut self) {
-    self.inner.set_thumbnail_opacity(self.opacity);
+    self.inner.set_window_opacity(self.opacity);
   }
 
   /// Advances the surrogate along the horizontal axis to `eased_progress`
@@ -176,7 +177,7 @@ impl WorkspaceSurrogate {
         RECT { left: 0, top: 0, right: constrained, bottom: perp_size },
       )
     };
-    self.inner.set_thumbnail_rects(rc_src, rc_dst, self.opacity);
+    self.inner.set_thumbnail_rects(rc_src, rc_dst);
 
     // Position the surrogate window at the constrained (monitor-clamped) rect.
     let constrained_rect = if is_vertical {

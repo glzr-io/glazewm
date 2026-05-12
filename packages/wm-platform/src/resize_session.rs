@@ -74,6 +74,7 @@ impl ResizeSession {
       source_rect,
       target_rect,
       surrogate_color,
+      effect_opacity,
       true,
       border_inset,
     ) {

@@ -3,7 +3,7 @@ use std::{ffi::c_void, sync::OnceLock};
 use windows::{
   core::{s, w},
   Win32::{
-    Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM},
+    Foundation::{COLORREF, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Dwm::{
       DwmExtendFrameIntoClientArea, DwmRegisterThumbnail,
       DwmUnregisterThumbnail, DwmUpdateThumbnailProperties,
@@ -13,10 +13,11 @@ use windows::{
     System::LibraryLoader::{GetModuleHandleW, GetProcAddress},
     UI::WindowsAndMessaging::{
       CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW,
-      SetWindowPos, SET_WINDOW_POS_FLAGS, SWP_NOACTIVATE, SWP_NOCOPYBITS,
-      SWP_NOMOVE, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER,
-      SWP_SHOWWINDOW, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-      WS_EX_TRANSPARENT, WS_POPUP,
+      SetLayeredWindowAttributes, SetWindowPos, SET_WINDOW_POS_FLAGS,
+      LWA_ALPHA, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
+      SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW, WNDCLASSW,
+      WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
+      WS_POPUP,
     },
   },
 };
@@ -313,6 +314,7 @@ impl NativeSurrogate {
     source_rect: &Rect,
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
+    opacity: u8,
     initially_visible: bool,
     border_inset: RECT,
   ) -> crate::Result<Self> {
@@ -324,7 +326,7 @@ impl NativeSurrogate {
     // SAFETY: Class name is the static literal registered above.
     let hwnd = unsafe {
       CreateWindowExW(
-        WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT,
+        WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT,
         w!("GlazeWM_Surrogate"),
         w!(""),
         WS_POPUP,
@@ -366,6 +368,14 @@ impl NativeSurrogate {
     }
 
     apply_backdrop(hwnd, surrogate_color);
+
+    // Set the initial whole-window opacity. `LWA_ALPHA` makes `crKey`
+    // irrelevant; COLORREF(0) is a placeholder.
+    //
+    // SAFETY: `hwnd` is a valid window handle created above.
+    unsafe {
+      let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), opacity, LWA_ALPHA);
+    }
 
     // Register the DWM thumbnail at logical target dimensions so the thumbnail
     // always shows the real window's final rendered content (the real window is
@@ -478,37 +488,34 @@ impl NativeSurrogate {
     }
   }
 
-  /// Sets the DWM thumbnail opacity without changing any other thumbnail
-  /// properties.
+  /// Sets the whole-window opacity via `SetLayeredWindowAttributes`.
   ///
-  /// No-op when no thumbnail was registered.
-  pub fn set_thumbnail_opacity(&self, opacity: u8) {
-    if self.thumbnail == 0 {
-      return;
-    }
-    let props = DWM_THUMBNAIL_PROPERTIES {
-      dwFlags: DWM_TNP_OPACITY,
-      opacity,
-      ..Default::default()
-    };
-    // SAFETY: `self.thumbnail` is a valid handle. `props` is stack-allocated.
+  /// `opacity` ranges from 0 (fully transparent) to 255 (fully opaque).
+  /// Composited by DWM at the window level so both the backdrop and the DWM
+  /// thumbnail fade together uniformly.
+  pub fn set_window_opacity(&self, opacity: u8) {
+    // SAFETY: `HWND(self.hwnd)` is valid until `drop`. `LWA_ALPHA` makes
+    // `crKey` irrelevant.
     unsafe {
-      let _ = DwmUpdateThumbnailProperties(self.thumbnail, &raw const props);
+      let _ = SetLayeredWindowAttributes(
+        HWND(self.hwnd),
+        COLORREF(0),
+        opacity,
+        LWA_ALPHA,
+      );
     }
   }
 
-  /// Updates the DWM thumbnail source and destination rects and opacity in a
-  /// single call.
+  /// Updates the DWM thumbnail source and destination rects in a single call.
   ///
   /// `rc_src` is the source-window-local rect to sample from; `rc_dst` is the
-  /// surrogate-local rect to render into. Always forces `fVisible = true` and
-  /// `fSourceClientAreaOnly = false`. No-op when no thumbnail was registered.
-  pub fn set_thumbnail_rects(
-    &self,
-    rc_src: RECT,
-    rc_dst: RECT,
-    opacity: u8,
-  ) {
+  /// surrogate-local rect to render into. Always forces `fVisible = true`,
+  /// `opacity = 255`, and `fSourceClientAreaOnly = false`. Overall opacity is
+  /// controlled at the window level via [`set_window_opacity`]. No-op when no
+  /// thumbnail was registered.
+  ///
+  /// [`set_window_opacity`]: NativeSurrogate::set_window_opacity
+  pub fn set_thumbnail_rects(&self, rc_src: RECT, rc_dst: RECT) {
     if self.thumbnail == 0 {
       return;
     }
@@ -520,7 +527,7 @@ impl NativeSurrogate {
         | DWM_TNP_SOURCECLIENTAREAONLY,
       rcSource: rc_src,
       rcDestination: rc_dst,
-      opacity,
+      opacity: u8::MAX,
       fVisible: true.into(),
       fSourceClientAreaOnly: false.into(),
       ..Default::default()
@@ -531,8 +538,8 @@ impl NativeSurrogate {
     }
   }
 
-  /// Moves and resizes the surrogate overlay to `rect` and sets the DWM
-  /// thumbnail opacity to `opacity` (0 = fully transparent, 255 = opaque).
+  /// Moves and resizes the surrogate overlay to `rect` and sets the whole-window
+  /// opacity to `opacity` (0 = fully transparent, 255 = opaque).
   pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {
     // SAFETY: `HWND(self.hwnd)` is the overlay window created in `create`
     // and remains valid until `drop`. With `SWP_NOZORDER` set,
@@ -552,21 +559,13 @@ impl NativeSurrogate {
       )
     }?;
 
-    if self.thumbnail != 0 {
-      // The thumbnail destination rect is pinned to the target size from
-      // creation (curtain-reveal effect); only opacity is updated per frame.
-      let props = DWM_THUMBNAIL_PROPERTIES {
-        dwFlags: DWM_TNP_OPACITY,
-        opacity,
-        ..Default::default()
-      };
-
-      // SAFETY: `self.thumbnail` is a valid handle. `props` is
-      // stack-allocated and live for the duration of this call.
-      unsafe {
-        let _ =
-          DwmUpdateThumbnailProperties(self.thumbnail, &raw const props);
-      }
+    // Update whole-window opacity so the backdrop and thumbnail fade together.
+    //
+    // SAFETY: `HWND(self.hwnd)` is valid until `drop`. `LWA_ALPHA` makes
+    // `crKey` irrelevant.
+    unsafe {
+      let _ =
+        SetLayeredWindowAttributes(HWND(self.hwnd), COLORREF(0), opacity, LWA_ALPHA);
     }
 
     Ok(())
