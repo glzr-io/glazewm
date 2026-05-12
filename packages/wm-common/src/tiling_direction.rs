@@ -4,7 +4,7 @@ use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use wm_platform::Direction;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TilingDirection {
   Horizontal,
