@@ -396,6 +396,12 @@ pub struct AnimationsConfig {
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
   pub window_resize: AnimationTypeConfig,
+  /// Animation settings for when a new window appears.
+  ///
+  /// # Platform-specific
+  ///
+  /// Only has an effect on Windows.
+  pub window_open: WindowOpenConfig,
   /// Animation settings for workspace-switch slide transitions.
   pub workspace_switch: WorkspaceSwitchAnimationConfig,
   /// Maximum frame rate for animations in Hz. The animation timer will
@@ -409,8 +415,54 @@ impl Default for AnimationsConfig {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
       window_resize: AnimationTypeConfig::default(),
+      window_open: WindowOpenConfig::default(),
       workspace_switch: WorkspaceSwitchAnimationConfig::default(),
       max_frame_rate: 120,
+    }
+  }
+}
+
+/// Direction from which a new window slides in.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowOpenDirection {
+  /// Window slides in from the right (default).
+  #[default]
+  Right,
+  /// Window slides in from the left.
+  Left,
+  /// Window slides in from the top.
+  Top,
+  /// Window slides in from the bottom.
+  Bottom,
+  /// No positional slide; only scaling (if `scale_from` < 1.0) is applied.
+  None,
+}
+
+/// Animation settings for when a new window appears (Windows only).
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct WindowOpenConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  pub surrogate_color: Option<Color>,
+  /// Side from which the window enters the screen.
+  pub direction: WindowOpenDirection,
+  /// Starting scale factor (0.0–1.0). At `1.0` no scaling is applied; at
+  /// `0.9` the window grows from 90% of its target size while sliding in.
+  pub scale_from: f32,
+}
+
+impl Default for WindowOpenConfig {
+  fn default() -> Self {
+    WindowOpenConfig {
+      enabled: true,
+      duration_ms: 200,
+      easing: EasingFunction::EaseOut,
+      surrogate_color: None,
+      direction: WindowOpenDirection::Right,
+      scale_from: 1.0,
     }
   }
 }

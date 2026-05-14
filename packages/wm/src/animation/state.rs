@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use wm_common::{AnimationTypeConfig, EasingFunction};
+use wm_common::EasingFunction;
 use wm_platform::{OpacityValue, Rect};
 
 use crate::animation::engine::{animation_progress, apply_easing};
@@ -26,18 +26,20 @@ impl WindowAnimationState {
   pub fn new_movement(
     start_rect: Rect,
     target_rect: Rect,
-    config: &AnimationTypeConfig,
+    duration_ms: u32,
+    easing: EasingFunction,
   ) -> Self {
     Self {
       start_time: Instant::now(),
-      duration: Duration::from_millis(u64::from(config.duration_ms)),
-      easing: config.easing.clone(),
+      duration: Duration::from_millis(u64::from(duration_ms)),
+      easing,
       start_rect,
       target_rect,
       start_opacity: None,
       target_opacity: None,
     }
   }
+
 
   /// Gets the effective eased progress, returning 1.0 when the animation
   /// is considered complete.

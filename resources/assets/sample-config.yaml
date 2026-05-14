@@ -33,6 +33,19 @@ animations:
     threshold_px: 10
     # surrogate_color: "#1a1a1a"
 
+  # Animation settings for when a new window appears. Windows only.
+  window_open:
+    enabled: true
+    duration_ms: 200
+    # See 'window_move.easing' for available options.
+    easing: "ease_out"
+    # Direction from which the window enters: 'right' (default), 'left',
+    # 'top', 'bottom', 'none' (no slide, only scaling if scale_from < 1.0).
+    direction: "right"
+    # Starting scale factor (0.0–1.0). At 1.0 no scaling is applied; at 0.9
+    # the window grows from 90% of its target size while sliding in.
+    scale_from: 1.0
+
   # Animation settings for workspace-switch transitions.
   workspace_switch:
     enabled: true

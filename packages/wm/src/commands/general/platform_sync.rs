@@ -514,8 +514,59 @@ fn redraw_containers(
       config.value.animations.window_move.enabled
     };
 
+    // Compute effect opacity unconditionally — needed for both the movement
+    // surrogate path and the fade-in path.
+    #[cfg(target_os = "windows")]
+    let effect_opacity = {
+      let effect_cfg = if window.id() == focused_container.id() {
+        &config.value.window_effects.focused_window
+      } else {
+        &config.value.window_effects.other_windows
+      };
+      if effect_cfg.transparency.enabled {
+        effect_cfg.transparency.opacity.to_alpha()
+      } else {
+        u8::MAX
+      }
+    };
+
+    // Start a slide-in animation for newly appearing tiling windows.
+    // `previous_target.is_none()` is true only on the first `platform_sync`
+    // call for this window, so the slide-in starts exactly once.
+    #[cfg(target_os = "windows")]
+    if previous_target.is_none()
+      && is_visible
+      && !is_floating
+      && !is_outgoing_switch
+      && !is_frozen_by_ws_animation
+      && config.value.animations.window_open.enabled
+    {
+      let native_ref = window.native();
+      state.animation_manager.start_slide_in_animation(
+        window.id(),
+        target_rect.clone(),
+        effect_opacity,
+        config,
+        &*native_ref,
+      );
+    }
+
+    // A slide-in creates a `ResizeSession`, making the window eligible for the
+    // `Frozen` path even when `window_move` animations are disabled.
+    #[cfg(target_os = "windows")]
+    let has_slide_in = state
+      .animation_manager
+      .resize_sessions
+      .contains_key(&window.id())
+      && state
+        .animation_manager
+        .get_animation(&window.id())
+        .map_or(false, |a| !a.is_complete());
+    #[cfg(not(target_os = "windows"))]
+    let has_slide_in = false;
+
     let should_use_animations = !is_outgoing_switch
-      && ((!is_floating && anim_enabled) || is_frozen_by_ws_animation);
+      && ((!is_floating && anim_enabled) || is_frozen_by_ws_animation || has_slide_in);
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can
@@ -531,16 +582,6 @@ fn redraw_containers(
       if is_frozen_by_ws_animation {
         (AnimationPositionResult::Frozen, None)
       } else {
-        let effect_cfg = if window.id() == focused_container.id() {
-          &config.value.window_effects.focused_window
-        } else {
-          &config.value.window_effects.other_windows
-        };
-        let effect_opacity = if effect_cfg.transparency.enabled {
-          effect_cfg.transparency.opacity.to_alpha()
-        } else {
-          u8::MAX
-        };
         state.animation_manager.start_animation_if_needed(
           window.id(),
           is_resize,

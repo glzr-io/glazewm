@@ -323,10 +323,15 @@ fn window_state_to_create(
 /// Rules:
 /// - For non-tiling windows: Always append to the workspace.
 /// - For tiling windows:
-///   1. Try to insert after the focused tiling window if one exists.
+///   1. Try to insert after the focused tiling window (or its parent stack)
+///      if one exists.
 ///   2. If a non-tiling window is focused, try to insert after the first
 ///      tiling window found.
 ///   3. If no tiling windows exist, append to the workspace.
+///
+/// New windows are never inserted into an existing `StackContainer`
+/// automatically. Stacking is always an explicit user action via
+/// `stack-insert` or `stack-absorb-neighbor`.
 ///
 /// Returns tuple of (parent container, insertion index).
 fn insertion_target(

@@ -9,7 +9,7 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::{EasingFunction, WindowState, WorkspaceSwitchStyle};
+use wm_common::{EasingFunction, WindowOpenDirection, WindowState, WorkspaceSwitchStyle};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
@@ -41,8 +41,13 @@ struct WorkspaceSwitchEntry {
 struct WorkspaceSwitchState {
   /// All participating windows keyed by window ID.
   windows: HashMap<Uuid, WorkspaceSwitchEntry>,
-  /// When the animation started.
-  start_time: Instant,
+  /// Time of the first rendered frame, lazily set on the first tick.
+  ///
+  /// Initialized to `None` so the clock starts when `update_internal` first
+  /// renders the animation rather than when `start_workspace_switch` is called
+  /// mid-`platform_sync`. Without lazy init, a cold-start gap of 1-3 DWM
+  /// frames causes surrogates to jump ahead on their first visible tick.
+  start_time: Option<Instant>,
   /// Total animation duration.
   duration: Duration,
   /// Easing function applied to raw elapsed-time progress.
@@ -342,8 +347,8 @@ impl AnimationManager {
       use crate::animation::engine::{animation_progress, apply_easing};
 
       if let Some(ws) = &mut state.animation_manager.workspace_switch {
-        let raw_progress =
-          animation_progress(ws.start_time, ws.duration);
+        let start = *ws.start_time.get_or_insert_with(Instant::now);
+        let raw_progress = animation_progress(start, ws.duration);
         let eased = apply_easing(raw_progress, &ws.easing);
 
         // Complete early once eased progress reaches 99% — EaseOutCubic
@@ -561,7 +566,8 @@ impl AnimationManager {
         let animation = WindowAnimationState::new_movement(
           start_rect.clone(),
           target_rect.clone(),
-          anim_config,
+          anim_config.duration_ms,
+          anim_config.easing.clone(),
         );
         self.start_animation(window_id, animation);
 
@@ -695,7 +701,7 @@ impl AnimationManager {
       );
       self.workspace_switch = Some(WorkspaceSwitchState {
         windows: ws_windows,
-        start_time: Instant::now(),
+        start_time: None,
         duration: Duration::from_millis(u64::from(duration_ms)),
         easing: ws_config.easing.clone(),
         style: ws_config.style.clone(),
@@ -708,6 +714,88 @@ impl AnimationManager {
     } else {
       tracing::warn!("Workspace-switch skipped: no windows to animate.");
     }
+  }
+
+  /// Starts a slide-in animation for a newly appearing window.
+  ///
+  /// The surrogate slides from a computed start position (determined by
+  /// `window_open.direction` and `window_open.scale_from`) to the window's
+  /// final target rect. A `ResizeSession` handles all visuals; the real window
+  /// remains cloaked until the animation completes.
+  #[cfg(target_os = "windows")]
+  pub fn start_slide_in_animation(
+    &mut self,
+    window_id: Uuid,
+    target_rect: Rect,
+    effect_opacity: u8,
+    config: &UserConfig,
+    native_window: &NativeWindow,
+  ) {
+    let anim_config = &config.value.animations.window_open;
+    let start_rect =
+      Self::compute_open_start_rect(&target_rect, anim_config);
+
+    let anim = WindowAnimationState::new_movement(
+      start_rect.clone(),
+      target_rect.clone(),
+      anim_config.duration_ms,
+      anim_config.easing.clone(),
+    );
+    self.animations.insert(window_id, anim);
+
+    match ResizeSession::begin(
+      native_window.hwnd(),
+      &start_rect,
+      &target_rect,
+      anim_config.surrogate_color.as_ref(),
+      effect_opacity,
+    ) {
+      Ok(session) => {
+        self.resize_sessions.insert(window_id, session);
+      }
+      Err(err) => {
+        tracing::warn!(
+          "Failed to begin slide-in session for {window_id}: {err}."
+        );
+      }
+    }
+  }
+
+  /// Computes the surrogate start rect for a window-open animation.
+  ///
+  /// The start rect is derived from `target_rect` by applying `scale_from`
+  /// (shrinks the rect towards its center) and offsetting it in `direction`
+  /// so the leading edge is flush with the corresponding edge of `target_rect`.
+  #[cfg(target_os = "windows")]
+  fn compute_open_start_rect(
+    target: &Rect,
+    config: &wm_common::WindowOpenConfig,
+  ) -> Rect {
+    let scale = config.scale_from.clamp(0.0, 1.0);
+    let sw = ((target.width() as f32) * scale).round() as i32;
+    let sh = ((target.height() as f32) * scale).round() as i32;
+    // Center offsets used when the other axis is scaled.
+    let dx = (target.width() - sw) / 2;
+    let dy = (target.height() - sh) / 2;
+
+    let (x, y) = match &config.direction {
+      // Left edge of start rect is at the right edge of target.
+      WindowOpenDirection::Right => {
+        (target.x() + target.width(), target.y() + dy)
+      }
+      // Right edge of start rect is at the left edge of target.
+      WindowOpenDirection::Left => (target.x() - sw, target.y() + dy),
+      // Bottom edge of start rect is at the top edge of target.
+      WindowOpenDirection::Top => (target.x() + dx, target.y() - sh),
+      // Top edge of start rect is at the bottom edge of target.
+      WindowOpenDirection::Bottom => {
+        (target.x() + dx, target.y() + target.height())
+      }
+      // No slide — start at the center-scaled position (pure scale effect).
+      WindowOpenDirection::None => (target.x() + dx, target.y() + dy),
+    };
+
+    Rect::from_xy(x, y, sw, sh)
   }
 
   /// Applies the configured effect opacity to all outgoing workspace-switch
