@@ -32,6 +32,14 @@ pub fn manage_window(
     return Ok(());
   };
 
+  // Cloak as early as possible to minimise the visible flash before the
+  // window is repositioned and animated. Non-tiling windows are uncloaked
+  // by `platform_sync` for their target position; tiling windows are
+  // uncloaked by the slide-in animation. Uncloaked immediately below if
+  // window rules decide to ignore the window.
+  #[cfg(target_os = "windows")]
+  let _ = native_window.set_cloaked(true);
+
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
   let window = try_warn!(create_window(
@@ -56,13 +64,6 @@ pub fn manage_window(
 
   if let Some(window) = updated_window {
     info!("New window managed: {window}");
-
-    // Cloak new tiling windows immediately so they don't briefly appear at
-    // their native OS position before `platform_sync` repositions them.
-    #[cfg(target_os = "windows")]
-    if window.state() == WindowState::Tiling {
-      let _ = window.native().set_cloaked(true);
-    }
 
     state.emit_event(WmEvent::WindowManaged {
       managed_window: window.to_dto()?,
@@ -89,6 +90,11 @@ pub fn manage_window(
         window.into()
       },
     );
+  } else {
+    // Window was detached by an `ignore` rule — undo the early cloak so it
+    // continues to display normally without GlazeWM managing it.
+    #[cfg(target_os = "windows")]
+    let _ = window.native().set_cloaked(false);
   }
 
   Ok(())
