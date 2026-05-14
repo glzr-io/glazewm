@@ -94,8 +94,6 @@ impl ResizeSession {
     // window will have already rendered at the correct size, making uncloak
     // flicker-free.
     if surrogate.is_some() {
-      let r = target_rect;
-
       // SAFETY: `hwnd` is a valid top-level window handle. `SWP_NOZORDER`
       // makes `hWndInsertAfter` irrelevant. `SWP_ASYNCWINDOWPOS` posts to
       // the window's message queue without blocking our thread.
@@ -103,10 +101,10 @@ impl ResizeSession {
         let _ = SetWindowPos(
           hwnd,
           HWND(0),
-          r.x(),
-          r.y(),
-          r.width(),
-          r.height(),
+          target_rect.x(),
+          target_rect.y(),
+          target_rect.width(),
+          target_rect.height(),
           SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
         );
       }
@@ -156,8 +154,6 @@ impl ResizeSession {
       return;
     }
 
-    let r = new_target;
-
     // SAFETY: `HWND(self.hwnd)` is valid. `SWP_ASYNCWINDOWPOS` posts to the
     // window's message queue without blocking. With `SWP_NOZORDER` set,
     // `hWndInsertAfter` is ignored per the Win32 documentation.
@@ -165,10 +161,10 @@ impl ResizeSession {
       let _ = SetWindowPos(
         HWND(self.hwnd),
         HWND(0),
-        r.x(),
-        r.y(),
-        r.width(),
-        r.height(),
+        new_target.x(),
+        new_target.y(),
+        new_target.width(),
+        new_target.height(),
         SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
       );
     }
@@ -197,24 +193,22 @@ impl ResizeSession {
       return;
     }
 
-    let r = &self.target_rect;
-
     // SAFETY: `HWND(self.hwnd)` is valid (verified above). `SWP_NOZORDER`
     // makes `hWndInsertAfter` irrelevant.
     unsafe {
       let _ = SetWindowPos(
         HWND(self.hwnd),
         HWND(0),
-        r.x(),
-        r.y(),
-        r.width(),
-        r.height(),
+        self.target_rect.x(),
+        self.target_rect.y(),
+        self.target_rect.width(),
+        self.target_rect.height(),
         SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
       );
     }
 
     if let Some(surrogate) = &mut self.surrogate {
-      let logical = to_logical(&self.target_rect.clone(), &self.border_inset);
+      let logical = to_logical(&self.target_rect, &self.border_inset);
       if let Err(err) = surrogate.update(&logical, self.effect_opacity) {
         tracing::warn!("Surrogate pre-commit update failed: {err}.");
       }
@@ -247,8 +241,6 @@ impl ResizeSession {
       return Ok(());
     }
 
-    let r = &self.target_rect;
-
     // SAFETY: `HWND(self.hwnd)` is valid (verified above). With
     // `SWP_NOZORDER` set, `hWndInsertAfter` (`HWND(0)`) is ignored per
     // the Win32 documentation.
@@ -256,10 +248,10 @@ impl ResizeSession {
       SetWindowPos(
         HWND(self.hwnd),
         HWND(0),
-        r.x(),
-        r.y(),
-        r.width(),
-        r.height(),
+        self.target_rect.x(),
+        self.target_rect.y(),
+        self.target_rect.width(),
+        self.target_rect.height(),
         SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
       )
     }?;

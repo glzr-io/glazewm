@@ -541,33 +541,8 @@ impl NativeSurrogate {
   /// Moves and resizes the surrogate overlay to `rect` and sets the whole-window
   /// opacity to `opacity` (0 = fully transparent, 255 = opaque).
   pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {
-    // SAFETY: `HWND(self.hwnd)` is the overlay window created in `create`
-    // and remains valid until `drop`. With `SWP_NOZORDER` set,
-    // `hWndInsertAfter` is ignored per the Win32 documentation.
-    unsafe {
-      SetWindowPos(
-        HWND(self.hwnd),
-        HWND(0),
-        rect.x(),
-        rect.y(),
-        rect.width(),
-        rect.height(),
-        SWP_NOACTIVATE
-          | SWP_NOCOPYBITS
-          | SWP_NOSENDCHANGING
-          | SWP_NOZORDER,
-      )
-    }?;
-
-    // Update whole-window opacity so the backdrop and thumbnail fade together.
-    //
-    // SAFETY: `HWND(self.hwnd)` is valid until `drop`. `LWA_ALPHA` makes
-    // `crKey` irrelevant.
-    unsafe {
-      let _ =
-        SetLayeredWindowAttributes(HWND(self.hwnd), COLORREF(0), opacity, LWA_ALPHA);
-    }
-
+    self.reposition(rect)?;
+    self.set_window_opacity(opacity);
     Ok(())
   }
 }
