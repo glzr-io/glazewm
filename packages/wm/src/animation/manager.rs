@@ -761,7 +761,18 @@ impl AnimationManager {
       anim_config.surrogate_color.as_ref(),
       effect_opacity,
     ) {
-      Ok(session) => {
+      Ok(mut session) => {
+        // Override the surrogate's initial opacity synchronously before the
+        // first DWM frame. `ResizeSession::begin` always creates the surrogate
+        // at `effect_opacity` (255 when transparency is off), so without this
+        // call there is a one-frame flash at full opacity before the animation
+        // loop drives it down to the configured `opacity_from` value.
+        if anim_config.opacity_from < 1.0 {
+          let initial_u8 = (anim_config.opacity_from.clamp(0.0, 1.0)
+            * effect_opacity as f32)
+            .round() as u8;
+          session.update(&start_rect, initial_u8);
+        }
         self.resize_sessions.insert(window_id, session);
       }
       Err(err) => {
