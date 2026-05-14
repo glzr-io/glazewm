@@ -452,6 +452,9 @@ pub struct WindowOpenConfig {
   /// Starting scale factor (0.0–1.0). At `1.0` no scaling is applied; at
   /// `0.9` the window grows from 90% of its target size while sliding in.
   pub scale_from: f32,
+  /// Starting opacity (0.0–1.0). At `1.0` no fade is applied; at `0.0`
+  /// the window fades in from fully transparent.
+  pub opacity_from: f32,
 }
 
 impl Default for WindowOpenConfig {
@@ -463,6 +466,7 @@ impl Default for WindowOpenConfig {
       surrogate_color: None,
       direction: WindowOpenDirection::Right,
       scale_from: 1.0,
+      opacity_from: 1.0,
     }
   }
 }

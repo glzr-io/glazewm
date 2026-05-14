@@ -735,12 +735,23 @@ impl AnimationManager {
     let start_rect =
       Self::compute_open_start_rect(&target_rect, anim_config);
 
-    let anim = WindowAnimationState::new_movement(
+    let mut anim = WindowAnimationState::new_movement(
       start_rect.clone(),
       target_rect.clone(),
       anim_config.duration_ms,
       anim_config.easing.clone(),
     );
+
+    // Set up fade-in when opacity_from < 1.0. The surrogate fades from
+    // `opacity_from * effect_opacity` to `effect_opacity` so the fade
+    // respects the window's configured transparency.
+    if anim_config.opacity_from < 1.0 {
+      let effect_frac = effect_opacity as f32 / 255.0;
+      let start_frac = anim_config.opacity_from.clamp(0.0, 1.0) * effect_frac;
+      anim.start_opacity = Some(OpacityValue(start_frac));
+      anim.target_opacity = Some(OpacityValue(effect_frac));
+    }
+
     self.animations.insert(window_id, anim);
 
     match ResizeSession::begin(

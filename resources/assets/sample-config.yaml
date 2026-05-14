@@ -45,6 +45,10 @@ animations:
     # Starting scale factor (0.0–1.0). At 1.0 no scaling is applied; at 0.9
     # the window grows from 90% of its target size while sliding in.
     scale_from: 1.0
+    # Starting opacity (0.0–1.0). At 1.0 no fade is applied; at 0.0 the
+    # window fades in from fully transparent. Can be combined with direction
+    # and scale_from for mixed effects.
+    opacity_from: 1.0
 
   # Animation settings for workspace-switch transitions.
   workspace_switch:
