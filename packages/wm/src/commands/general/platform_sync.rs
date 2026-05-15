@@ -582,6 +582,8 @@ fn redraw_containers(
       // Incoming workspace-switch windows: the surrogate handles all visuals
       // for the full animation duration — freeze the real window.
       #[cfg(target_os = "windows")]
+      let native_ref = window.native();
+      #[cfg(target_os = "windows")]
       if is_frozen_by_ws_animation {
         (AnimationPositionResult::Frozen, None)
       } else {
