@@ -19,6 +19,9 @@ pub struct WorkspaceSurrogate {
   pub rect: Rect,
   /// DWM thumbnail opacity (0–255) derived from the window-effects config.
   opacity: u8,
+  /// When `true`, the surrogate's opacity is lerped each frame: outgoing
+  /// fades out (opacity → 0) and incoming fades in (0 → opacity).
+  fade: bool,
 }
 
 impl WorkspaceSurrogate {
@@ -29,13 +32,20 @@ impl WorkspaceSurrogate {
   /// For incoming windows, [`slide_axis`] reveals the surrogate as soon as it
   /// enters the monitor's visible area.
   ///
+  /// When `fade` is `true`, [`slide_axis`] lerps the surrogate opacity each
+  /// frame: outgoing fades from `opacity` → 0; incoming fades from 0 →
+  /// `opacity`. [`apply_effect_opacity`] must still be called after cloaking
+  /// the outgoing real window to set the animation-start opacity correctly.
+  ///
   /// [`show_initial`]: WorkspaceSurrogate::show_initial
   /// [`slide_axis`]: WorkspaceSurrogate::slide_axis
+  /// [`apply_effect_opacity`]: WorkspaceSurrogate::apply_effect_opacity
   pub fn new(
     hwnd: HWND,
     rect: &Rect,
     color: Option<&Color>,
     opacity: u8,
+    fade: bool,
   ) -> crate::Result<Self> {
     let inner = NativeSurrogate::create(
       hwnd,
@@ -46,7 +56,7 @@ impl WorkspaceSurrogate {
       false,
       RECT::default(),
     )?;
-    Ok(Self { inner, rect: rect.clone(), opacity })
+    Ok(Self { inner, rect: rect.clone(), opacity, fade })
   }
 
   /// Hides the DWM thumbnail without destroying it or hiding the surrogate window.
@@ -215,6 +225,15 @@ impl WorkspaceSurrogate {
       Rect::from_xy(surr_pos, perp_pos, surr_size, perp_size)
     };
     let _ = self.inner.reposition(&constrained_rect);
+
+    if self.fade {
+      let fade_alpha = if is_incoming {
+        (self.opacity as f32 * eased_progress).round() as u8
+      } else {
+        (self.opacity as f32 * (1.0 - eased_progress)).round() as u8
+      };
+      self.inner.set_window_opacity(fade_alpha);
+    }
 
     self.inner.set_visible(true);
   }

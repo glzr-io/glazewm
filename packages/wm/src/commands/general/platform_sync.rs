@@ -299,7 +299,7 @@ fn redraw_containers(
               })
               .ok()
               .and_then(|rect| {
-                WorkspaceSurrogate::new(hwnd, &rect, color, opacity)
+                WorkspaceSurrogate::new(hwnd, &rect, color, opacity, ws_config.fade)
                   .map_err(|e| {
                     tracing::warn!(
                       "Failed to create incoming surrogate: {e}."
@@ -321,7 +321,7 @@ fn redraw_containers(
               .or_else(|| window.native().frame().ok())
               .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
             let surrogate =
-              WorkspaceSurrogate::new(hwnd, &current, color, opacity)
+              WorkspaceSurrogate::new(hwnd, &current, color, opacity, ws_config.fade)
                 .map_err(|e| {
                   tracing::warn!("Failed to create outgoing surrogate: {e}.");
                   e
@@ -341,15 +341,8 @@ fn redraw_containers(
         // be 0, placing surrogates at their target position immediately and
         // causing an instant flash instead of a slide.
         if (has_outgoing || has_incoming) && direction != 0 {
-          // First flush: all outgoing windows are still composited and all
-          // thumbnails (outgoing and incoming) have just been registered.
-          // DWM captures every thumbnail source in this frame so the
-          // outgoing surrogate content is guaranteed warm.
-          wm_platform::dwm_flush();
-
-          // Show outgoing surrogates immediately so they cover the real
-          // windows before those windows are cloaked later in this call.
-
+          // Show outgoing surrogates before flushing: real windows are
+          // still active so their DWM thumbnails are immediately warm.
           for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
             if !*is_incoming {
               if let Some(s) = surrogate {
@@ -358,15 +351,12 @@ fn redraw_containers(
             }
           }
 
-          // Second flush: gives DWM one more composition cycle to capture
-          // the incoming thumbnails. Cloaked or corner-hidden source
-          // windows may not be updated in DWM's first pass after
-          // registration; this extra frame ensures the incoming surrogate
-          // shows real content on its very first visible tick rather than
-          // a blank or stale frame.
-          if has_incoming {
-            wm_platform::dwm_flush();
-          }
+          // Single flush: DWM renders one frame with outgoing surrogates
+          // at full opacity, ensuring surrogate content is composited
+          // before the real windows are cloaked below. Incoming windows
+          // start off-screen, so DWM warms their thumbnails over the
+          // first few frames of the slide without a visible gap.
+          wm_platform::dwm_flush();
 
           state.animation_manager.start_workspace_switch(
             ws_windows,
@@ -630,21 +620,18 @@ fn redraw_containers(
         if !window.native().is_cloaked().unwrap_or(false) {
           let _ = window.native().set_cloaked(true);
 
-          // Workspace-switch windows hidden via `PlaceInCorner` start at the
-          // corner and need a synchronous pre-position so they are at
-          // `target_rect` when uncloaked. Resize-session windows skip this:
-          // `begin` already posted `SWP_ASYNCWINDOWPOS` (250 ms is enough
-          // time to process), `pre_commit` provides a sync fallback just
-          // before the surrogate drops, and the window is invisible while
-          // cloaked so its mid-animation position is irrelevant.
+          // Pre-position the cloaked window at its target rect so it
+          // appears there when uncloaked at animation end. Posted
+          // asynchronously — the animation duration (~300 ms) is far
+          // longer than any app's message-queue processing time.
           let is_resize_session = state
             .animation_manager
             .resize_sessions
             .contains_key(&window.id());
           if !is_resize_session {
             use wm_platform::{
-              SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
-              SWP_NOZORDER,
+              SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+              SWP_NOSENDCHANGING, SWP_NOZORDER,
             };
             let _ = window.native().set_window_pos(
               &z_order,
@@ -652,7 +639,8 @@ fn redraw_containers(
               SWP_NOZORDER
                 | SWP_FRAMECHANGED
                 | SWP_NOACTIVATE
-                | SWP_NOSENDCHANGING,
+                | SWP_NOSENDCHANGING
+                | SWP_ASYNCWINDOWPOS,
             );
           }
         }

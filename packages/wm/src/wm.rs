@@ -79,7 +79,7 @@ impl WindowManager {
     // for the initial population path.
     state
       .animation_manager
-      .ensure_timer_running(&state, config);
+      .ensure_timer_running();
 
     Ok(Self {
       event_rx,
@@ -164,7 +164,7 @@ impl WindowManager {
     }
 
     // Start animation timer if needed
-    self.state.animation_manager.ensure_timer_running(&self.state, config);
+    self.state.animation_manager.ensure_timer_running();
 
     Ok(())
   }
@@ -215,7 +215,7 @@ impl WindowManager {
     self
       .state
       .animation_manager
-      .ensure_timer_running(&self.state, config);
+      .ensure_timer_running();
 
     Ok(new_subject_container_id)
   }

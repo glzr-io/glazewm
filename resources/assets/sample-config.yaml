@@ -58,12 +58,10 @@ animations:
     easing: "ease_out_cubic"
     # Transition style: 'slide_horizontal' (default), 'slide_vertical'
     style: "slide_horizontal"
+    # Crossfade workspaces while sliding: outgoing fades out, incoming fades
+    # in. Adds depth to the slide without changing the layout or duration.
+    # fade: false
     # surrogate_color: "#1a1a1a"
-
-  # Maximum frame rate for animations in Hz. The animation timer will not
-  # exceed this rate even if the monitor supports higher refresh rates.
-  # Default: 120
-  max_frame_rate: 120
 
 general:
   # Commands to run when the WM has started. This is useful for running a

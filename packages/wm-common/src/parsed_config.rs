@@ -404,10 +404,6 @@ pub struct AnimationsConfig {
   pub window_open: WindowOpenConfig,
   /// Animation settings for workspace-switch slide transitions.
   pub workspace_switch: WorkspaceSwitchAnimationConfig,
-  /// Maximum frame rate for animations in Hz. The animation timer will
-  /// not exceed this rate even if the monitor supports higher refresh
-  /// rates. Default: 120 Hz
-  pub max_frame_rate: u32,
 }
 
 impl Default for AnimationsConfig {
@@ -417,7 +413,6 @@ impl Default for AnimationsConfig {
       window_resize: AnimationTypeConfig::default(),
       window_open: WindowOpenConfig::default(),
       workspace_switch: WorkspaceSwitchAnimationConfig::default(),
-      max_frame_rate: 120,
     }
   }
 }
@@ -496,6 +491,17 @@ pub struct WorkspaceSwitchAnimationConfig {
   pub easing: EasingFunction,
   /// Transition style: `slide_horizontal` (default) or `slide_vertical`.
   pub style: WorkspaceSwitchStyle,
+  /// Whether to crossfade workspaces while sliding.
+  ///
+  /// When `true`, the outgoing workspace fades from fully opaque to
+  /// transparent and the incoming workspace fades from transparent to
+  /// fully opaque over the animation duration. When `false` (default),
+  /// both workspaces slide at full opacity.
+  ///
+  /// # Platform-specific
+  ///
+  /// Only has an effect on Windows; ignored on macOS.
+  pub fade: bool,
   /// Optional solid-color backdrop for workspace-switch surrogate
   /// overlays.
   ///
@@ -516,6 +522,7 @@ impl Default for WorkspaceSwitchAnimationConfig {
       duration_ms: 300,
       easing: EasingFunction::EaseOutCubic,
       style: WorkspaceSwitchStyle::default(),
+      fade: false,
       surrogate_color: None,
     }
   }
