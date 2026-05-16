@@ -111,7 +111,8 @@ fn set_tiling(
   state
     .pending_sync
     .queue_containers_to_redraw(target_parent.tiling_children())
-    .queue_workspace_to_reorder(workspace);
+    .queue_workspace_to_reorder(workspace)
+    .queue_focused_effect_update();
 
   Ok(tiling_window.into())
 }
@@ -157,7 +158,10 @@ fn set_non_tiling(
       }
 
       window.set_state(target_state);
-      state.pending_sync.queue_container_to_redraw(window.clone());
+      state
+        .pending_sync
+        .queue_container_to_redraw(window.clone())
+        .queue_focused_effect_update();
 
       Ok(window.into())
     }
@@ -195,7 +199,8 @@ fn set_non_tiling(
         .pending_sync
         .queue_container_to_redraw(non_tiling_window.clone())
         .queue_containers_to_redraw(workspace.tiling_children())
-        .queue_workspace_to_reorder(workspace);
+        .queue_workspace_to_reorder(workspace)
+        .queue_focused_effect_update();
 
       Ok(non_tiling_window.into())
     }
