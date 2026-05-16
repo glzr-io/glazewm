@@ -42,6 +42,16 @@ pub struct ResizeSession {
   /// component, so the thumbnail matches the real window's `SetLayeredWindowAttributes`
   /// opacity throughout the move/resize.
   pub effect_opacity: u8,
+  /// Whether the target is smaller than the source in at least one dimension.
+  ///
+  /// When `true`, the real window is kept at its source position throughout the
+  /// animation and only moved synchronously in [`pre_commit`]. This prevents a
+  /// visible jump (e.g. when a new window spawns and adjacent windows shrink to
+  /// make room). Growing windows still pre-position via `SWP_ASYNCWINDOWPOS` so
+  /// the window can render at its final size before the surrogate drops.
+  ///
+  /// [`pre_commit`]: ResizeSession::pre_commit
+  is_shrinking: bool,
 }
 
 impl ResizeSession {
@@ -50,16 +60,18 @@ impl ResizeSession {
   /// The surrogate is positioned at the **logical** rect (physical minus
   /// invisible border) so it does not overlap the configured window gap.
   /// The DWM thumbnail is pinned to the **target** logical dimensions so it
-  /// always shows the final rendered content. The real window is immediately
-  /// pre-positioned to `target_rect` (physical) while hidden beneath the
-  /// overlay.
+  /// always shows the final rendered content.
+  ///
+  /// For growing windows the real window is immediately pre-positioned to
+  /// `target_rect` via `SWP_ASYNCWINDOWPOS` so it renders at its final size
+  /// before the surrogate drops. For shrinking windows the real window stays
+  /// at `source_rect` and is only moved synchronously in [`pre_commit`], so
+  /// it never jumps to a smaller position while another window is on top.
   ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
   ///
-  /// `scale` controls whether the surrogate thumbnail scales its content to
-  /// fit the current frame size (`true` for open animations) or pins at target
-  /// size for a curtain-reveal effect (`false` for move/resize animations).
+  /// [`pre_commit`]: ResizeSession::pre_commit
   pub fn begin(
     hwnd: HWND,
     source_rect: &Rect,
@@ -69,6 +81,15 @@ impl ResizeSession {
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
 
+    // Shrinking: target is smaller than source in at least one dimension.
+    // Growing windows are pre-positioned to target early so the window can
+    // render at its final size before the surrogate drops (curtain-reveal).
+    // Shrinking windows stay at source to avoid a visible jump (the surrogate
+    // collapses on top of the real window; the final SetWindowPos fires
+    // synchronously in `pre_commit`).
+    let is_shrinking = target_rect.width() < source_rect.width()
+      || target_rect.height() < source_rect.height();
+
     let surrogate = match NativeSurrogate::create(
       hwnd,
       source_rect,
@@ -77,6 +98,7 @@ impl ResizeSession {
       effect_opacity,
       true,
       border_inset,
+      is_shrinking,
     ) {
       Ok(s) => Some(s),
       Err(err) => {
@@ -93,7 +115,11 @@ impl ResizeSession {
     // this resize does not affect the displayed content. By animation end the
     // window will have already rendered at the correct size, making uncloak
     // flicker-free.
-    if surrogate.is_some() {
+    //
+    // Skipped for shrinking sessions: the real window stays at source and is
+    // only moved synchronously at `pre_commit`, so it never jumps to a smaller
+    // position while covered by another window.
+    if surrogate.is_some() && !is_shrinking {
       // SAFETY: `hwnd` is a valid top-level window handle. `SWP_NOZORDER`
       // makes `hWndInsertAfter` irrelevant. `SWP_ASYNCWINDOWPOS` posts to
       // the window's message queue without blocking our thread.
@@ -116,6 +142,7 @@ impl ResizeSession {
       surrogate,
       border_inset,
       effect_opacity,
+      is_shrinking,
     })
   }
 
@@ -150,7 +177,9 @@ impl ResizeSession {
   pub fn update_target(&mut self, new_target: &Rect) {
     self.target_rect = new_target.clone();
 
-    if self.hwnd == 0 {
+    // Shrinking sessions never pre-position mid-animation; the final
+    // synchronous SetWindowPos in `pre_commit` is sufficient.
+    if self.hwnd == 0 || self.is_shrinking {
       return;
     }
 

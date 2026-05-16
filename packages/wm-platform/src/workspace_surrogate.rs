@@ -55,6 +55,7 @@ impl WorkspaceSurrogate {
       opacity,
       false,
       RECT::default(),
+      false,
     )?;
     Ok(Self { inner, rect: rect.clone(), opacity, fade })
   }

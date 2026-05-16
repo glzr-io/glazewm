@@ -22,6 +22,7 @@ use crate::{
   wm_state::WmState,
 };
 
+
 /// Tracks a single window's participation in the current workspace-switch
 /// slide animation.
 #[cfg(target_os = "windows")]
@@ -790,6 +791,26 @@ impl AnimationManager {
     Rect::from_xy(x, y, sw, sh)
   }
 
+  /// Hides the workspace-switch surrogate thumbnail for a single window in
+  /// `pending_ws_cleanup`.
+  ///
+  /// Called immediately after `set_cloaked(false)` for each incoming window
+  /// so the surrogate thumbnail disappears at the same DWM composition event
+  /// as the window uncloak, eliminating the double-blend frame that would
+  /// occur if thumbnail hide were deferred until after all windows are
+  /// processed.
+  #[cfg(target_os = "windows")]
+  pub fn hide_pending_ws_cleanup_surrogate(&mut self, window_id: Uuid) {
+    let Some(ref mut ws) = self.pending_ws_cleanup else {
+      return;
+    };
+    if let Some(entry) = ws.windows.get_mut(&window_id) {
+      if let Some(ref mut s) = entry.surrogate {
+        s.hide_thumbnail();
+      }
+    }
+  }
+
   /// Applies the configured effect opacity to all outgoing workspace-switch
   /// surrogates.
   ///
@@ -810,24 +831,6 @@ impl AnimationManager {
     }
   }
 
-  /// Hides the workspace-switch surrogate thumbnail for a single window in
-  /// `pending_ws_cleanup`.
-  ///
-  /// Called immediately after `set_cloaked(false)` for each incoming window
-  /// so the surrogate thumbnail disappears at the same DWM composition event
-  /// as the window uncloak, eliminating the double-blend frame that would
-  /// occur if thumbnail hide were deferred until after all windows are
-  /// processed.
-  #[cfg(target_os = "windows")]
-  pub fn hide_pending_ws_cleanup_surrogate(&mut self, window_id: Uuid) {
-    let Some(ref mut ws) = self.pending_ws_cleanup else {
-      return;
-    };
-    if let Some(entry) = ws.windows.get_mut(&window_id) {
-      if let Some(ref mut s) = entry.surrogate {
-        s.hide_thumbnail();
-      }
-    }
-  }
 }
+
 
