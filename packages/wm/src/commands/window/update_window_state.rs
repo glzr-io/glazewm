@@ -29,6 +29,10 @@ pub fn update_window_state(
     return Ok(window);
   }
 
+  // Mark for state-change animation so `platform_sync` allows a `window_move`
+  // animation across the tiling/floating boundary for this window.
+  state.pending_sync.mark_window_state_change(window.id());
+
   info!("Updating window state: {:?}.", target_state);
 
   match target_state {

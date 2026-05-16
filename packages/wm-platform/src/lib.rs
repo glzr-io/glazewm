@@ -61,6 +61,26 @@ pub fn dwm_flush() {
   }
 }
 
+/// Sets the calling thread's scheduling priority to highest.
+///
+/// Called at the start of the animation timer thread to reduce scheduling
+/// jitter between the DWM VSync wake-up and tick delivery to the Tokio
+/// runtime. On non-Windows platforms this is a no-op.
+pub fn set_thread_priority_highest() {
+  #[cfg(target_os = "windows")]
+  {
+    use windows::Win32::System::Threading::{
+      GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_HIGHEST,
+    };
+    // SAFETY: `GetCurrentThread` returns a pseudo-handle valid for the
+    // lifetime of the calling thread. `SetThreadPriority` has no
+    // preconditions beyond a valid handle and a recognised priority value.
+    unsafe {
+      let _ = SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+    }
+  }
+}
+
 // TODO: Avoid exposing `windows` crate types in the public API.
 #[cfg(target_os = "windows")]
 pub use windows::Win32::UI::WindowsAndMessaging::{

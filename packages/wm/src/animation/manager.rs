@@ -9,7 +9,7 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::{EasingFunction, WindowOpenDirection, WindowState, WorkspaceSwitchStyle};
+use wm_common::{EasingFunction, WindowOpenDirection, WorkspaceSwitchStyle};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
@@ -17,7 +17,7 @@ use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
 use crate::{
   animation::state::WindowAnimationState,
   commands::general::platform_sync,
-  traits::{CommonGetters, WindowGetters},
+  traits::CommonGetters,
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -227,6 +227,10 @@ impl AnimationManager {
       std::thread::Builder::new()
         .name("glazewm-anim-tick".into())
         .spawn(move || {
+          // Elevate priority so scheduling jitter between the DwmFlush
+          // VSync wake-up and tick delivery is minimised.
+          wm_platform::set_thread_priority_highest();
+
           loop {
             if !timer_flag.load(Ordering::Relaxed) {
               break;
@@ -263,20 +267,12 @@ impl AnimationManager {
       return Ok(());
     }
 
-    // Queue in-progress windows for redraw, skipping floating windows (they
-    // are never animated).
+    // Queue in-progress windows for redraw.
     let active_window_ids: Vec<_> = state
       .animation_manager
       .active_window_ids()
       .into_iter()
       .filter(|id| {
-        if let Some(container) = state.container_by_id(*id) {
-          if let Ok(window) = container.as_window_container() {
-            if matches!(window.state(), WindowState::Floating(_)) {
-              return false;
-            }
-          }
-        }
         state
           .animation_manager
           .get_animation(id)

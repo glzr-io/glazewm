@@ -471,8 +471,12 @@ fn redraw_containers(
       .window_target_positions
       .insert(window.id(), target_rect.clone());
 
-    // Floating windows are never animated — they should respond immediately.
+    // Floating windows are not animated in general, but we allow a single
+    // `window_move` animation when the window just crossed the tiling/floating
+    // boundary so the transition is smooth rather than a teleport.
     let is_floating = matches!(window.state(), WindowState::Floating(_));
+    let is_state_change =
+      state.pending_sync.is_window_state_change(&window.id());
 
     let is_outgoing_switch =
       state.pending_sync.is_workspace_switch_outgoing(&window.id());
@@ -556,7 +560,10 @@ fn redraw_containers(
     let has_slide_in = false;
 
     let should_use_animations = !is_outgoing_switch
-      && ((!is_floating && anim_enabled) || is_frozen_by_ws_animation || has_slide_in);
+      && ((!is_floating && anim_enabled)
+        || (is_state_change && anim_enabled)
+        || is_frozen_by_ws_animation
+        || has_slide_in);
 
     // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
     // duration of the `start_animation_if_needed` call on Windows so we can

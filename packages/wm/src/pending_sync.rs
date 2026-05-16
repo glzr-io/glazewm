@@ -43,6 +43,11 @@ pub struct PendingSync {
   /// slides in from the right, outgoing slides out to the left). `-1` means
   /// the opposite. `0` means no directional preference (fade in place).
   workspace_switch_direction: i32,
+
+  /// Window IDs that just underwent a tiling/floating state change this sync
+  /// cycle. Used by `platform_sync` to allow `window_move` animations across
+  /// the state boundary (e.g. tiling → floating or floating → tiling).
+  window_state_changes: HashSet<Uuid>,
 }
 
 impl PendingSync {
@@ -65,6 +70,7 @@ impl PendingSync {
     self.workspace_switch_incoming.clear();
     self.workspace_switch_outgoing.clear();
     self.workspace_switch_direction = 0;
+    self.window_state_changes.clear();
     self
   }
 
@@ -154,6 +160,17 @@ impl PendingSync {
 
   pub fn workspaces_to_reorder(&self) -> &Vec<Workspace> {
     &self.workspaces_to_reorder
+  }
+
+  /// Marks a window as having just changed tiling/floating state this cycle.
+  pub fn mark_window_state_change(&mut self, id: Uuid) -> &mut Self {
+    self.window_state_changes.insert(id);
+    self
+  }
+
+  /// Returns `true` if the window changed tiling/floating state this cycle.
+  pub fn is_window_state_change(&self, id: &Uuid) -> bool {
+    self.window_state_changes.contains(id)
   }
 
   /// Registers a window as an incoming workspace-switch target.
