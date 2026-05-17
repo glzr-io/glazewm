@@ -2,8 +2,8 @@ use windows::Win32::{
   Foundation::{HWND, RECT},
   Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS},
   UI::WindowsAndMessaging::{
-    GetWindowRect, IsWindow, SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE,
-    SWP_NOSENDCHANGING, SWP_NOZORDER,
+    GetWindowRect, IsWindow, SetWindowPos, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
+    SWP_NOZORDER,
   },
 };
 
@@ -47,8 +47,9 @@ pub struct ResizeSession {
   /// When `true`, the real window is kept at its source position throughout the
   /// animation and only moved synchronously in [`pre_commit`]. This prevents a
   /// visible jump (e.g. when a new window spawns and adjacent windows shrink to
-  /// make room). Growing windows still pre-position via `SWP_ASYNCWINDOWPOS` so
-  /// the window can render at its final size before the surrogate drops.
+  /// make room). For growing sessions, `platform_sync`'s Frozen branch
+  /// synchronously pre-positions the cloaked window at the target immediately
+  /// after cloaking so DWM captures the correctly-sized content.
   ///
   /// [`pre_commit`]: ResizeSession::pre_commit
   is_shrinking: bool,
@@ -62,11 +63,12 @@ impl ResizeSession {
   /// The DWM thumbnail is pinned to the **target** logical dimensions so it
   /// always shows the final rendered content.
   ///
-  /// For growing windows the real window is immediately pre-positioned to
-  /// `target_rect` via `SWP_ASYNCWINDOWPOS` so it renders at its final size
-  /// before the surrogate drops. For shrinking windows the real window stays
-  /// at `source_rect` and is only moved synchronously in [`pre_commit`], so
-  /// it never jumps to a smaller position while another window is on top.
+  /// For growing windows, `platform_sync`'s Frozen branch synchronously
+  /// pre-positions the cloaked real window at `target_rect` immediately after
+  /// cloaking, giving it the full animation duration to paint at the new size.
+  /// For shrinking windows the real window stays at `source_rect` and is only
+  /// moved synchronously in [`pre_commit`], so it never jumps to a smaller
+  /// position while another window is on top.
   ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
@@ -110,32 +112,6 @@ impl ResizeSession {
       }
     };
 
-    // Pre-position the real window at the physical target rect while it is
-    // covered by the surrogate. The pinned `rcSource` on the thumbnail means
-    // this resize does not affect the displayed content. By animation end the
-    // window will have already rendered at the correct size, making uncloak
-    // flicker-free.
-    //
-    // Skipped for shrinking sessions: the real window stays at source and is
-    // only moved synchronously at `pre_commit`, so it never jumps to a smaller
-    // position while covered by another window.
-    if surrogate.is_some() && !is_shrinking {
-      // SAFETY: `hwnd` is a valid top-level window handle. `SWP_NOZORDER`
-      // makes `hWndInsertAfter` irrelevant. `SWP_ASYNCWINDOWPOS` posts to
-      // the window's message queue without blocking our thread.
-      unsafe {
-        let _ = SetWindowPos(
-          hwnd,
-          HWND(0),
-          target_rect.x(),
-          target_rect.y(),
-          target_rect.width(),
-          target_rect.height(),
-          SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
-        );
-      }
-    }
-
     Ok(Self {
       hwnd: hwnd.0,
       target_rect: target_rect.clone(),
@@ -144,6 +120,14 @@ impl ResizeSession {
       effect_opacity,
       is_shrinking,
     })
+  }
+
+  /// Returns `true` when the target rect is wider or taller than the source.
+  ///
+  /// Used by `platform_sync` to decide whether to synchronously pre-position
+  /// the cloaked real window at the target rect immediately after cloaking.
+  pub fn is_growing(&self) -> bool {
+    !self.is_shrinking
   }
 
   /// Whether a surrogate overlay is currently active for this session.
@@ -170,22 +154,26 @@ impl ResizeSession {
   /// Redirects the session to a new target rect while the surrogate is still
   /// active.
   ///
-  /// Updates the stored `target_rect` and posts `SWP_ASYNCWINDOWPOS` to
-  /// pre-position the real window at `new_target` so it is ready when the
-  /// surrogate is eventually dropped. The surrogate thumbnail remains pinned
-  /// to the original source size; only the animation destination changes.
+  /// For shrinking sessions: only updates `target_rect`. The single synchronous
+  /// `SetWindowPos` in [`pre_commit`] is sufficient.
+  ///
+  /// For growing sessions: synchronously pre-positions the cloaked real window
+  /// at `new_target` so it paints at the updated size, and re-registers the DWM
+  /// thumbnail at the new target dimensions so the curtain-reveal correctly
+  /// covers the newly expanded area.
+  ///
+  /// [`pre_commit`]: ResizeSession::pre_commit
   pub fn update_target(&mut self, new_target: &Rect) {
     self.target_rect = new_target.clone();
 
-    // Shrinking sessions never pre-position mid-animation; the final
-    // synchronous SetWindowPos in `pre_commit` is sufficient.
     if self.hwnd == 0 || self.is_shrinking {
       return;
     }
 
-    // SAFETY: `HWND(self.hwnd)` is valid. `SWP_ASYNCWINDOWPOS` posts to the
-    // window's message queue without blocking. With `SWP_NOZORDER` set,
-    // `hWndInsertAfter` is ignored per the Win32 documentation.
+    // SAFETY: Window is cloaked when `update_target` is called (invoked from
+    // `start_animation_if_needed` during an active Frozen animation), so this
+    // `SetWindowPos` is invisible to the user. `SWP_NOZORDER` makes
+    // `hWndInsertAfter` irrelevant.
     unsafe {
       let _ = SetWindowPos(
         HWND(self.hwnd),
@@ -194,7 +182,17 @@ impl ResizeSession {
         new_target.y(),
         new_target.width(),
         new_target.height(),
-        SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER,
+        SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
+      );
+    }
+
+    if let Some(surrogate) = &mut self.surrogate {
+      let logical = to_logical(new_target, &self.border_inset);
+      surrogate.reregister_thumbnail(
+        HWND(self.hwnd),
+        logical.width(),
+        logical.height(),
+        self.border_inset,
       );
     }
   }

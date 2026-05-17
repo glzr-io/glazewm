@@ -555,6 +555,37 @@ impl NativeSurrogate {
     }
   }
 
+  /// Unregisters the current DWM thumbnail and registers a new one at
+  /// `logical_width` × `logical_height`.
+  ///
+  /// Called when a growing animation is redirected to a larger target via
+  /// `update_target` so the curtain-reveal correctly covers the newly expanded
+  /// area. No-op when no thumbnail was registered.
+  pub fn reregister_thumbnail(
+    &mut self,
+    source_hwnd: HWND,
+    logical_width: i32,
+    logical_height: i32,
+    border_inset: RECT,
+  ) {
+    if self.thumbnail != 0 {
+      // SAFETY: `self.thumbnail` is a valid handle returned by
+      // `DwmRegisterThumbnail`.
+      unsafe {
+        let _ = DwmUnregisterThumbnail(self.thumbnail);
+      }
+      self.thumbnail = 0;
+    }
+    self.thumbnail = register_thumbnail(
+      HWND(self.hwnd),
+      source_hwnd,
+      logical_width,
+      logical_height,
+      border_inset,
+    )
+    .unwrap_or(0);
+  }
+
   /// Moves and resizes the surrogate overlay to `rect` and sets the whole-window
   /// opacity to `opacity` (0 = fully transparent, 255 = opaque).
   pub fn update(&mut self, rect: &Rect, opacity: u8) -> crate::Result<()> {

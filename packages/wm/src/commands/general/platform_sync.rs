@@ -649,6 +649,32 @@ fn redraw_containers(
                 | SWP_NOSENDCHANGING
                 | SWP_ASYNCWINDOWPOS,
             );
+          } else {
+            // Growing resize sessions: synchronously pre-position the cloaked
+            // window at target so it starts painting at the new size
+            // immediately. DWM then captures the correctly-sized content as
+            // the curtain-reveal surrogate expands over the animation duration.
+            // Shrinking sessions leave the window at source until `pre_commit`.
+            let is_growing = state
+              .animation_manager
+              .resize_sessions
+              .get(&window.id())
+              .map_or(false, |s| s.is_growing());
+
+            if is_growing {
+              use wm_platform::{
+                SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
+                SWP_NOZORDER,
+              };
+              let _ = window.native().set_window_pos(
+                &z_order,
+                &target_rect,
+                SWP_NOZORDER
+                  | SWP_FRAMECHANGED
+                  | SWP_NOACTIVATE
+                  | SWP_NOSENDCHANGING,
+              );
+            }
           }
         }
       }
