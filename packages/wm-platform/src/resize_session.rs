@@ -42,17 +42,14 @@ pub struct ResizeSession {
   /// component, so the thumbnail matches the real window's `SetLayeredWindowAttributes`
   /// opacity throughout the move/resize.
   pub effect_opacity: u8,
-  /// Whether the target is smaller than the source in at least one dimension.
+  /// `true` when the target rect is wider or taller than the source rect.
   ///
-  /// When `true`, the real window is kept at its source position throughout the
-  /// animation and only moved synchronously in [`pre_commit`]. This prevents a
-  /// visible jump (e.g. when a new window spawns and adjacent windows shrink to
-  /// make room). For growing sessions, `platform_sync`'s Frozen branch
-  /// synchronously pre-positions the cloaked window at the target immediately
-  /// after cloaking so DWM captures the correctly-sized content.
-  ///
-  /// [`pre_commit`]: ResizeSession::pre_commit
-  is_shrinking: bool,
+  /// Growing sessions use a curtain-reveal: the thumbnail is registered at
+  /// target dimensions and the cloaked real window is pre-positioned at the
+  /// target synchronously so DWM can capture the correctly-sized content.
+  /// Shrinking sessions use a clip/wipe: the thumbnail is registered at source
+  /// dimensions and the real window stays at source until `pre_commit`.
+  is_growing: bool,
 }
 
 impl ResizeSession {
@@ -60,15 +57,20 @@ impl ResizeSession {
   ///
   /// The surrogate is positioned at the **logical** rect (physical minus
   /// invisible border) so it does not overlap the configured window gap.
-  /// The DWM thumbnail is pinned to the **target** logical dimensions so it
-  /// always shows the final rendered content.
   ///
-  /// For growing windows, `platform_sync`'s Frozen branch synchronously
-  /// pre-positions the cloaked real window at `target_rect` immediately after
-  /// cloaking, giving it the full animation duration to paint at the new size.
-  /// For shrinking windows the real window stays at `source_rect` and is only
-  /// moved synchronously in [`pre_commit`], so it never jumps to a smaller
-  /// position while another window is on top.
+  /// For **shrinking** animations (`target` narrower/shorter than `source`):
+  /// the thumbnail is registered at `source_rect` dimensions, filling the
+  /// whole surrogate initially. As the surrogate shrinks the thumbnail edge is
+  /// clipped — a wipe effect with no content distortion and no timing
+  /// dependency on the real window re-rendering. The real window stays at
+  /// `source_rect` until [`pre_commit`] moves it synchronously at animation
+  /// end.
+  ///
+  /// For **growing** animations (`target` wider/taller than `source`): the
+  /// thumbnail is registered at `target_rect` dimensions. The caller
+  /// (platform_sync's Frozen branch) must synchronously pre-position the
+  /// cloaked real window at the target rect immediately after cloaking so DWM
+  /// can capture the correctly-sized content during the curtain-reveal.
   ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
@@ -83,24 +85,21 @@ impl ResizeSession {
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
 
-    // Shrinking: target is smaller than source in at least one dimension.
-    // Growing windows are pre-positioned to target early so the window can
-    // render at its final size before the surrogate drops (curtain-reveal).
-    // Shrinking windows stay at source to avoid a visible jump (the surrogate
-    // collapses on top of the real window; the final SetWindowPos fires
-    // synchronously in `pre_commit`).
-    let is_shrinking = target_rect.width() < source_rect.width()
-      || target_rect.height() < source_rect.height();
+    let is_growing = target_rect.width() > source_rect.width()
+      || target_rect.height() > source_rect.height();
+
+    // Growing: thumbnail at target dimensions for curtain-reveal.
+    // Shrinking: thumbnail at source dimensions for clip/wipe effect.
+    let thumbnail_rect = if is_growing { target_rect } else { source_rect };
 
     let surrogate = match NativeSurrogate::create(
       hwnd,
       source_rect,
-      target_rect,
+      thumbnail_rect,
       surrogate_color,
       effect_opacity,
       true,
       border_inset,
-      is_shrinking,
     ) {
       Ok(s) => Some(s),
       Err(err) => {
@@ -118,16 +117,17 @@ impl ResizeSession {
       surrogate,
       border_inset,
       effect_opacity,
-      is_shrinking,
+      is_growing,
     })
   }
 
-  /// Returns `true` when the target rect is wider or taller than the source.
+  /// Returns `true` when the target rect is wider or taller than the source
+  /// rect.
   ///
   /// Used by `platform_sync` to decide whether to synchronously pre-position
   /// the cloaked real window at the target rect immediately after cloaking.
   pub fn is_growing(&self) -> bool {
-    !self.is_shrinking
+    self.is_growing
   }
 
   /// Whether a surrogate overlay is currently active for this session.
@@ -154,26 +154,27 @@ impl ResizeSession {
   /// Redirects the session to a new target rect while the surrogate is still
   /// active.
   ///
-  /// For shrinking sessions: only updates `target_rect`. The single synchronous
-  /// `SetWindowPos` in [`pre_commit`] is sufficient.
+  /// For **shrinking** sessions: only updates the stored `target_rect`. The
+  /// single synchronous move happens in [`pre_commit`] once the animation
+  /// reaches its final destination.
   ///
-  /// For growing sessions: synchronously pre-positions the cloaked real window
-  /// at `new_target` so it paints at the updated size, and re-registers the DWM
-  /// thumbnail at the new target dimensions so the curtain-reveal correctly
-  /// covers the newly expanded area.
+  /// For **growing** sessions: additionally sends a synchronous `SetWindowPos`
+  /// to pre-position the cloaked real window at `new_target` and re-registers
+  /// the DWM thumbnail at the new target dimensions. This ensures the
+  /// curtain-reveal correctly covers the newly expanded area when a second
+  /// window close redirects an in-flight animation to a larger target.
   ///
   /// [`pre_commit`]: ResizeSession::pre_commit
   pub fn update_target(&mut self, new_target: &Rect) {
     self.target_rect = new_target.clone();
 
-    if self.hwnd == 0 || self.is_shrinking {
+    if !self.is_growing || self.hwnd == 0 {
       return;
     }
 
     // SAFETY: Window is cloaked when `update_target` is called (invoked from
     // `start_animation_if_needed` during an active Frozen animation), so this
-    // `SetWindowPos` is invisible to the user. `SWP_NOZORDER` makes
-    // `hWndInsertAfter` irrelevant.
+    // `SetWindowPos` is invisible to the user.
     unsafe {
       let _ = SetWindowPos(
         HWND(self.hwnd),
