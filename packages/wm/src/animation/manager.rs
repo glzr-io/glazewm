@@ -712,9 +712,12 @@ impl AnimationManager {
   /// Starts a slide-in animation for a newly appearing window.
   ///
   /// The surrogate slides from a computed start position (determined by
-  /// `window_open.direction` and `window_open.scale_from`) to the window's
-  /// final target rect. A `ResizeSession` handles all visuals; the real window
-  /// remains cloaked until the animation completes.
+  /// `window_open.direction`) to the window's final target rect. A
+  /// `ResizeSession` handles all visuals; the real window remains cloaked
+  /// until the animation completes.
+  ///
+  /// No-ops when `direction` is `None` and `opacity_from` is `1.0` (nothing
+  /// would visually change for the duration).
   #[cfg(target_os = "windows")]
   pub fn start_slide_in_animation(
     &mut self,
@@ -725,6 +728,14 @@ impl AnimationManager {
     native_window: &NativeWindow,
   ) {
     let anim_config = &config.value.animations.window_open;
+
+    // Skip when there is nothing to animate: no positional slide and no fade.
+    if anim_config.direction == WindowOpenDirection::None
+      && anim_config.opacity_from >= 1.0
+    {
+      return;
+    }
+
     let start_rect =
       Self::compute_open_start_rect(&target_rect, anim_config);
 
@@ -745,8 +756,6 @@ impl AnimationManager {
       anim.target_opacity = Some(OpacityValue(effect_frac));
     }
 
-    self.animations.insert(window_id, anim);
-
     match ResizeSession::begin(
       native_window.hwnd(),
       &start_rect,
@@ -766,6 +775,7 @@ impl AnimationManager {
             .round() as u8;
           session.update(&start_rect, initial_u8);
         }
+        self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
       }
       Err(err) => {
@@ -778,39 +788,31 @@ impl AnimationManager {
 
   /// Computes the surrogate start rect for a window-open animation.
   ///
-  /// The start rect is derived from `target_rect` by applying `scale_from`
-  /// (shrinks the rect towards its center) and offsetting it in `direction`
-  /// so the leading edge is flush with the corresponding edge of `target_rect`.
+  /// The start rect is the same size as `target_rect`, offset in `direction`
+  /// so its leading edge is flush with the corresponding edge of `target_rect`.
+  /// `None` direction returns `target_rect` directly (used for fade-only).
   #[cfg(target_os = "windows")]
   fn compute_open_start_rect(
     target: &Rect,
     config: &wm_common::WindowOpenConfig,
   ) -> Rect {
-    let scale = config.scale_from.clamp(0.0, 1.0);
-    let sw = ((target.width() as f32) * scale).round() as i32;
-    let sh = ((target.height() as f32) * scale).round() as i32;
-    // Center offsets used when the other axis is scaled.
-    let dx = (target.width() - sw) / 2;
-    let dy = (target.height() - sh) / 2;
+    let w = target.width();
+    let h = target.height();
 
     let (x, y) = match &config.direction {
       // Left edge of start rect is at the right edge of target.
-      WindowOpenDirection::Right => {
-        (target.x() + target.width(), target.y() + dy)
-      }
+      WindowOpenDirection::Right => (target.x() + w, target.y()),
       // Right edge of start rect is at the left edge of target.
-      WindowOpenDirection::Left => (target.x() - sw, target.y() + dy),
+      WindowOpenDirection::Left => (target.x() - w, target.y()),
       // Bottom edge of start rect is at the top edge of target.
-      WindowOpenDirection::Top => (target.x() + dx, target.y() - sh),
+      WindowOpenDirection::Top => (target.x(), target.y() - h),
       // Top edge of start rect is at the bottom edge of target.
-      WindowOpenDirection::Bottom => {
-        (target.x() + dx, target.y() + target.height())
-      }
-      // No slide — start at the center-scaled position (pure scale effect).
-      WindowOpenDirection::None => (target.x() + dx, target.y() + dy),
+      WindowOpenDirection::Bottom => (target.x(), target.y() + h),
+      // No slide — start at target position (fade-only).
+      WindowOpenDirection::None => (target.x(), target.y()),
     };
 
-    Rect::from_xy(x, y, sw, sh)
+    Rect::from_xy(x, y, w, h)
   }
 
   /// Hides the workspace-switch surrogate thumbnail for a single window in

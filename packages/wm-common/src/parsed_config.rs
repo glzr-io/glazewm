@@ -446,10 +446,6 @@ pub struct WindowOpenConfig {
   /// Starting opacity (0.0–1.0). At `1.0` no fade is applied; at `0.0`
   /// the window fades in from fully transparent.
   pub opacity_from: f32,
-  /// Starting scale (0.0–1.0) applied to both axes. At `1.0` (default)
-  /// the surrogate starts at full size; lower values shrink the start rect
-  /// towards its center.
-  pub scale_from: f32,
 }
 
 impl Default for WindowOpenConfig {
@@ -460,7 +456,6 @@ impl Default for WindowOpenConfig {
       easing: EasingFunction::EaseOut,
       direction: WindowOpenDirection::Right,
       opacity_from: 1.0,
-      scale_from: 1.0,
     }
   }
 }

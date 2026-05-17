@@ -571,12 +571,6 @@ fn redraw_containers(
         || is_frozen_by_ws_animation
         || has_slide_in);
 
-    // `window.native()` returns a `Ref<NativeWindow>`. Keep it alive for the
-    // duration of the `start_animation_if_needed` call on Windows so we can
-    // take a reference to the inner value.
-    #[cfg(target_os = "windows")]
-    let native_ref = window.native();
-
     // Determine the rect to use for this frame.
     let (position_result, _) = if should_use_animations {
       // Incoming workspace-switch windows: the surrogate handles all visuals
