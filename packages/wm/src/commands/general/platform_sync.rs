@@ -248,7 +248,9 @@ fn redraw_containers(
       });
 
       if has_ws_windows {
-        let color = ws_config.surrogate_color.as_ref();
+        let incoming_fades = ws_config.style.incoming_fades();
+        let outgoing_fades = ws_config.style.outgoing_fades();
+        let is_fade_only = ws_config.style.is_fade_only();
         let mut ws_windows: Vec<(uuid::Uuid, Option<WorkspaceSurrogate>, bool)> =
           Vec::new();
         let mut monitor_x = 0i32;
@@ -299,7 +301,7 @@ fn redraw_containers(
               })
               .ok()
               .and_then(|rect| {
-                WorkspaceSurrogate::new(hwnd, &rect, color, opacity, ws_config.fade)
+                WorkspaceSurrogate::new(hwnd, &rect, opacity, incoming_fades)
                   .map_err(|e| {
                     tracing::warn!(
                       "Failed to create incoming surrogate: {e}."
@@ -321,7 +323,7 @@ fn redraw_containers(
               .or_else(|| window.native().frame().ok())
               .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
             let surrogate =
-              WorkspaceSurrogate::new(hwnd, &current, color, opacity, ws_config.fade)
+              WorkspaceSurrogate::new(hwnd, &current, opacity, outgoing_fades)
                 .map_err(|e| {
                   tracing::warn!("Failed to create outgoing surrogate: {e}.");
                   e
@@ -336,17 +338,21 @@ fn redraw_containers(
         let has_incoming =
           ws_windows.iter().any(|(_, _, is_incoming)| *is_incoming);
 
-        // Skip when direction == 0: workspace names were not found in the
-        // config (dynamically created workspaces), so the slide offset would
-        // be 0, placing surrogates at their target position immediately and
-        // causing an instant flash instead of a slide.
-        if (has_outgoing || has_incoming) && direction != 0 {
-          // Show outgoing surrogates before flushing: real windows are
-          // still active so their DWM thumbnails are immediately warm.
+        // For slide styles, skip when direction == 0: workspace names were not
+        // found in the config so the slide offset would be 0, placing
+        // surrogates at their target and causing an instant flash. Fade-only
+        // has no slide offset so direction == 0 is fine.
+        if (has_outgoing || has_incoming) && (direction != 0 || is_fade_only) {
+          // Show outgoing surrogates before flushing: real windows are still
+          // active so their DWM thumbnails are immediately warm.
+          // For fade-only, also show incoming surrogates at zero opacity so
+          // DWM warms their thumbnails before the animation loop begins.
           for (_, ref mut surrogate, is_incoming) in &mut ws_windows {
-            if !*is_incoming {
-              if let Some(s) = surrogate {
+            if let Some(s) = surrogate {
+              if !*is_incoming {
                 s.show_initial();
+              } else if is_fade_only {
+                s.show_fade_incoming();
               }
             }
           }

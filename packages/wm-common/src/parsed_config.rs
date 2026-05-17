@@ -395,7 +395,7 @@ pub struct AnimationsConfig {
   /// only).
   pub window_move: AnimationTypeConfig,
   /// Animation settings for operations that change window size.
-  pub window_resize: AnimationTypeConfig,
+  pub window_resize: WindowResizeConfig,
   /// Animation settings for when a new window appears.
   ///
   /// # Platform-specific
@@ -410,7 +410,7 @@ impl Default for AnimationsConfig {
   fn default() -> Self {
     AnimationsConfig {
       window_move: AnimationTypeConfig::default(),
-      window_resize: AnimationTypeConfig::default(),
+      window_resize: WindowResizeConfig::default(),
       window_open: WindowOpenConfig::default(),
       workspace_switch: WorkspaceSwitchAnimationConfig::default(),
     }
@@ -441,7 +441,6 @@ pub struct WindowOpenConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
-  pub surrogate_color: Option<Color>,
   /// Side from which the window enters the screen.
   pub direction: WindowOpenDirection,
   /// Starting opacity (0.0–1.0). At `1.0` no fade is applied; at `0.0`
@@ -459,7 +458,6 @@ impl Default for WindowOpenConfig {
       enabled: true,
       duration_ms: 200,
       easing: EasingFunction::EaseOut,
-      surrogate_color: None,
       direction: WindowOpenDirection::Right,
       opacity_from: 1.0,
       scale_from: 1.0,
@@ -476,44 +474,76 @@ pub enum WorkspaceSwitchStyle {
   SlideHorizontal,
   /// Workspaces slide up/down.
   SlideVertical,
+  /// Horizontal slide; both workspaces crossfade simultaneously.
+  SlideCrossfadeHorizontal,
+  /// Vertical slide; both workspaces crossfade simultaneously.
+  SlideCrossfadeVertical,
+  /// Horizontal slide; outgoing fades out, incoming slides in at full opacity.
+  SlideFadeOutHorizontal,
+  /// Vertical slide; outgoing fades out, incoming slides in at full opacity.
+  SlideFadeOutVertical,
+  /// Horizontal slide; incoming fades in, outgoing slides out at full opacity.
+  SlideFadeInHorizontal,
+  /// Vertical slide; incoming fades in, outgoing slides out at full opacity.
+  SlideFadeInVertical,
+  /// Pure crossfade; no positional slide.
+  Fade,
+}
+
+impl WorkspaceSwitchStyle {
+  /// Returns whether the outgoing workspace surrogate should fade.
+  pub fn outgoing_fades(&self) -> bool {
+    matches!(
+      self,
+      Self::SlideCrossfadeHorizontal
+        | Self::SlideCrossfadeVertical
+        | Self::SlideFadeOutHorizontal
+        | Self::SlideFadeOutVertical
+        | Self::Fade
+    )
+  }
+
+  /// Returns whether the incoming workspace surrogate should fade.
+  pub fn incoming_fades(&self) -> bool {
+    matches!(
+      self,
+      Self::SlideCrossfadeHorizontal
+        | Self::SlideCrossfadeVertical
+        | Self::SlideFadeInHorizontal
+        | Self::SlideFadeInVertical
+        | Self::Fade
+    )
+  }
+
+  /// Returns `true` when the transition has no positional slide component.
+  pub fn is_fade_only(&self) -> bool {
+    matches!(self, Self::Fade)
+  }
 }
 
 /// Animation config for workspace-switch transitions.
 ///
-/// When `style` is `slide_horizontal` or `slide_vertical`, the outgoing
-/// workspace translates off-screen in the direction of the switch while the
-/// incoming workspace slides in from the opposite edge, constrained to the
-/// monitor on which the switch occurs.
+/// Outgoing workspaces translate off-screen (for slide styles) or fade out
+/// (for crossfade styles) while the incoming workspace slides or fades in,
+/// all constrained to the monitor on which the switch occurs.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WorkspaceSwitchAnimationConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
-  /// Transition style: `slide_horizontal` (default) or `slide_vertical`.
+  /// Transition style.
+  ///
+  /// - `slide_horizontal` (default): slide left/right, full opacity.
+  /// - `slide_vertical`: slide up/down, full opacity.
+  /// - `slide_crossfade_horizontal`: horizontal slide; both sides fade.
+  /// - `slide_crossfade_vertical`: vertical slide; both sides fade.
+  /// - `slide_fade_out_horizontal`: horizontal slide; outgoing fades out.
+  /// - `slide_fade_out_vertical`: vertical slide; outgoing fades out.
+  /// - `slide_fade_in_horizontal`: horizontal slide; incoming fades in.
+  /// - `slide_fade_in_vertical`: vertical slide; incoming fades in.
+  /// - `fade`: pure crossfade, no positional slide.
   pub style: WorkspaceSwitchStyle,
-  /// Whether to crossfade workspaces while sliding.
-  ///
-  /// When `true`, the outgoing workspace fades from fully opaque to
-  /// transparent and the incoming workspace fades from transparent to
-  /// fully opaque over the animation duration. When `false` (default),
-  /// both workspaces slide at full opacity.
-  ///
-  /// # Platform-specific
-  ///
-  /// Only has an effect on Windows; ignored on macOS.
-  pub fade: bool,
-  /// Optional solid-color backdrop for workspace-switch surrogate
-  /// overlays.
-  ///
-  /// When unset (default), the surrogate backdrop is fully transparent so
-  /// only the DWM thumbnail content is visible and gaps between windows
-  /// remain see-through.
-  ///
-  /// # Platform-specific
-  ///
-  /// Only has an effect on Windows; ignored on macOS.
-  pub surrogate_color: Option<Color>,
 }
 
 impl Default for WorkspaceSwitchAnimationConfig {
@@ -523,13 +553,12 @@ impl Default for WorkspaceSwitchAnimationConfig {
       duration_ms: 300,
       easing: EasingFunction::EaseOutCubic,
       style: WorkspaceSwitchStyle::default(),
-      fade: false,
-      surrogate_color: None,
     }
   }
 }
 
 
+/// Animation settings for window move operations.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct AnimationTypeConfig {
@@ -540,6 +569,29 @@ pub struct AnimationTypeConfig {
   /// Helps prevent animations from starting on very small position
   /// changes. Increase this value on high-DPI displays to reduce
   /// sensitivity.
+  pub threshold_px: u32,
+}
+
+impl Default for AnimationTypeConfig {
+  fn default() -> Self {
+    AnimationTypeConfig {
+      enabled: true,
+      duration_ms: 150,
+      easing: EasingFunction::EaseInOut,
+      threshold_px: 10,
+    }
+  }
+}
+
+/// Animation settings for window resize operations.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct WindowResizeConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  /// Minimum pixel distance required to trigger resize animations.
+  /// Increase this value on high-DPI displays to reduce sensitivity.
   pub threshold_px: u32,
   /// Optional solid-color backdrop for the surrogate overlay window.
   ///
@@ -553,9 +605,9 @@ pub struct AnimationTypeConfig {
   pub surrogate_color: Option<Color>,
 }
 
-impl Default for AnimationTypeConfig {
+impl Default for WindowResizeConfig {
   fn default() -> Self {
-    AnimationTypeConfig {
+    WindowResizeConfig {
       enabled: true,
       duration_ms: 150,
       easing: EasingFunction::EaseInOut,

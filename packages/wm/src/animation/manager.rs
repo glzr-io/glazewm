@@ -343,7 +343,10 @@ impl AnimationManager {
         for entry in ws.windows.values_mut() {
           if let Some(ref mut s) = entry.surrogate {
             match ws.style {
-              WorkspaceSwitchStyle::SlideHorizontal => {
+              WorkspaceSwitchStyle::SlideHorizontal
+              | WorkspaceSwitchStyle::SlideCrossfadeHorizontal
+              | WorkspaceSwitchStyle::SlideFadeOutHorizontal
+              | WorkspaceSwitchStyle::SlideFadeInHorizontal => {
                 s.update_slide_horizontal(
                   eased_final,
                   entry.is_incoming,
@@ -352,7 +355,10 @@ impl AnimationManager {
                   ws.monitor_width,
                 );
               }
-              WorkspaceSwitchStyle::SlideVertical => {
+              WorkspaceSwitchStyle::SlideVertical
+              | WorkspaceSwitchStyle::SlideCrossfadeVertical
+              | WorkspaceSwitchStyle::SlideFadeOutVertical
+              | WorkspaceSwitchStyle::SlideFadeInVertical => {
                 s.update_slide_vertical(
                   eased_final,
                   entry.is_incoming,
@@ -360,6 +366,9 @@ impl AnimationManager {
                   ws.monitor_y,
                   ws.monitor_height,
                 );
+              }
+              WorkspaceSwitchStyle::Fade => {
+                s.update_fade(eased_final, entry.is_incoming);
               }
             }
           }
@@ -447,14 +456,16 @@ impl AnimationManager {
   ) -> bool {
     let existing_animation = self.get_animation(window_id);
 
-    let anim_config = if is_resize {
-      &config.value.animations.window_resize
+    let (enabled, threshold_px) = if is_resize {
+      let c = &config.value.animations.window_resize;
+      (c.enabled, c.threshold_px)
     } else {
-      &config.value.animations.window_move
+      let c = &config.value.animations.window_move;
+      (c.enabled, c.threshold_px)
     };
-    let threshold = anim_config.threshold_px as i32;
+    let threshold = threshold_px as i32;
 
-    if anim_config.enabled {
+    if enabled {
       if let Some(anim) = existing_animation {
         if anim.is_complete() {
           // Animation already at its target — treat as a static window and
@@ -528,17 +539,19 @@ impl AnimationManager {
           .map(|a| a.current_rect())
           .unwrap_or_else(|| prev_target.clone());
 
-        let anim_config = if is_resize {
-          &config.value.animations.window_resize
+        let (duration_ms, easing) = if is_resize {
+          let c = &config.value.animations.window_resize;
+          (c.duration_ms, c.easing.clone())
         } else {
-          &config.value.animations.window_move
+          let c = &config.value.animations.window_move;
+          (c.duration_ms, c.easing.clone())
         };
 
         let animation = WindowAnimationState::new_movement(
           start_rect.clone(),
           target_rect.clone(),
-          anim_config.duration_ms,
-          anim_config.easing.clone(),
+          duration_ms,
+          easing,
         );
         self.start_animation(window_id, animation);
 
@@ -552,11 +565,16 @@ impl AnimationManager {
         if let Some(session) = self.resize_sessions.get_mut(&window_id) {
           session.update_target(&target_rect);
         } else {
+          let surrogate_color = if is_resize {
+            config.value.animations.window_resize.surrogate_color.as_ref()
+          } else {
+            None
+          };
           match ResizeSession::begin(
             native_window.hwnd(),
             &start_rect,
             &target_rect,
-            anim_config.surrogate_color.as_ref(),
+            surrogate_color,
             effect_opacity,
           ) {
             Ok(session) => {
@@ -729,7 +747,7 @@ impl AnimationManager {
       native_window.hwnd(),
       &start_rect,
       &target_rect,
-      anim_config.surrogate_color.as_ref(),
+      None,
       effect_opacity,
     ) {
       Ok(mut session) => {

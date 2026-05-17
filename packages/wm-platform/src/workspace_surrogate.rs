@@ -1,6 +1,6 @@
 use windows::Win32::Foundation::{HWND, RECT};
 
-use crate::{Color, NativeSurrogate, Rect};
+use crate::{NativeSurrogate, Rect};
 
 /// Surrogate overlay for a single window participating in a workspace-switch
 /// slide animation.
@@ -43,7 +43,6 @@ impl WorkspaceSurrogate {
   pub fn new(
     hwnd: HWND,
     rect: &Rect,
-    color: Option<&Color>,
     opacity: u8,
     fade: bool,
   ) -> crate::Result<Self> {
@@ -51,7 +50,7 @@ impl WorkspaceSurrogate {
       hwnd,
       rect,
       rect,
-      color,
+      None,
       opacity,
       false,
       RECT::default(),
@@ -91,6 +90,33 @@ impl WorkspaceSurrogate {
   /// real window underneath.
   pub fn apply_effect_opacity(&mut self) {
     self.inner.set_window_opacity(self.opacity);
+  }
+
+  /// Shows the surrogate at its final rect with zero window opacity.
+  ///
+  /// Use for incoming windows in fade-only transitions so the surrogate is
+  /// positioned and DWM-thumbnail-warmed before the animation begins without
+  /// being visible. [`update_fade`] then lerps opacity from 0 to the
+  /// configured effect opacity.
+  ///
+  /// [`update_fade`]: WorkspaceSurrogate::update_fade
+  pub fn show_fade_incoming(&mut self) {
+    let _ = self.inner.update(&self.rect, self.opacity);
+    self.inner.set_window_opacity(0);
+    self.inner.set_visible(true);
+  }
+
+  /// Advances the surrogate opacity for a fade-only transition.
+  ///
+  /// The surrogate stays at its target rect; only the window opacity is
+  /// lerped each frame to produce a crossfade without positional movement.
+  pub fn update_fade(&mut self, eased_progress: f32, is_incoming: bool) {
+    let fade_alpha = if is_incoming {
+      (self.opacity as f32 * eased_progress).round() as u8
+    } else {
+      (self.opacity as f32 * (1.0 - eased_progress)).round() as u8
+    };
+    self.inner.set_window_opacity(fade_alpha);
   }
 
   /// Advances the surrogate along the horizontal axis to `eased_progress`

@@ -16,11 +16,6 @@ animations:
     # Increase this value on high-DPI displays to reduce sensitivity.
     # Default: 10
     threshold_px: 10
-    # Backdrop style for the surrogate overlay (Windows only). Omit for
-    # Acrylic blur-behind (default), or set to a hex color:
-    #   "#1a1a1a"   - opaque solid color
-    #   "#1a1a1aCC" - solid color with alpha (CC = ~80% opacity)
-    # surrogate_color: "#1a1a1a"
 
   # Animation settings for window resize operations.
   window_resize:
@@ -56,12 +51,17 @@ animations:
     duration_ms: 300
     # See 'window_move.easing' for available options.
     easing: "ease_out_cubic"
-    # Transition style: 'slide_horizontal' (default), 'slide_vertical'
+    # Transition style. Options:
+    #   'slide_horizontal' (default)   - slide left/right, full opacity
+    #   'slide_vertical'               - slide up/down, full opacity
+    #   'slide_crossfade_horizontal'   - horizontal slide, both sides fade
+    #   'slide_crossfade_vertical'     - vertical slide, both sides fade
+    #   'slide_fade_out_horizontal'    - horizontal slide, outgoing fades out
+    #   'slide_fade_out_vertical'      - vertical slide, outgoing fades out
+    #   'slide_fade_in_horizontal'     - horizontal slide, incoming fades in
+    #   'slide_fade_in_vertical'       - vertical slide, incoming fades in
+    #   'fade'                         - pure crossfade, no slide
     style: "slide_horizontal"
-    # Crossfade workspaces while sliding: outgoing fades out, incoming fades
-    # in. Adds depth to the slide without changing the layout or duration.
-    # fade: false
-    # surrogate_color: "#1a1a1a"
 
 general:
   # Commands to run when the WM has started. This is useful for running a
