@@ -58,7 +58,6 @@ fn cubic_bezier(x1: f32, y1: f32, x2: f32, y2: f32, x: f32) -> f32 {
   sample_y(t)
 }
 
-
 /// Exponentially-decaying spring easing function.
 ///
 /// Produces an underdamped spring effect: the value overshoots past 1.0,

@@ -22,7 +22,6 @@ use windows::{
   },
 };
 
-
 use crate::{Color, Rect};
 
 /// Ensures the surrogate window class is registered exactly once per
@@ -165,7 +164,6 @@ fn apply_backdrop(hwnd: HWND, color: Option<&Color>) {
   // `WCA_ACCENT_POLICY`.
   unsafe { set_wca(hwnd, std::ptr::addr_of_mut!(data)) };
 }
-
 
 /// Registers a DWM thumbnail of `source_hwnd` onto `dest_hwnd`.
 ///

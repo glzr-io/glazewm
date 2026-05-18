@@ -40,7 +40,6 @@ impl WindowAnimationState {
     }
   }
 
-
   /// Gets the effective eased progress, returning 1.0 when the animation
   /// is considered complete.
   ///
