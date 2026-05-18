@@ -44,20 +44,16 @@ impl WindowAnimationState {
   /// Gets the effective eased progress, returning 1.0 when the animation
   /// is considered complete.
   ///
-  /// For non-overshooting easing functions, snaps to 1.0 once the eased
-  /// value reaches 0.99. Decelerating curves (e.g. `EaseOutCubic`) spend
-  /// roughly 22% of wall time covering the last 1% of distance, which
-  /// makes windows look "stuck" at their destination. `EaseOutSpring` and
-  /// `CubicBezier` can overshoot past 1.0, so they always run to the full
-  /// wall-clock duration to preserve the overshoot/bounce.
+  /// Non-overshooting curves snap to 1.0 at 99% eased progress to avoid
+  /// the "stuck at destination" look. Overshooting curves run to full
+  /// wall-clock duration to preserve their bounce.
   fn effective_progress(&self) -> f32 {
     let raw = animation_progress(self.start_time, self.duration);
     let eased = apply_easing(raw, &self.easing);
-    let done = match &self.easing {
-      EasingFunction::EaseOutSpring | EasingFunction::CubicBezier(..) => {
-        raw == 1.0
-      }
-      _ => raw == 1.0 || eased >= 0.99,
+    let done = if self.easing.can_overshoot() {
+      raw == 1.0
+    } else {
+      raw == 1.0 || eased >= 0.99
     };
     if done { 1.0 } else { eased }
   }

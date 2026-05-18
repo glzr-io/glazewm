@@ -325,16 +325,15 @@ impl AnimationManager {
         let raw_progress = animation_progress(start, ws.duration);
         let eased = apply_easing(raw_progress, &ws.easing);
 
-        // Complete early once eased progress reaches 99% — EaseOutCubic
-        // (and similar decelerating curves) spend the final ~22% of wall
-        // time covering the last 1% of distance, which looks "stuck" at
-        // the destination. Spring and cubic-bezier can overshoot past 1.0,
-        // so they always run to full wall-clock duration.
-        let ws_done = match &ws.easing {
-          EasingFunction::EaseOutSpring | EasingFunction::CubicBezier(..) => {
-            raw_progress >= 1.0
-          }
-          _ => raw_progress >= 1.0 || eased >= 0.99,
+        // Complete early once eased progress reaches 99% for non-overshooting
+        // curves — decelerating easing spends the final ~22% of wall time
+        // covering the last 1% of distance, which looks "stuck" at the
+        // destination. Overshooting curves always run to full wall-clock
+        // duration to preserve their bounce.
+        let ws_done = if ws.easing.can_overshoot() {
+          raw_progress >= 1.0
+        } else {
+          raw_progress >= 1.0 || eased >= 0.99
         };
 
         // When completing early (eased < 1.0), snap surrogates to 1.0 so

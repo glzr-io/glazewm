@@ -20,13 +20,6 @@ pub fn animation_progress(
 /// Applies an easing function to a linear progress value (0.0 to 1.0).
 pub fn apply_easing(progress: f32, easing: &EasingFunction) -> f32 {
   match easing {
-    EasingFunction::Linear => progress,
-    EasingFunction::EaseInOut => ease_in_out(progress),
-    EasingFunction::EaseIn => ease_in(progress),
-    EasingFunction::EaseOut => ease_out(progress),
-    EasingFunction::EaseInOutCubic => ease_in_out_cubic(progress),
-    EasingFunction::EaseInCubic => ease_in_cubic(progress),
-    EasingFunction::EaseOutCubic => ease_out_cubic(progress),
     EasingFunction::EaseOutSpring => ease_out_spring(progress),
     EasingFunction::CubicBezier(x1, y1, x2, y2) => {
       cubic_bezier(*x1, *y1, *x2, *y2, progress)
@@ -65,43 +58,6 @@ fn cubic_bezier(x1: f32, y1: f32, x2: f32, y2: f32, x: f32) -> f32 {
   sample_y(t)
 }
 
-/// Quadratic ease-in-out function.
-fn ease_in_out(t: f32) -> f32 {
-  if t < 0.5 {
-    2.0 * t * t
-  } else {
-    -1.0 + (4.0 - 2.0 * t) * t
-  }
-}
-
-/// Quadratic ease-in function.
-fn ease_in(t: f32) -> f32 {
-  t * t
-}
-
-/// Quadratic ease-out function.
-fn ease_out(t: f32) -> f32 {
-  t * (2.0 - t)
-}
-
-/// Cubic ease-in-out function.
-fn ease_in_out_cubic(t: f32) -> f32 {
-  if t < 0.5 {
-    4.0 * t * t * t
-  } else {
-    1.0 - (-2.0 * t + 2.0).powi(3) / 2.0
-  }
-}
-
-/// Cubic ease-in function.
-fn ease_in_cubic(t: f32) -> f32 {
-  t * t * t
-}
-
-/// Cubic ease-out function.
-fn ease_out_cubic(t: f32) -> f32 {
-  1.0 - (1.0 - t).powi(3)
-}
 
 /// Exponentially-decaying spring easing function.
 ///

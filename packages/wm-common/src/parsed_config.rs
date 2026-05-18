@@ -453,7 +453,7 @@ impl Default for WindowOpenConfig {
     WindowOpenConfig {
       enabled: true,
       duration_ms: 200,
-      easing: EasingFunction::EaseOut,
+      easing: EasingFunction::CubicBezier(0.0, 0.0, 0.58, 1.0),
       direction: WindowOpenDirection::Right,
       opacity_from: 1.0,
     }
@@ -546,7 +546,7 @@ impl Default for WorkspaceSwitchAnimationConfig {
     WorkspaceSwitchAnimationConfig {
       enabled: true,
       duration_ms: 300,
-      easing: EasingFunction::EaseOutCubic,
+      easing: EasingFunction::CubicBezier(0.33, 1.0, 0.68, 1.0),
       style: WorkspaceSwitchStyle::default(),
     }
   }
@@ -572,7 +572,7 @@ impl Default for AnimationTypeConfig {
     AnimationTypeConfig {
       enabled: true,
       duration_ms: 150,
-      easing: EasingFunction::EaseInOut,
+      easing: EasingFunction::CubicBezier(0.42, 0.0, 0.58, 1.0),
       threshold_px: 10,
     }
   }
@@ -605,46 +605,68 @@ impl Default for WindowResizeConfig {
     WindowResizeConfig {
       enabled: true,
       duration_ms: 150,
-      easing: EasingFunction::EaseInOut,
+      easing: EasingFunction::CubicBezier(0.42, 0.0, 0.58, 1.0),
       threshold_px: 10,
       surrogate_color: None,
     }
   }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+/// Easing function for animations.
+///
+/// Named aliases map to their CSS cubic-bezier equivalents and can be used
+/// interchangeably with `cubic_bezier(x1, y1, x2, y2)` notation:
+/// `linear`, `ease_in`, `ease_out`, `ease_in_out`,
+/// `ease_in_cubic`, `ease_out_cubic`, `ease_in_out_cubic`, `ease_out_spring`.
+#[derive(Clone, Debug, PartialEq)]
 pub enum EasingFunction {
-  Linear,
-  #[default]
-  EaseInOut,
-  EaseIn,
-  EaseOut,
-  EaseInOutCubic,
-  EaseInCubic,
-  EaseOutCubic,
-  EaseOutSpring,
-  /// Custom CSS cubic bezier curve: `cubic_bezier(x1, y1, x2, y2)`.
+  /// CSS cubic bezier curve: `cubic_bezier(x1, y1, x2, y2)`.
   ///
-  /// The two control points `(x1, y1)` and `(x2, y2)` define the shape
-  /// between the implicit anchors `(0, 0)` and `(1, 1)`. `x1` and `x2`
-  /// must be in `[0, 1]`; `y1` and `y2` may exceed that range to produce
-  /// overshoot.
+  /// Control points `(x1, y1)` and `(x2, y2)` define the shape between the
+  /// implicit anchors `(0, 0)` and `(1, 1)`. `x1` and `x2` must be in
+  /// `[0, 1]`; `y1` and `y2` may exceed that range to produce overshoot.
   CubicBezier(f32, f32, f32, f32),
+  /// Exponentially-decaying spring. Overshoots past 1.0 and oscillates before
+  /// settling. Runs to full wall-clock duration to preserve the bounce.
+  EaseOutSpring,
+}
+
+impl Default for EasingFunction {
+  fn default() -> Self {
+    EasingFunction::CubicBezier(0.42, 0.0, 0.58, 1.0) // ease_in_out
+  }
 }
 
 impl Eq for EasingFunction {}
 
+impl EasingFunction {
+  /// Returns `true` when this function can produce values outside `[0, 1]`.
+  ///
+  /// Non-overshooting functions are cut off at 99% eased progress to avoid
+  /// the "stuck at destination" look. Overshooting ones run to full wall-clock
+  /// duration to preserve their bounce.
+  pub fn can_overshoot(&self) -> bool {
+    match self {
+      EasingFunction::EaseOutSpring => true,
+      EasingFunction::CubicBezier(_, y1, _, y2) => {
+        *y1 < 0.0 || *y1 > 1.0 || *y2 < 0.0 || *y2 > 1.0
+      }
+    }
+  }
+}
+
 impl<'de> Deserialize<'de> for EasingFunction {
   fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
     let s = String::deserialize(d)?;
+    // Named aliases expand to their CSS cubic-bezier control points.
     match s.as_str() {
-      "linear" => Ok(EasingFunction::Linear),
-      "ease_in_out" => Ok(EasingFunction::EaseInOut),
-      "ease_in" => Ok(EasingFunction::EaseIn),
-      "ease_out" => Ok(EasingFunction::EaseOut),
-      "ease_in_out_cubic" => Ok(EasingFunction::EaseInOutCubic),
-      "ease_in_cubic" => Ok(EasingFunction::EaseInCubic),
-      "ease_out_cubic" => Ok(EasingFunction::EaseOutCubic),
+      "linear" => Ok(EasingFunction::CubicBezier(0.0, 0.0, 1.0, 1.0)),
+      "ease_in_out" => Ok(EasingFunction::CubicBezier(0.42, 0.0, 0.58, 1.0)),
+      "ease_in" => Ok(EasingFunction::CubicBezier(0.42, 0.0, 1.0, 1.0)),
+      "ease_out" => Ok(EasingFunction::CubicBezier(0.0, 0.0, 0.58, 1.0)),
+      "ease_in_out_cubic" => Ok(EasingFunction::CubicBezier(0.65, 0.0, 0.35, 1.0)),
+      "ease_in_cubic" => Ok(EasingFunction::CubicBezier(0.32, 0.0, 0.67, 0.0)),
+      "ease_out_cubic" => Ok(EasingFunction::CubicBezier(0.33, 1.0, 0.68, 1.0)),
       "ease_out_spring" => Ok(EasingFunction::EaseOutSpring),
       s => {
         if let Some(inner) = s
@@ -691,17 +713,29 @@ impl<'de> Deserialize<'de> for EasingFunction {
 impl Serialize for EasingFunction {
   fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
     match self {
-      EasingFunction::Linear => s.serialize_str("linear"),
-      EasingFunction::EaseInOut => s.serialize_str("ease_in_out"),
-      EasingFunction::EaseIn => s.serialize_str("ease_in"),
-      EasingFunction::EaseOut => s.serialize_str("ease_out"),
-      EasingFunction::EaseInOutCubic => s.serialize_str("ease_in_out_cubic"),
-      EasingFunction::EaseInCubic => s.serialize_str("ease_in_cubic"),
-      EasingFunction::EaseOutCubic => s.serialize_str("ease_out_cubic"),
       EasingFunction::EaseOutSpring => s.serialize_str("ease_out_spring"),
-      EasingFunction::CubicBezier(x1, y1, x2, y2) => s.serialize_str(
-        &format!("cubic_bezier({x1}, {y1}, {x2}, {y2})"),
-      ),
+      EasingFunction::CubicBezier(x1, y1, x2, y2) => {
+        // Serialize back to a named alias when the control points match exactly,
+        // so round-tripped configs stay human-readable.
+        let repr = if *x1 == 0.0 && *y1 == 0.0 && *x2 == 1.0 && *y2 == 1.0 {
+          "linear".to_string()
+        } else if *x1 == 0.42 && *y1 == 0.0 && *x2 == 0.58 && *y2 == 1.0 {
+          "ease_in_out".to_string()
+        } else if *x1 == 0.42 && *y1 == 0.0 && *x2 == 1.0 && *y2 == 1.0 {
+          "ease_in".to_string()
+        } else if *x1 == 0.0 && *y1 == 0.0 && *x2 == 0.58 && *y2 == 1.0 {
+          "ease_out".to_string()
+        } else if *x1 == 0.65 && *y1 == 0.0 && *x2 == 0.35 && *y2 == 1.0 {
+          "ease_in_out_cubic".to_string()
+        } else if *x1 == 0.32 && *y1 == 0.0 && *x2 == 0.67 && *y2 == 0.0 {
+          "ease_in_cubic".to_string()
+        } else if *x1 == 0.33 && *y1 == 1.0 && *x2 == 0.68 && *y2 == 1.0 {
+          "ease_out_cubic".to_string()
+        } else {
+          format!("cubic_bezier({x1}, {y1}, {x2}, {y2})")
+        };
+        s.serialize_str(&repr)
+      }
     }
   }
 }
