@@ -552,7 +552,6 @@ impl Default for WorkspaceSwitchAnimationConfig {
   }
 }
 
-
 /// Animation settings for window move operations.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]

@@ -77,6 +77,7 @@ fn ease_out_spring(t: f32) -> f32 {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use wm_platform::Rect;
 
   #[test]
   fn test_animation_progress() {
