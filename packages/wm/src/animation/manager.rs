@@ -101,6 +101,10 @@ pub struct AnimationManager {
   /// that repositions the real window.
   #[cfg(target_os = "windows")]
   pub(crate) pending_session_cleanup: Vec<ResizeSession>,
+  /// Monitor rects for active slide-in (window-open) animations, keyed by
+  /// window ID. Used to hide the surrogate while it is fully off the monitor.
+  #[cfg(target_os = "windows")]
+  slide_in_monitor_rects: HashMap<Uuid, Rect>,
   /// Active workspace-switch slide animation, or `None` when idle.
   #[cfg(target_os = "windows")]
   workspace_switch: Option<WorkspaceSwitchState>,
@@ -121,6 +125,8 @@ impl AnimationManager {
       resize_sessions: HashMap::new(),
       #[cfg(target_os = "windows")]
       pending_session_cleanup: Vec::new(),
+      #[cfg(target_os = "windows")]
+      slide_in_monitor_rects: HashMap::new(),
       #[cfg(target_os = "windows")]
       workspace_switch: None,
       #[cfg(target_os = "windows")]
@@ -150,6 +156,8 @@ impl AnimationManager {
     self.animations.remove(window_id);
     #[cfg(target_os = "windows")]
     self.resize_sessions.remove(window_id);
+    #[cfg(target_os = "windows")]
+    self.slide_in_monitor_rects.remove(window_id);
   }
 
   /// Removes all completed animations and returns their window IDs.
@@ -174,6 +182,8 @@ impl AnimationManager {
         session.pre_commit();
         self.pending_session_cleanup.push(session);
       }
+      #[cfg(target_os = "windows")]
+      self.slide_in_monitor_rects.remove(id);
     }
 
     completed_ids
@@ -578,6 +588,7 @@ impl AnimationManager {
             &target_rect,
             surrogate_color,
             effect_opacity,
+            true,
           ) {
             Ok(session) => {
               self.resize_sessions.insert(window_id, session);
@@ -607,7 +618,15 @@ impl AnimationManager {
       if let Some(session) = self.resize_sessions.get_mut(&window_id) {
         let opacity_u8 =
           opacity.as_ref().map(|o| o.to_alpha()).unwrap_or(session.effect_opacity);
-        session.update(&current_rect, opacity_u8);
+
+        // Slide-in animations clamp the surrogate to the monitor bounds each
+        // frame so it never spills onto an adjacent monitor.
+        if let Some(monitor_rect) = self.slide_in_monitor_rects.get(&window_id) {
+          session.update_clipped(&current_rect, monitor_rect, opacity_u8);
+        } else {
+          session.update(&current_rect, opacity_u8);
+        }
+
         if session.has_surrogate() {
           return (AnimationPositionResult::Frozen, None);
         }
@@ -721,6 +740,7 @@ impl AnimationManager {
     &mut self,
     window_id: Uuid,
     target_rect: Rect,
+    monitor_rect: Rect,
     effect_opacity: u8,
     config: &UserConfig,
     native_window: &NativeWindow,
@@ -760,6 +780,7 @@ impl AnimationManager {
       &target_rect,
       None,
       effect_opacity,
+      false,
     ) {
       Ok(mut session) => {
         // Override the surrogate's initial opacity synchronously before the
@@ -775,6 +796,7 @@ impl AnimationManager {
         }
         self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
+        self.slide_in_monitor_rects.insert(window_id, monitor_rect);
       }
       Err(err) => {
         tracing::warn!(
@@ -786,9 +808,10 @@ impl AnimationManager {
 
   /// Computes the surrogate start rect for a window-open animation.
   ///
-  /// The start rect is the same size as `target_rect`, offset in `direction`
-  /// so its leading edge is flush with the corresponding edge of `target_rect`.
-  /// `None` direction returns `target_rect` directly (used for fade-only).
+  /// The start rect is the same size as `target_rect`, offset by one full
+  /// width/height in `direction` so its leading edge is flush with the
+  /// corresponding edge of `target_rect`. `None` direction returns
+  /// `target_rect` directly (used for fade-only).
   #[cfg(target_os = "windows")]
   fn compute_open_start_rect(
     target: &Rect,
@@ -854,3 +877,4 @@ impl AnimationManager {
   }
 
 }
+

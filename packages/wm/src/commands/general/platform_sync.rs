@@ -541,10 +541,12 @@ fn redraw_containers(
       && !is_frozen_by_ws_animation
       && config.value.animations.window_open.enabled
     {
+      let monitor_rect = monitor.to_rect()?;
       let native_ref = window.native();
       state.animation_manager.start_slide_in_animation(
         window.id(),
         target_rect.clone(),
+        monitor_rect,
         effect_opacity,
         config,
         &*native_ref,

@@ -82,6 +82,7 @@ impl ResizeSession {
     target_rect: &Rect,
     surrogate_color: Option<&Color>,
     effect_opacity: u8,
+    initially_visible: bool,
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
 
@@ -98,7 +99,7 @@ impl ResizeSession {
       thumbnail_rect,
       surrogate_color,
       effect_opacity,
-      true,
+      initially_visible,
       border_inset,
     ) {
       Ok(s) => Some(s),
@@ -149,6 +150,55 @@ impl ResizeSession {
         tracing::warn!("Surrogate update failed: {err}.");
       }
     }
+  }
+
+  /// Updates the surrogate, clamping its visible area to `monitor_rect`.
+  ///
+  /// When `current_rect` extends outside `monitor_rect`, the surrogate is
+  /// constrained to the intersection and the DWM thumbnail `rcSource` and
+  /// `rcDestination` are adjusted to show only the visible slice — matching
+  /// the approach used by `WorkspaceSurrogate`. Hides the surrogate when
+  /// the rect is fully off-screen.
+  pub fn update_clipped(
+    &mut self,
+    current_rect: &Rect,
+    monitor_rect: &Rect,
+    opacity: u8,
+  ) {
+    let Some(surrogate) = &mut self.surrogate else {
+      return;
+    };
+
+    let logical = to_logical(current_rect, &self.border_inset);
+
+    let vis_left = logical.x().max(monitor_rect.x());
+    let vis_top = logical.y().max(monitor_rect.y());
+    let vis_right = (logical.x() + logical.width())
+      .min(monitor_rect.x() + monitor_rect.width());
+    let vis_bottom = (logical.y() + logical.height())
+      .min(monitor_rect.y() + monitor_rect.height());
+
+    if vis_left >= vis_right || vis_top >= vis_bottom {
+      surrogate.set_visible(false);
+      return;
+    }
+
+    let src_left = vis_left - logical.x();
+    let src_top = vis_top - logical.y();
+    let constrained_w = vis_right - vis_left;
+    let constrained_h = vis_bottom - vis_top;
+
+    surrogate.set_thumbnail_rects(
+      RECT { left: src_left, top: src_top, right: src_left + constrained_w, bottom: src_top + constrained_h },
+      RECT { left: 0, top: 0, right: constrained_w, bottom: constrained_h },
+    );
+
+    let constrained = Rect::from_xy(vis_left, vis_top, constrained_w, constrained_h);
+    if let Err(err) = surrogate.reposition(&constrained) {
+      tracing::warn!("Surrogate clipped update failed: {err}.");
+    }
+    surrogate.set_window_opacity(opacity);
+    surrogate.set_visible(true);
   }
 
   /// Redirects the session to a new target rect while the surrogate is still
