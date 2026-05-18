@@ -42,7 +42,6 @@ mod workspace_surrogate;
 #[cfg(target_os = "windows")]
 pub use workspace_surrogate::WorkspaceSurrogate;
 
-
 pub use platform_event::*;
 pub use single_instance::*;
 pub use thread_bound::*;

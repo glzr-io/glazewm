@@ -22,7 +22,6 @@ use crate::{
   wm_state::WmState,
 };
 
-
 /// Tracks a single window's participation in the current workspace-switch
 /// slide animation.
 #[cfg(target_os = "windows")]
@@ -856,5 +855,3 @@ impl AnimationManager {
   }
 
 }
-
-

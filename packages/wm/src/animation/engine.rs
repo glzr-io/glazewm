@@ -103,6 +103,11 @@ fn ease_out_cubic(t: f32) -> f32 {
   1.0 - (1.0 - t).powi(3)
 }
 
+/// Exponentially-decaying spring easing function.
+///
+/// Produces an underdamped spring effect: the value overshoots past 1.0,
+/// oscillates, and settles. Runs to full wall-clock duration (not cut off
+/// at 99%) to preserve the bounce.
 fn ease_out_spring(t: f32) -> f32 {
   if t <= 0.0 {
     return 0.0;

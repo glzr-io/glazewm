@@ -15,16 +15,16 @@ use wm_platform::{
 };
 
 use crate::{
-    commands::{
-      container::{
-        focus_container_by_id, focus_in_direction, set_tiling_direction,
-        toggle_tiling_direction,
-      },
-      general::{
-        cycle_focus, disable_binding_mode, enable_binding_mode,
-        move_cursor_to_active_window, platform_sync, reload_config,
-        shell_exec, toggle_pause,
-      },
+  commands::{
+    container::{
+      focus_container_by_id, focus_in_direction, set_tiling_direction,
+      toggle_tiling_direction,
+    },
+    general::{
+      cycle_focus, disable_binding_mode, enable_binding_mode,
+      move_cursor_to_active_window, platform_sync, reload_config,
+      shell_exec, toggle_pause,
+    },
     monitor::focus_monitor,
     window::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
@@ -77,9 +77,7 @@ impl WindowManager {
     // Start animation timer if `populate` created any animations. This
     // mirrors the `ensure_timer_running` call at the end of `process_event`
     // for the initial population path.
-    state
-      .animation_manager
-      .ensure_timer_running();
+    state.animation_manager.ensure_timer_running();
 
     Ok(Self {
       event_rx,
@@ -163,7 +161,6 @@ impl WindowManager {
       platform_sync(state, config)?;
     }
 
-    // Start animation timer if needed
     self.state.animation_manager.ensure_timer_running();
 
     Ok(())
@@ -212,10 +209,7 @@ impl WindowManager {
     // startup commands or IPC commands). Without this, surrogate animations
     // started outside of the platform event loop would never tick, leaving
     // windows permanently cloaked.
-    self
-      .state
-      .animation_manager
-      .ensure_timer_running();
+    self.state.animation_manager.ensure_timer_running();
 
     Ok(new_subject_container_id)
   }
