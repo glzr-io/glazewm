@@ -686,12 +686,33 @@ impl Drop for WmState {
     let managed_windows = self.windows();
 
     for window in &managed_windows {
-      // Redraw windows to their intended positions. On macOS, this will
-      // unhide windows that are on other workspaces.
-      if let Ok(rect) = window.to_rect() {
-        if let Err(err) = window.native().set_frame(&rect) {
-          warn!("Failed to redraw window on cleanup: {:?}", err);
+      let native_props = window.native_properties();
+      let original_frame = native_props.original_frame;
+
+      // Restore windows to their original position/size from before
+      // GlazeWM managed them. Unhides windows that are on other
+      // workspaces (macOS) or restores initial layout on exit.
+      //
+      // On Windows, if the window was originally maximized, we set the
+      // restored-size frame first, then maximize it to fully restore the
+      // original state.
+      #[cfg(target_os = "windows")]
+      {
+        if native_props.original_is_maximized {
+          // First set the normal (restored) position so that the window
+          // knows its unmaximized bounds, then maximize.
+          let _ = window.native().restore(Some(&original_frame));
+          let _ = window.native().maximize();
+        } else if let Err(err) =
+          window.native().set_frame(&original_frame)
+        {
+          warn!("Failed to restore window frame on cleanup: {:?}", err);
         }
+      }
+
+      #[cfg(not(target_os = "windows"))]
+      if let Err(err) = window.native().set_frame(&original_frame) {
+        warn!("Failed to restore window frame on cleanup: {:?}", err);
       }
 
       // Reset any effects on Windows.
