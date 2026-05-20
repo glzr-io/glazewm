@@ -76,5 +76,20 @@ impl WindowAnimationState {
     };
     Some(start.interpolate(end, self.effective_progress()))
   }
+
+  /// Gets the interpolated rect and opacity in a single call.
+  ///
+  /// Prefer this over separate `current_rect` + `current_opacity` calls
+  /// when both values are needed in the same frame — `effective_progress`
+  /// (which runs a Newton-Raphson solve) is computed only once.
+  pub fn current_state(&self) -> (Rect, Option<OpacityValue>) {
+    let progress = self.effective_progress();
+    let rect = self.start_rect.interpolate(&self.target_rect, progress);
+    let opacity = match (&self.start_opacity, &self.target_opacity) {
+      (Some(start), Some(end)) => Some(start.interpolate(end, progress)),
+      _ => None,
+    };
+    (rect, opacity)
+  }
 }
 
