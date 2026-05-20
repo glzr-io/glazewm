@@ -666,9 +666,16 @@ fn redraw_containers(
               .map_or(false, |s| s.is_growing());
 
             if is_growing {
+              // Post asynchronously: the curtain-reveal surrogate starts at
+              // source size and only exposes "new" area (beyond source
+              // dimensions) after tens of frames (~40–60 ms into the
+              // animation). Any app processes a window message well within
+              // that window, so DWM captures the correct target-size content
+              // before it is ever revealed. `pre_commit` issues a final
+              // synchronous move at animation end as a correctness guarantee.
               use wm_platform::{
-                SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOSENDCHANGING,
-                SWP_NOZORDER,
+                SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+                SWP_NOSENDCHANGING, SWP_NOZORDER,
               };
               let _ = window.native().set_window_pos(
                 &z_order,
@@ -676,7 +683,8 @@ fn redraw_containers(
                 SWP_NOZORDER
                   | SWP_FRAMECHANGED
                   | SWP_NOACTIVATE
-                  | SWP_NOSENDCHANGING,
+                  | SWP_NOSENDCHANGING
+                  | SWP_ASYNCWINDOWPOS,
               );
             }
           }
