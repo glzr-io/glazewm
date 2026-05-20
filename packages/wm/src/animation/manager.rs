@@ -609,26 +609,38 @@ impl AnimationManager {
       let current_rect = animation.current_rect();
       let opacity = animation.current_opacity();
 
-      // If a surrogate overlay is active, update it and tell the caller to
-      // leave the real window untouched this frame. Only freeze when the
-      // surrogate was successfully created — if creation failed the session
-      // exists but `has_surrogate()` is false, and we fall through to `Apply`
-      // so the real window is animated normally instead of disappearing.
+      // Drive the surrogate overlay when one is active. `has_surrogate()`
+      // requires a valid DWM thumbnail — if thumbnail registration failed (e.g.
+      // elevated/UWP window), the surrogate is transparent and useless: snap
+      // the window to target and clean up rather than cloaking it behind an
+      // empty overlay.
       #[cfg(target_os = "windows")]
-      if let Some(session) = self.resize_sessions.get_mut(&window_id) {
-        let opacity_u8 =
-          opacity.as_ref().map(|o| o.to_alpha()).unwrap_or(session.effect_opacity);
+      if self.resize_sessions.contains_key(&window_id) {
+        let has_surrogate = self
+          .resize_sessions
+          .get(&window_id)
+          .map_or(false, |s| s.has_surrogate());
 
-        // Slide-in animations clamp the surrogate to the monitor bounds each
-        // frame so it never spills onto an adjacent monitor.
-        if let Some(monitor_rect) = self.slide_in_monitor_rects.get(&window_id) {
-          session.update_clipped(&current_rect, monitor_rect, opacity_u8);
-        } else {
-          session.update(&current_rect, opacity_u8);
-        }
-
-        if session.has_surrogate() {
+        if has_surrogate {
+          let monitor_rect =
+            self.slide_in_monitor_rects.get(&window_id).cloned();
+          let session =
+            self.resize_sessions.get_mut(&window_id).unwrap();
+          let opacity_u8 = opacity
+            .as_ref()
+            .map(|o| o.to_alpha())
+            .unwrap_or(session.effect_opacity);
+          if let Some(monitor_rect) = monitor_rect {
+            session.update_clipped(&current_rect, &monitor_rect, opacity_u8);
+          } else {
+            session.update(&current_rect, opacity_u8);
+          }
           return (AnimationPositionResult::Frozen, None);
+        } else {
+          // Thumbnail failed — drop the transparent surrogate and snap.
+          self.resize_sessions.remove(&window_id);
+          self.animations.remove(&window_id);
+          return (AnimationPositionResult::Apply(target_rect), None);
         }
       }
 

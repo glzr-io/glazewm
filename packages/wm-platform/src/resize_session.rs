@@ -131,9 +131,14 @@ impl ResizeSession {
     self.is_growing
   }
 
-  /// Whether a surrogate overlay is currently active for this session.
+  /// Whether a surrogate overlay with a valid DWM thumbnail is active.
+  ///
+  /// Returns `false` when surrogate creation failed, or when the surrogate
+  /// window exists but thumbnail registration failed (e.g. elevated/UWP
+  /// source windows). Callers use this to decide whether to freeze the real
+  /// window behind the surrogate or fall back to direct repositioning.
   pub fn has_surrogate(&self) -> bool {
-    self.surrogate.is_some()
+    self.surrogate.as_ref().map_or(false, |s| s.has_thumbnail())
   }
 
   /// Updates the surrogate to the current animation frame position and opacity.

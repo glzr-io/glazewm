@@ -439,6 +439,15 @@ impl NativeSurrogate {
     HWND(self.hwnd)
   }
 
+  /// Returns `true` when a DWM thumbnail was successfully registered.
+  ///
+  /// `DwmRegisterThumbnail` fails for elevated or UWP source windows.
+  /// Callers use this to decide whether to freeze the real window behind
+  /// the surrogate or fall back to direct repositioning.
+  pub fn has_thumbnail(&self) -> bool {
+    self.thumbnail != 0
+  }
+
   /// Shows or hides the surrogate overlay window without activating it.
   ///
   /// No-op when the window is already in the requested state.
