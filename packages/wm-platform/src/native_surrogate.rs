@@ -611,6 +611,7 @@ impl NativeSurrogate {
     self.set_window_opacity(opacity);
     Ok(())
   }
+
 }
 
 impl Drop for NativeSurrogate {

@@ -72,6 +72,12 @@ impl ResizeSession {
   /// cloaked real window at the target rect immediately after cloaking so DWM
   /// can capture the correctly-sized content during the curtain-reveal.
   ///
+  /// For **mixed** animations (one axis grows, one shrinks — e.g. side-by-side
+  /// to top-bottom layout): the thumbnail is registered at `source_rect`
+  /// dimensions (clip/wipe). `surrogate_color` is applied as a backdrop so the
+  /// area uncovered by the thumbnail shows the configured color rather than
+  /// exposing the desktop.
+  ///
   /// When surrogate creation fails the session is returned without one — the
   /// animation falls back to direct window repositioning every frame.
   ///
@@ -87,22 +93,25 @@ impl ResizeSession {
     let border_inset = compute_border_inset(hwnd);
 
     // Curtain-reveal when no dimension shrinks (target >= source in both axes).
-    // If either dimension shrinks, the source-sized surrogate would overhang
-    // the target-sized thumbnail at frame 0, leaving a transparent strip that
-    // exposes the desktop. Fall back to clip/wipe (thumbnail at source) in
-    // that case — it always fills the surrogate completely at the start.
     let is_growing = target_rect.width() >= source_rect.width()
       && target_rect.height() >= source_rect.height();
 
     // Growing: thumbnail at target dimensions for curtain-reveal.
-    // Mixed/shrinking: thumbnail at source dimensions for clip/wipe effect.
+    // Shrinking/mixed: thumbnail at source dimensions for clip/wipe.
     let thumbnail_rect = if is_growing { target_rect } else { source_rect };
+
+    // Mixed: one axis grows, one shrinks. Apply the backdrop color so the area
+    // the thumbnail cannot cover shows the configured color instead of the desktop.
+    let is_mixed = !is_growing
+      && (target_rect.width() > source_rect.width()
+        || target_rect.height() > source_rect.height());
+    let backdrop_color = if is_mixed { surrogate_color } else { None };
 
     let surrogate = match NativeSurrogate::create(
       hwnd,
       source_rect,
       thumbnail_rect,
-      surrogate_color,
+      backdrop_color,
       effect_opacity,
       initially_visible,
       border_inset,
