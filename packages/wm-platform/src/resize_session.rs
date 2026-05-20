@@ -42,13 +42,13 @@ pub struct ResizeSession {
   /// component, so the thumbnail matches the real window's `SetLayeredWindowAttributes`
   /// opacity throughout the move/resize.
   pub effect_opacity: u8,
-  /// `true` when the target rect is wider or taller than the source rect.
+  /// `true` when the target rect is both wider *and* taller than the source
+  /// rect (curtain-reveal mode).
   ///
-  /// Growing sessions use a curtain-reveal: the thumbnail is registered at
-  /// target dimensions and the cloaked real window is pre-positioned at the
-  /// target synchronously so DWM can capture the correctly-sized content.
-  /// Shrinking sessions use a clip/wipe: the thumbnail is registered at source
-  /// dimensions and the real window stays at source until `pre_commit`.
+  /// Growing sessions use a curtain-reveal: thumbnail registered at target
+  /// dimensions; cloaked window pre-positioned asynchronously so DWM captures
+  /// correctly-sized content. Mixed/shrinking sessions use clip/wipe: thumbnail
+  /// at source dimensions, real window stays at source until `pre_commit`.
   is_growing: bool,
 }
 
@@ -66,9 +66,9 @@ impl ResizeSession {
   /// `source_rect` until [`pre_commit`] moves it synchronously at animation
   /// end.
   ///
-  /// For **growing** animations (`target` wider/taller than `source`): the
-  /// thumbnail is registered at `target_rect` dimensions. The caller
-  /// (platform_sync's Frozen branch) must synchronously pre-position the
+  /// For **growing** animations (`target` both wider *and* taller than
+  /// `source`): the thumbnail is registered at `target_rect` dimensions. The
+  /// caller (platform_sync's Frozen branch) asynchronously pre-positions the
   /// cloaked real window at the target rect immediately after cloaking so DWM
   /// can capture the correctly-sized content during the curtain-reveal.
   ///
@@ -86,11 +86,16 @@ impl ResizeSession {
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
 
+    // Curtain-reveal only when *both* dimensions grow. If either dimension
+    // shrinks, the source-sized surrogate would overhang the target-sized
+    // thumbnail at frame 0, leaving a transparent strip that exposes the
+    // desktop. In those mixed cases, fall back to the clip/wipe approach
+    // (thumbnail at source) which always fills the surrogate completely.
     let is_growing = target_rect.width() > source_rect.width()
-      || target_rect.height() > source_rect.height();
+      && target_rect.height() > source_rect.height();
 
     // Growing: thumbnail at target dimensions for curtain-reveal.
-    // Shrinking: thumbnail at source dimensions for clip/wipe effect.
+    // Mixed/shrinking: thumbnail at source dimensions for clip/wipe effect.
     let thumbnail_rect = if is_growing { target_rect } else { source_rect };
 
     let surrogate = match NativeSurrogate::create(
@@ -122,10 +127,10 @@ impl ResizeSession {
     })
   }
 
-  /// Returns `true` when the target rect is wider or taller than the source
-  /// rect.
+  /// Returns `true` when the target rect is both wider *and* taller than the
+  /// source rect (curtain-reveal mode).
   ///
-  /// Used by `platform_sync` to decide whether to synchronously pre-position
+  /// Used by `platform_sync` to decide whether to asynchronously pre-position
   /// the cloaked real window at the target rect immediately after cloaking.
   pub fn is_growing(&self) -> bool {
     self.is_growing

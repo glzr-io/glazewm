@@ -654,11 +654,11 @@ fn redraw_containers(
                 | SWP_ASYNCWINDOWPOS,
             );
           } else {
-            // Growing resize sessions: synchronously pre-position the cloaked
-            // window at target so it starts painting at the new size
-            // immediately. DWM then captures the correctly-sized content as
-            // the curtain-reveal surrogate expands over the animation duration.
-            // Shrinking sessions leave the window at source until `pre_commit`.
+            // Growing resize sessions (both dimensions grow): pre-position the
+            // cloaked window at target asynchronously so DWM captures the
+            // correctly-sized content during the curtain-reveal. Mixed and
+            // shrinking sessions use the clip/wipe approach (thumbnail at
+            // source) and leave the window at source until `pre_commit`.
             let is_growing = state
               .animation_manager
               .resize_sessions

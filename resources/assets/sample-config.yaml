@@ -10,7 +10,7 @@ animations:
     # overshoot. Examples:
     #   "cubic_bezier(0.16, 1, 0.3, 1)"  - expo-out (fast start, smooth stop)
     #   "cubic_bezier(0.4, 0, 0.2, 1)"   - Material Design standard
-    easing: "ease_in_out"
+    easing: "cubic_bezier(0.2, 0.0, 0.0, 1.0)"
     # Minimum pixel distance required to trigger movement animations.
     # Helps prevent animations from starting on very small position changes.
     # Increase this value on high-DPI displays to reduce sensitivity.
@@ -22,7 +22,7 @@ animations:
     enabled: true
     duration_ms: 150
     # See 'window_move.easing' for available options.
-    easing: "ease_in_out"
+    easing: "cubic_bezier(0.2, 0.0, 0.0, 1.0)"
     # Minimum pixel distance required to trigger resize animations.
     # Default: 10
     threshold_px: 10
@@ -31,9 +31,9 @@ animations:
   # Animation settings for when a new window appears. Windows only.
   window_open:
     enabled: true
-    duration_ms: 200
+    duration_ms: 150
     # See 'window_move.easing' for available options.
-    easing: "ease_out"
+    easing: "cubic_bezier(0.16, 1.0, 0.3, 1.0)"
     # Direction from which the window slides in: 'right' (default), 'left',
     # 'top', 'bottom', or 'none' (no slide; useful with opacity_from).
     direction: "right"
