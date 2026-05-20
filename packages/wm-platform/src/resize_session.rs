@@ -42,8 +42,8 @@ pub struct ResizeSession {
   /// component, so the thumbnail matches the real window's `SetLayeredWindowAttributes`
   /// opacity throughout the move/resize.
   pub effect_opacity: u8,
-  /// `true` when the target rect is both wider *and* taller than the source
-  /// rect (curtain-reveal mode).
+  /// `true` when no dimension shrinks (target >= source in both width and
+  /// height). Curtain-reveal mode.
   ///
   /// Growing sessions use a curtain-reveal: thumbnail registered at target
   /// dimensions; cloaked window pre-positioned asynchronously so DWM captures
@@ -66,8 +66,8 @@ impl ResizeSession {
   /// `source_rect` until [`pre_commit`] moves it synchronously at animation
   /// end.
   ///
-  /// For **growing** animations (`target` both wider *and* taller than
-  /// `source`): the thumbnail is registered at `target_rect` dimensions. The
+  /// For **growing** animations (no dimension shrinks — target >= source in
+  /// both axes): the thumbnail is registered at `target_rect` dimensions. The
   /// caller (platform_sync's Frozen branch) asynchronously pre-positions the
   /// cloaked real window at the target rect immediately after cloaking so DWM
   /// can capture the correctly-sized content during the curtain-reveal.
@@ -86,13 +86,13 @@ impl ResizeSession {
   ) -> crate::Result<Self> {
     let border_inset = compute_border_inset(hwnd);
 
-    // Curtain-reveal only when *both* dimensions grow. If either dimension
-    // shrinks, the source-sized surrogate would overhang the target-sized
-    // thumbnail at frame 0, leaving a transparent strip that exposes the
-    // desktop. In those mixed cases, fall back to the clip/wipe approach
-    // (thumbnail at source) which always fills the surrogate completely.
-    let is_growing = target_rect.width() > source_rect.width()
-      && target_rect.height() > source_rect.height();
+    // Curtain-reveal when no dimension shrinks (target >= source in both axes).
+    // If either dimension shrinks, the source-sized surrogate would overhang
+    // the target-sized thumbnail at frame 0, leaving a transparent strip that
+    // exposes the desktop. Fall back to clip/wipe (thumbnail at source) in
+    // that case — it always fills the surrogate completely at the start.
+    let is_growing = target_rect.width() >= source_rect.width()
+      && target_rect.height() >= source_rect.height();
 
     // Growing: thumbnail at target dimensions for curtain-reveal.
     // Mixed/shrinking: thumbnail at source dimensions for clip/wipe effect.
@@ -127,8 +127,7 @@ impl ResizeSession {
     })
   }
 
-  /// Returns `true` when the target rect is both wider *and* taller than the
-  /// source rect (curtain-reveal mode).
+  /// Returns `true` when no dimension shrinks (curtain-reveal mode).
   ///
   /// Used by `platform_sync` to decide whether to asynchronously pre-position
   /// the cloaked real window at the target rect immediately after cloaking.
