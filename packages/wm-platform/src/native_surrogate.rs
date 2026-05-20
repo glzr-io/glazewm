@@ -280,6 +280,12 @@ pub struct NativeSurrogate {
   thumbnail: isize,
   /// Cached visibility state; guards against redundant `ShowWindow` calls.
   is_visible: bool,
+  /// Last opacity passed to `SetLayeredWindowAttributes`; used to skip
+  /// redundant calls when opacity has not changed between frames.
+  last_opacity: u8,
+  /// Last rect passed to `SetWindowPos` via `reposition`; used to skip
+  /// redundant calls when the position and size have not changed.
+  last_rect: Option<Rect>,
 }
 
 impl NativeSurrogate {
@@ -431,6 +437,8 @@ impl NativeSurrogate {
       hwnd: hwnd.0,
       thumbnail,
       is_visible: initially_visible,
+      last_opacity: opacity,
+      last_rect: None,
     })
   }
 
@@ -473,7 +481,11 @@ impl NativeSurrogate {
   ///
   /// Use this when the thumbnail is managed separately (e.g. workspace-switch
   /// slide animations that update `rcSource`/`rcDestination` independently).
-  pub fn reposition(&self, rect: &Rect) -> crate::Result<()> {
+  /// No-op when `rect` matches the last applied position.
+  pub fn reposition(&mut self, rect: &Rect) -> crate::Result<()> {
+    if self.last_rect.as_ref() == Some(rect) {
+      return Ok(());
+    }
     // SAFETY: `HWND(self.hwnd)` is the overlay created in `create` and remains
     // valid until `drop`. `SWP_NOZORDER` makes `hWndInsertAfter` irrelevant.
     unsafe {
@@ -487,6 +499,7 @@ impl NativeSurrogate {
         SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_NOZORDER,
       )
     }?;
+    self.last_rect = Some(rect.clone());
     Ok(())
   }
 
@@ -513,8 +526,14 @@ impl NativeSurrogate {
   ///
   /// `opacity` ranges from 0 (fully transparent) to 255 (fully opaque).
   /// Composited by DWM at the window level so both the backdrop and the DWM
-  /// thumbnail fade together uniformly.
-  pub fn set_window_opacity(&self, opacity: u8) {
+  /// thumbnail fade together uniformly. No-op when `opacity` matches the last
+  /// applied value, avoiding redundant DWM surface-dirty calls on high-refresh
+  /// displays where constant-opacity animations tick at the monitor's frame rate.
+  pub fn set_window_opacity(&mut self, opacity: u8) {
+    if opacity == self.last_opacity {
+      return;
+    }
+    self.last_opacity = opacity;
     // SAFETY: `HWND(self.hwnd)` is valid until `drop`. `LWA_ALPHA` makes
     // `crKey` irrelevant.
     unsafe {
