@@ -67,16 +67,6 @@ impl WindowAnimationState {
     self.start_rect.interpolate(&self.target_rect, self.effective_progress())
   }
 
-  /// Gets the interpolated opacity at the current animation progress.
-  pub fn current_opacity(&self) -> Option<OpacityValue> {
-    let (Some(start), Some(end)) =
-      (&self.start_opacity, &self.target_opacity)
-    else {
-      return None;
-    };
-    Some(start.interpolate(end, self.effective_progress()))
-  }
-
   /// Gets the interpolated rect and opacity in a single call.
   ///
   /// Prefer this over separate `current_rect` + `current_opacity` calls
