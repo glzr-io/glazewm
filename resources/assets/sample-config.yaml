@@ -40,7 +40,7 @@ animations:
     #   'slide_top'              - slides in from the top
     #   'slide_bottom'           - slides in from the bottom
     #   'fade'                   - no slide; combine with opacity_from for pure fade
-    #   'zoom'                   - zoom in from window center (auto-fades)
+    #   'zoom'                   - zoom in from window center
     style: "slide_right"
     # Starting opacity (0.0–1.0). At 1.0 no fade is applied; at 0.0 the
     # window fades in from fully transparent. Can be combined with any style.
