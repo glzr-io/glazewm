@@ -17,7 +17,7 @@ use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
 use crate::{
   animation::state::WindowAnimationState,
   commands::general::platform_sync,
-  traits::CommonGetters,
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -112,6 +112,12 @@ pub struct AnimationManager {
   /// `platform_sync` call unclocks the incoming real windows.
   #[cfg(target_os = "windows")]
   pending_ws_cleanup: Option<WorkspaceSwitchState>,
+  /// Windows with an active close animation, keyed by window ID.
+  ///
+  /// The stored value is the raw `HWND` (as `isize`) so `WM_CLOSE` can be
+  /// sent after the fade finishes without borrowing the window container.
+  #[cfg(target_os = "windows")]
+  pending_close_windows: HashMap<Uuid, isize>,
 }
 
 impl AnimationManager {
@@ -131,6 +137,8 @@ impl AnimationManager {
       workspace_switch: None,
       #[cfg(target_os = "windows")]
       pending_ws_cleanup: None,
+      #[cfg(target_os = "windows")]
+      pending_close_windows: HashMap::new(),
     }
   }
 
@@ -158,6 +166,8 @@ impl AnimationManager {
     self.resize_sessions.remove(window_id);
     #[cfg(target_os = "windows")]
     self.slide_in_monitor_rects.remove(window_id);
+    #[cfg(target_os = "windows")]
+    self.pending_close_windows.remove(window_id);
   }
 
   /// Removes all completed animations and returns their window IDs.
@@ -219,6 +229,9 @@ impl AnimationManager {
     sessions.extend(self.pending_session_cleanup.drain(..));
     self.workspace_switch = None;
     self.pending_ws_cleanup = None;
+    // On WM shutdown close-animation windows are left open — only clear
+    // the tracking state without sending WM_CLOSE.
+    self.pending_close_windows.clear();
     sessions
   }
 
@@ -303,6 +316,47 @@ impl AnimationManager {
       }
     }
 
+    // Finalize completed close animations before `remove_completed_animations`
+    // so that their sessions are dropped directly (not moved to
+    // `pending_session_cleanup`) and the normal `Apply` branch in
+    // `platform_sync` never uncloaks these windows.
+    #[cfg(target_os = "windows")]
+    {
+      use crate::commands::window::unmanage_window;
+
+      let close_done: Vec<Uuid> = state
+        .animation_manager
+        .pending_close_windows
+        .keys()
+        .filter(|id| {
+          state
+            .animation_manager
+            .get_animation(id)
+            .map_or(false, |a| a.is_complete())
+        })
+        .copied()
+        .collect();
+
+      for id in close_done {
+        // Drop surrogate and animation directly — bypasses pending_session_cleanup
+        // so platform_sync does not attempt to reposition and uncloak the window.
+        state.animation_manager.animations.remove(&id);
+        state.animation_manager.resize_sessions.remove(&id);
+        state.animation_manager.pending_close_windows.remove(&id);
+
+        if let Some(container) = state.container_by_id(id) {
+          if let Ok(window) = container.as_window_container() {
+            // Uncloak before WM_CLOSE so save-dialogs are visible to the user.
+            let _ = window.native().set_cloaked(false);
+            if let Err(err) = window.native().close() {
+              tracing::warn!("Failed to send WM_CLOSE for {id}: {err}.");
+            }
+            unmanage_window(window, state)?;
+          }
+        }
+      }
+    }
+
     // Remove completed animations. Their sessions are moved to
     // `pending_session_cleanup` and must outlive the `platform_sync` call
     // below so the real window is repositioned before surrogates disappear.
@@ -381,6 +435,9 @@ impl AnimationManager {
               }
               WorkspaceSwitchStyle::Fade => {
                 s.update_fade(eased_final, entry.is_incoming);
+              }
+              WorkspaceSwitchStyle::Zoom => {
+                s.update_zoom(eased_final, entry.is_incoming);
               }
             }
           }
@@ -818,6 +875,65 @@ impl AnimationManager {
       Err(err) => {
         tracing::warn!(
           "Failed to begin slide-in session for {window_id}: {err}."
+        );
+      }
+    }
+  }
+
+  /// Starts a fade-out (close) animation for a window.
+  ///
+  /// The real window is expected to be already cloaked by the caller. A
+  /// surrogate is created at `current_rect` and fades from `effect_opacity`
+  /// to `opacity_to`. When the animation completes, `update_internal` sends
+  /// `WM_CLOSE` and unmanages the window.
+  ///
+  /// No-ops if a close animation is already active for `window_id`.
+  #[cfg(target_os = "windows")]
+  pub fn start_close_animation(
+    &mut self,
+    window_id: Uuid,
+    current_rect: Rect,
+    effect_opacity: u8,
+    config: &UserConfig,
+    native_window: &NativeWindow,
+  ) {
+    if self.pending_close_windows.contains_key(&window_id) {
+      return;
+    }
+
+    let anim_config = &config.value.animations.window_close;
+
+    let mut anim = WindowAnimationState::new_movement(
+      current_rect.clone(),
+      current_rect.clone(),
+      anim_config.duration_ms,
+      anim_config.easing.clone(),
+    );
+
+    let effect_frac = effect_opacity as f32 / 255.0;
+    let target_frac = anim_config.opacity_to.clamp(0.0, 1.0) * effect_frac;
+    anim.start_opacity = Some(OpacityValue(effect_frac));
+    anim.target_opacity = Some(OpacityValue(target_frac));
+
+    match ResizeSession::begin(
+      native_window.hwnd(),
+      &current_rect,
+      &current_rect,
+      None,
+      effect_opacity,
+      false,
+    ) {
+      Ok(mut session) => {
+        // Show the surrogate immediately — the real window is already cloaked.
+        session.show();
+        self.animations.insert(window_id, anim);
+        self.resize_sessions.insert(window_id, session);
+        self.pending_close_windows
+          .insert(window_id, native_window.hwnd().0);
+      }
+      Err(err) => {
+        tracing::warn!(
+          "Failed to begin close session for {window_id}: {err}."
         );
       }
     }

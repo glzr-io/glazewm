@@ -57,7 +57,17 @@ animations:
     #   'slide_fade_in_horizontal'     - horizontal slide, incoming fades in
     #   'slide_fade_in_vertical'       - vertical slide, incoming fades in
     #   'fade'                         - pure crossfade, no slide
+    #   'zoom'                         - each window zooms in/out from its center
     style: "slide_horizontal"
+
+  # Animation settings for when a window is closed (Windows only).
+  window_close:
+    enabled: false
+    duration_ms: 150
+    # See 'window_move.easing' for available options.
+    easing: "ease_in_cubic"
+    # Final opacity (0.0–1.0). At 0.0 the window fades to fully transparent.
+    opacity_to: 0.0
 
 general:
   # Commands to run when the WM has started. This is useful for running a

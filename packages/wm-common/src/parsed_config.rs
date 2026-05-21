@@ -404,6 +404,12 @@ pub struct AnimationsConfig {
   pub window_open: WindowOpenConfig,
   /// Animation settings for workspace-switch slide transitions.
   pub workspace_switch: WorkspaceSwitchAnimationConfig,
+  /// Animation settings for when a window is closed.
+  ///
+  /// # Platform-specific
+  ///
+  /// Only has an effect on Windows.
+  pub window_close: WindowCloseConfig,
 }
 
 impl Default for AnimationsConfig {
@@ -413,6 +419,7 @@ impl Default for AnimationsConfig {
       window_resize: WindowResizeConfig::default(),
       window_open: WindowOpenConfig::default(),
       workspace_switch: WorkspaceSwitchAnimationConfig::default(),
+      window_close: WindowCloseConfig::default(),
     }
   }
 }
@@ -460,6 +467,28 @@ impl Default for WindowOpenConfig {
   }
 }
 
+/// Animation settings for when a window is closed (Windows only).
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct WindowCloseConfig {
+  pub enabled: bool,
+  pub duration_ms: u32,
+  pub easing: EasingFunction,
+  /// Final opacity (0.0–1.0). At `0.0` the window fades to fully transparent.
+  pub opacity_to: f32,
+}
+
+impl Default for WindowCloseConfig {
+  fn default() -> Self {
+    WindowCloseConfig {
+      enabled: false,
+      duration_ms: 150,
+      easing: EasingFunction::CubicBezier(0.32, 0.0, 0.67, 0.0),
+      opacity_to: 0.0,
+    }
+  }
+}
+
 /// Visual style of the workspace-switch transition.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -483,6 +512,8 @@ pub enum WorkspaceSwitchStyle {
   SlideFadeInVertical,
   /// Pure crossfade; no positional slide.
   Fade,
+  /// Outgoing workspace shrinks to the monitor center; incoming expands from it.
+  Zoom,
 }
 
 impl WorkspaceSwitchStyle {
@@ -512,7 +543,7 @@ impl WorkspaceSwitchStyle {
 
   /// Returns `true` when the transition has no positional slide component.
   pub fn is_fade_only(&self) -> bool {
-    matches!(self, Self::Fade)
+    matches!(self, Self::Fade | Self::Zoom)
   }
 }
 
@@ -538,6 +569,7 @@ pub struct WorkspaceSwitchAnimationConfig {
   /// - `slide_fade_in_horizontal`: horizontal slide; incoming fades in.
   /// - `slide_fade_in_vertical`: vertical slide; incoming fades in.
   /// - `fade`: pure crossfade, no positional slide.
+  /// - `zoom`: outgoing shrinks to center, incoming expands from center.
   pub style: WorkspaceSwitchStyle,
 }
 

@@ -154,6 +154,16 @@ impl ResizeSession {
     self.surrogate.as_ref().map_or(false, |s| s.has_thumbnail())
   }
 
+  /// Makes the surrogate visible.
+  ///
+  /// Used after creating the surrogate with `initially_visible = false` to
+  /// reveal it once the real window has been cloaked.
+  pub fn show(&mut self) {
+    if let Some(ref mut surrogate) = self.surrogate {
+      surrogate.set_visible(true);
+    }
+  }
+
   /// Updates the surrogate to the current animation frame position and opacity.
   ///
   /// `current_rect` is the physical animated rect; it is converted to the

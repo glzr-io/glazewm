@@ -156,6 +156,49 @@ impl WorkspaceSurrogate {
     self.slide_axis(eased_progress, is_incoming, direction, monitor_y, monitor_height, true);
   }
 
+  /// Animates a zoom-from-center transition to `eased_progress` (0.0 → 1.0).
+  ///
+  /// Each surrogate independently zooms in (incoming) or out (outgoing) from
+  /// its own center. `rcDestination` grows from a zero-size rect at the
+  /// surrogate center to the full surrogate rect, scaling the source content
+  /// via DWM.
+  pub fn update_zoom(&mut self, eased_progress: f32, is_incoming: bool) {
+    let t = if is_incoming {
+      eased_progress
+    } else {
+      1.0 - eased_progress
+    };
+
+    let w = self.rect.width();
+    let h = self.rect.height();
+    let half_w = (w as f32 / 2.0 * t).round() as i32;
+    let half_h = (h as f32 / 2.0 * t).round() as i32;
+
+    if half_w <= 0 || half_h <= 0 {
+      self.inner.set_visible(false);
+      return;
+    }
+
+    let cx = w / 2;
+    let cy = h / 2;
+
+    let rc_src = windows::Win32::Foundation::RECT {
+      left: 0,
+      top: 0,
+      right: w,
+      bottom: h,
+    };
+    let rc_dst = windows::Win32::Foundation::RECT {
+      left: cx - half_w,
+      top: cy - half_h,
+      right: cx + half_w,
+      bottom: cy + half_h,
+    };
+
+    self.inner.set_thumbnail_rects(rc_src, rc_dst);
+    self.inner.set_visible(true);
+  }
+
   /// Advances the surrogate along either axis. `is_vertical = false` slides
   /// on the x-axis; `true` slides on the y-axis. `monitor_origin` and
   /// `monitor_size` are the relevant monitor bounds along the chosen axis.

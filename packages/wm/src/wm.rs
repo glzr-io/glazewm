@@ -44,7 +44,7 @@ use crate::{
   },
   ipc_server::IpcServer,
   models::{Container, WorkspaceTarget},
-  traits::{CommonGetters, WindowGetters},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -284,7 +284,43 @@ impl WindowManager {
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            // Window handle might no longer be valid here.
+            #[cfg(target_os = "windows")]
+            if config.value.animations.window_close.enabled {
+              use wm_platform::NativeWindowWindowsExt;
+
+              let effect_cfg = if window.id()
+                == state
+                  .focused_container()
+                  .map(|c| c.id())
+                  .unwrap_or_default()
+              {
+                &config.value.window_effects.focused_window
+              } else {
+                &config.value.window_effects.other_windows
+              };
+              let effect_opacity = if effect_cfg.transparency.enabled {
+                effect_cfg.transparency.opacity.to_alpha()
+              } else {
+                u8::MAX
+              };
+
+              if let Ok(rect) = window.to_rect().and_then(|r| {
+                window.total_border_delta().map(|d| r.apply_delta(&d, None))
+              }) {
+                let _ = window.native().set_cloaked(true);
+                let native_ref = window.native();
+                state.animation_manager.start_close_animation(
+                  window.id(),
+                  rect,
+                  effect_opacity,
+                  config,
+                  &*native_ref,
+                );
+                return Ok(());
+              }
+            }
+
+            // Fallback: no animation or rect unavailable — close immediately.
             if let Err(err) = window.native().close() {
               warn!("Failed to close window: {:?}", err);
             }
