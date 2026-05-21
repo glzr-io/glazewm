@@ -81,8 +81,8 @@ fn ensure_class_registered() {
     let wnd_class = WNDCLASSW {
       lpszClassName: w!("GlazeWM_Surrogate"),
       lpfnWndProc: Some(default_wnd_proc),
-      // Null background brush: DWM renders acrylic; GDI never touches the
-      // client area.
+      // Null background brush: DWM composites the thumbnail over the glass
+      // sheet; GDI never touches the client area.
       ..Default::default()
     };
 
