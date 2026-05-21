@@ -40,13 +40,12 @@ impl WindowAnimationState {
     }
   }
 
-  /// Gets the effective eased progress, returning 1.0 when the animation
-  /// is considered complete.
+  /// Gets the eased progress in [0.0, 1.0], snapping to 1.0 when complete.
   ///
   /// Non-overshooting curves snap to 1.0 at 99% eased progress to avoid
   /// the "stuck at destination" look. Overshooting curves run to full
   /// wall-clock duration to preserve their bounce.
-  fn effective_progress(&self) -> f32 {
+  pub fn eased_progress(&self) -> f32 {
     let raw = animation_progress(self.start_time, self.duration);
     let eased = apply_easing(raw, &self.easing);
     let done = if self.easing.can_overshoot() {
@@ -59,12 +58,12 @@ impl WindowAnimationState {
 
   /// Whether the animation has completed.
   pub fn is_complete(&self) -> bool {
-    self.effective_progress() == 1.0
+    self.eased_progress() == 1.0
   }
 
   /// Gets the interpolated rect at the current animation progress.
   pub fn current_rect(&self) -> Rect {
-    self.start_rect.interpolate(&self.target_rect, self.effective_progress())
+    self.start_rect.interpolate(&self.target_rect, self.eased_progress())
   }
 
   /// Gets the interpolated rect and opacity in a single call.
@@ -73,7 +72,7 @@ impl WindowAnimationState {
   /// when both values are needed in the same frame — `effective_progress`
   /// (which runs a Newton-Raphson solve) is computed only once.
   pub fn current_state(&self) -> (Rect, Option<OpacityValue>) {
-    let progress = self.effective_progress();
+    let progress = self.eased_progress();
     let rect = self.start_rect.interpolate(&self.target_rect, progress);
     let opacity = match (&self.start_opacity, &self.target_opacity) {
       (Some(start), Some(end)) => Some(start.interpolate(end, progress)),

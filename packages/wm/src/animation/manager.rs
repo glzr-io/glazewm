@@ -9,7 +9,7 @@ use std::{
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::{EasingFunction, WindowOpenDirection, WorkspaceSwitchStyle};
+use wm_common::{EasingFunction, WindowTransitionStyle, WorkspaceSwitchStyle};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
@@ -346,8 +346,6 @@ impl AnimationManager {
 
         if let Some(container) = state.container_by_id(id) {
           if let Ok(window) = container.as_window_container() {
-            // Uncloak before WM_CLOSE so save-dialogs are visible to the user.
-            let _ = window.native().set_cloaked(false);
             if let Err(err) = window.native().close() {
               tracing::warn!("Failed to send WM_CLOSE for {id}: {err}.");
             }
@@ -677,11 +675,11 @@ impl AnimationManager {
       let session_status = self
         .resize_sessions
         .get(&window_id)
-        .map(|s| (s.has_surrogate(), s.effect_opacity));
+        .map(|s| (s.has_surrogate(), s.effect_opacity, s.zoom));
 
       #[cfg(target_os = "windows")]
       match session_status {
-        Some((true, effect_opacity)) => {
+        Some((true, effect_opacity, zoom)) => {
           let monitor_rect =
             self.slide_in_monitor_rects.get(&window_id).cloned();
           let session =
@@ -690,14 +688,27 @@ impl AnimationManager {
             .as_ref()
             .map(|o| o.to_alpha())
             .unwrap_or(effect_opacity);
-          if let Some(monitor_rect) = monitor_rect {
+          if zoom {
+            // Extract progress with a separate borrow before mutably using session.
+            let progress = self
+              .animations
+              .get(&window_id)
+              .map(|a| a.eased_progress())
+              .unwrap_or(1.0);
+            let is_close =
+              self.pending_close_windows.contains_key(&window_id);
+            let zoom_progress =
+              if is_close { 1.0 - progress } else { progress };
+            let session = self.resize_sessions.get_mut(&window_id).unwrap();
+            session.update_zoom_fade(zoom_progress, opacity_u8);
+          } else if let Some(monitor_rect) = monitor_rect {
             session.update_clipped(&current_rect, &monitor_rect, opacity_u8);
           } else {
             session.update(&current_rect, opacity_u8);
           }
           return (AnimationPositionResult::Frozen, None);
         }
-        Some((false, _)) => {
+        Some((false, _, _)) => {
           // Thumbnail failed — drop the transparent surrogate and snap.
           self.resize_sessions.remove(&window_id);
           self.animations.remove(&window_id);
@@ -800,17 +811,17 @@ impl AnimationManager {
     }
   }
 
-  /// Starts a slide-in animation for a newly appearing window.
+  /// Starts an open animation for a newly appearing window.
   ///
-  /// The surrogate slides from a computed start position (determined by
+  /// The surrogate animates from a computed start state (determined by
   /// `window_open.direction`) to the window's final target rect. A
   /// `ResizeSession` handles all visuals; the real window remains cloaked
   /// until the animation completes.
   ///
-  /// No-ops when `direction` is `None` and `opacity_from` is `1.0` (nothing
+  /// No-ops when `direction` is `Fade` and `opacity_from` is `1.0` (nothing
   /// would visually change for the duration).
   #[cfg(target_os = "windows")]
-  pub fn start_slide_in_animation(
+  pub fn start_open_animation(
     &mut self,
     window_id: Uuid,
     target_rect: Rect,
@@ -820,16 +831,20 @@ impl AnimationManager {
     native_window: &NativeWindow,
   ) {
     let anim_config = &config.value.animations.window_open;
+    let is_zoom = anim_config.style == WindowTransitionStyle::Zoom;
+    let is_stationary = anim_config.style.is_stationary();
 
-    // Skip when there is nothing to animate: no positional slide and no fade.
-    if anim_config.direction == WindowOpenDirection::None
-      && anim_config.opacity_from >= 1.0
-    {
+    // Skip when there is nothing to animate.
+    if is_stationary && !is_zoom && anim_config.opacity_from >= 1.0 {
       return;
     }
 
-    let start_rect =
-      Self::compute_open_start_rect(&target_rect, anim_config);
+    // Zoom/fade: surrogate stays at target position. Slide: offset start.
+    let start_rect = if is_stationary {
+      target_rect.clone()
+    } else {
+      Self::compute_transition_start_rect(&target_rect, &anim_config.style)
+    };
 
     let mut anim = WindowAnimationState::new_movement(
       start_rect.clone(),
@@ -838,12 +853,16 @@ impl AnimationManager {
       anim_config.easing.clone(),
     );
 
-    // Set up fade-in when opacity_from < 1.0. The surrogate fades from
-    // `opacity_from * effect_opacity` to `effect_opacity` so the fade
-    // respects the window's configured transparency.
-    if anim_config.opacity_from < 1.0 {
+    // Zoom always fades in (from 0) unless the user explicitly set opacity_from.
+    let effective_opacity_from = if is_zoom && anim_config.opacity_from >= 1.0 {
+      0.0_f32
+    } else {
+      anim_config.opacity_from
+    };
+
+    if effective_opacity_from < 1.0 {
       let effect_frac = effect_opacity as f32 / 255.0;
-      let start_frac = anim_config.opacity_from.clamp(0.0, 1.0) * effect_frac;
+      let start_frac = effective_opacity_from.clamp(0.0, 1.0) * effect_frac;
       anim.start_opacity = Some(OpacityValue(start_frac));
       anim.target_opacity = Some(OpacityValue(effect_frac));
     }
@@ -857,37 +876,39 @@ impl AnimationManager {
       false,
     ) {
       Ok(mut session) => {
-        // Override the surrogate's initial opacity synchronously before the
-        // first DWM frame. `ResizeSession::begin` always creates the surrogate
-        // at `effect_opacity` (255 when transparency is off), so without this
-        // call there is a one-frame flash at full opacity before the animation
-        // loop drives it down to the configured `opacity_from` value.
-        if anim_config.opacity_from < 1.0 {
-          let initial_u8 = (anim_config.opacity_from.clamp(0.0, 1.0)
-            * effect_opacity as f32)
-            .round() as u8;
-          session.update(&start_rect, initial_u8);
+        session.zoom = is_zoom;
+        let initial_opacity_u8 = (effective_opacity_from.clamp(0.0, 1.0)
+          * effect_opacity as f32)
+          .round() as u8;
+        if is_zoom {
+          session.update_zoom_fade(0.0, initial_opacity_u8);
+        } else if effective_opacity_from < 1.0 {
+          session.update(&start_rect, initial_opacity_u8);
         }
         self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
-        self.slide_in_monitor_rects.insert(window_id, monitor_rect);
+        if !is_stationary {
+          self.slide_in_monitor_rects.insert(window_id, monitor_rect);
+        }
       }
       Err(err) => {
         tracing::warn!(
-          "Failed to begin slide-in session for {window_id}: {err}."
+          "Failed to begin open animation for {window_id}: {err}."
         );
       }
     }
   }
 
-  /// Starts a fade-out (close) animation for a window.
+  /// Starts a close animation for a window.
   ///
-  /// The real window is expected to be already cloaked by the caller. A
-  /// surrogate is created at `current_rect` and fades from `effect_opacity`
-  /// to `opacity_to`. When the animation completes, `update_internal` sends
-  /// `WM_CLOSE` and unmanages the window.
+  /// The real window is expected to be already cloaked by the caller. The
+  /// surrogate style is determined by `window_close.style`:
+  /// - `Fade`/`Zoom`: surrogate stays at `current_rect`, fades/zooms out.
+  /// - Slide styles: surrogate slides off the corresponding screen edge while
+  ///   fading. The real window is never repositioned during a close animation.
   ///
-  /// No-ops if a close animation is already active for `window_id`.
+  /// When the animation completes, `update_internal` sends `WM_CLOSE` and
+  /// unmanages the window. No-ops if a close animation is already active.
   #[cfg(target_os = "windows")]
   pub fn start_close_animation(
     &mut self,
@@ -902,10 +923,20 @@ impl AnimationManager {
     }
 
     let anim_config = &config.value.animations.window_close;
+    let is_zoom = anim_config.style == WindowTransitionStyle::Zoom;
+    let is_stationary = anim_config.style.is_stationary();
+
+    // For slide-out, the surrogate travels from current_rect to an off-screen
+    // target. The real window stays at current_rect throughout.
+    let target_rect = if is_stationary {
+      current_rect.clone()
+    } else {
+      Self::compute_transition_start_rect(&current_rect, &anim_config.style)
+    };
 
     let mut anim = WindowAnimationState::new_movement(
       current_rect.clone(),
-      current_rect.clone(),
+      target_rect.clone(),
       anim_config.duration_ms,
       anim_config.easing.clone(),
     );
@@ -918,7 +949,7 @@ impl AnimationManager {
     match ResizeSession::begin(
       native_window.hwnd(),
       &current_rect,
-      &current_rect,
+      &target_rect,
       None,
       effect_opacity,
       false,
@@ -926,6 +957,7 @@ impl AnimationManager {
       Ok(mut session) => {
         // Show the surrogate immediately — the real window is already cloaked.
         session.show();
+        session.zoom = is_zoom;
         self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
         self.pending_close_windows
@@ -933,37 +965,39 @@ impl AnimationManager {
       }
       Err(err) => {
         tracing::warn!(
-          "Failed to begin close session for {window_id}: {err}."
+          "Failed to begin close animation for {window_id}: {err}."
         );
       }
     }
   }
 
-  /// Computes the surrogate start rect for a window-open animation.
+  /// Computes the off-screen rect for a slide open/close transition.
   ///
-  /// The start rect is the same size as `target_rect`, offset by one full
-  /// width/height in `direction` so its leading edge is flush with the
-  /// corresponding edge of `target_rect`. `None` direction returns
-  /// `target_rect` directly (used for fade-only).
+  /// For open (`start_open_animation`): returns the start rect positioned
+  /// off-screen, one full window dimension outside the target edge. The
+  /// surrogate slides from this rect to `base`.
+  ///
+  /// For close (`start_close_animation`): returns the off-screen target rect
+  /// so the surrogate slides from `base` (the window's current position) to
+  /// off-screen.
+  ///
+  /// `SlideRight` → exits/enters from the right edge;
+  /// `SlideLeft` → left edge; `SlideTop` → top; `SlideBottom` → bottom.
   #[cfg(target_os = "windows")]
-  fn compute_open_start_rect(
-    target: &Rect,
-    config: &wm_common::WindowOpenConfig,
+  fn compute_transition_start_rect(
+    base: &Rect,
+    style: &WindowTransitionStyle,
   ) -> Rect {
-    let w = target.width();
-    let h = target.height();
+    let w = base.width();
+    let h = base.height();
 
-    let (x, y) = match &config.direction {
-      // Left edge of start rect is at the right edge of target.
-      WindowOpenDirection::Right => (target.x() + w, target.y()),
-      // Right edge of start rect is at the left edge of target.
-      WindowOpenDirection::Left => (target.x() - w, target.y()),
-      // Bottom edge of start rect is at the top edge of target.
-      WindowOpenDirection::Top => (target.x(), target.y() - h),
-      // Top edge of start rect is at the bottom edge of target.
-      WindowOpenDirection::Bottom => (target.x(), target.y() + h),
-      // No slide — start at target position (fade-only).
-      WindowOpenDirection::None => (target.x(), target.y()),
+    let (x, y) = match style {
+      WindowTransitionStyle::SlideRight => (base.x() + w, base.y()),
+      WindowTransitionStyle::SlideLeft => (base.x() - w, base.y()),
+      WindowTransitionStyle::SlideTop => (base.x(), base.y() - h),
+      WindowTransitionStyle::SlideBottom => (base.x(), base.y() + h),
+      // Stationary styles never call this function.
+      _ => (base.x(), base.y()),
     };
 
     Rect::from_xy(x, y, w, h)

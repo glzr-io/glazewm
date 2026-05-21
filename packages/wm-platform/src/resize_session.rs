@@ -50,6 +50,10 @@ pub struct ResizeSession {
   /// correctly-sized content. Mixed/shrinking sessions use clip/wipe: thumbnail
   /// at source dimensions, real window stays at source until `pre_commit`.
   is_growing: bool,
+  /// When `true`, each frame animates the DWM thumbnail `rcDestination`
+  /// toward/away from the surrogate center instead of repositioning the
+  /// surrogate window. Used for zoom-in (open) and zoom-out (close) effects.
+  pub zoom: bool,
 }
 
 impl ResizeSession {
@@ -133,6 +137,7 @@ impl ResizeSession {
       border_inset,
       effect_opacity,
       is_growing,
+      zoom: false,
     })
   }
 
@@ -162,6 +167,38 @@ impl ResizeSession {
     if let Some(ref mut surrogate) = self.surrogate {
       surrogate.set_visible(true);
     }
+  }
+
+  /// Animates the DWM thumbnail `rcDestination` toward/away from center.
+  ///
+  /// `progress` is the eased animation progress (0.0 = zero-size, 1.0 = full
+  /// surrogate). Used for zoom-in (open) and zoom-out (close) effects. The
+  /// surrogate window itself stays fixed; only the thumbnail rect animates.
+  pub fn update_zoom_fade(&mut self, progress: f32, opacity: u8) {
+    let Some(ref mut surrogate) = self.surrogate else {
+      return;
+    };
+    let logical = to_logical(&self.target_rect, &self.border_inset);
+    let w = logical.width();
+    let h = logical.height();
+    let half_w = (w as f32 / 2.0 * progress).round() as i32;
+    let half_h = (h as f32 / 2.0 * progress).round() as i32;
+    if half_w <= 0 || half_h <= 0 {
+      surrogate.set_visible(false);
+    } else {
+      let cx = w / 2;
+      let cy = h / 2;
+      surrogate.set_thumbnail_rects(
+        RECT { left: 0, top: 0, right: w, bottom: h },
+        RECT {
+          left: cx - half_w,
+          top: cy - half_h,
+          right: cx + half_w,
+          bottom: cy + half_h,
+        },
+      );
+    }
+    surrogate.set_window_opacity(opacity);
   }
 
   /// Updates the surrogate to the current animation frame position and opacity.

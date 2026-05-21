@@ -543,7 +543,7 @@ fn redraw_containers(
     {
       let monitor_rect = monitor.to_rect()?;
       let native_ref = window.native();
-      state.animation_manager.start_slide_in_animation(
+      state.animation_manager.start_open_animation(
         window.id(),
         target_rect.clone(),
         monitor_rect,

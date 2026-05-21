@@ -34,11 +34,16 @@ animations:
     duration_ms: 150
     # See 'window_move.easing' for available options.
     easing: "cubic_bezier(0.16, 1.0, 0.3, 1.0)"
-    # Direction from which the window slides in: 'right' (default), 'left',
-    # 'top', 'bottom', or 'none' (no slide; useful with opacity_from).
-    direction: "right"
+    # Transition style. Options:
+    #   'slide_right' (default)  - slides in from the right
+    #   'slide_left'             - slides in from the left
+    #   'slide_top'              - slides in from the top
+    #   'slide_bottom'           - slides in from the bottom
+    #   'fade'                   - no slide; combine with opacity_from for pure fade
+    #   'zoom'                   - zoom in from window center (auto-fades)
+    style: "slide_right"
     # Starting opacity (0.0–1.0). At 1.0 no fade is applied; at 0.0 the
-    # window fades in from fully transparent. Can be combined with direction.
+    # window fades in from fully transparent. Can be combined with any style.
     opacity_from: 1.0
 
   # Animation settings for workspace-switch transitions.
@@ -66,6 +71,14 @@ animations:
     duration_ms: 150
     # See 'window_move.easing' for available options.
     easing: "ease_in_cubic"
+    # Transition style. Options:
+    #   'fade' (default)         - fade out only
+    #   'zoom'                   - zoom out from window center while fading
+    #   'slide_right'            - slide off the right edge while fading
+    #   'slide_left'             - slide off the left edge while fading
+    #   'slide_top'              - slide off the top edge while fading
+    #   'slide_bottom'           - slide off the bottom edge while fading
+    style: "fade"
     # Final opacity (0.0–1.0). At 0.0 the window fades to fully transparent.
     opacity_to: 0.0
 

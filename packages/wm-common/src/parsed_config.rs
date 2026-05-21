@@ -424,21 +424,41 @@ impl Default for AnimationsConfig {
   }
 }
 
-/// Direction from which a new window slides in.
+/// Spatial style for window open/close transitions.
+///
+/// Used by both `WindowOpenConfig.direction` and `WindowCloseConfig.style` so
+/// the same values apply symmetrically: a window that opens with `slide_right`
+/// (entering from the right) closes with `slide_right` (exiting to the right).
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum WindowOpenDirection {
-  /// Window slides in from the right (default).
+pub enum WindowTransitionStyle {
+  /// Slide in/out from/to the right edge (default).
   #[default]
-  Right,
-  /// Window slides in from the left.
-  Left,
-  /// Window slides in from the top.
-  Top,
-  /// Window slides in from the bottom.
-  Bottom,
-  /// No positional slide; only opacity fade (if `opacity_from` < 1.0) is applied.
-  None,
+  #[serde(alias = "right")]
+  SlideRight,
+  /// Slide in/out from/to the left edge.
+  #[serde(alias = "left")]
+  SlideLeft,
+  /// Slide in/out from/to the top edge.
+  #[serde(alias = "top")]
+  SlideTop,
+  /// Slide in/out from/to the bottom edge.
+  #[serde(alias = "bottom")]
+  SlideBottom,
+  /// Fade only — no positional slide. Combined with `opacity_from`/`opacity_to`
+  /// for a pure crossfade.
+  #[serde(alias = "none")]
+  Fade,
+  /// Zoom in/out from the window center. Automatically fades when
+  /// `opacity_from`/`opacity_to` are set; otherwise pure scale.
+  Zoom,
+}
+
+impl WindowTransitionStyle {
+  /// Returns `true` when the style has no positional slide component.
+  pub fn is_stationary(&self) -> bool {
+    matches!(self, Self::Fade | Self::Zoom)
+  }
 }
 
 /// Animation settings for when a new window appears (Windows only).
@@ -448,8 +468,14 @@ pub struct WindowOpenConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
-  /// Side from which the window enters the screen.
-  pub direction: WindowOpenDirection,
+  /// Transition style for the open animation.
+  ///
+  /// - `slide_right` (default): slides in from the right.
+  /// - `slide_left` / `slide_top` / `slide_bottom`: slide from that edge.
+  /// - `fade`: no slide; combine with `opacity_from` for a pure fade-in.
+  /// - `zoom`: zoom in from the window center; fades automatically.
+  #[serde(alias = "direction")]
+  pub style: WindowTransitionStyle,
   /// Starting opacity (0.0–1.0). At `1.0` no fade is applied; at `0.0`
   /// the window fades in from fully transparent.
   pub opacity_from: f32,
@@ -461,7 +487,7 @@ impl Default for WindowOpenConfig {
       enabled: true,
       duration_ms: 200,
       easing: EasingFunction::CubicBezier(0.0, 0.0, 0.58, 1.0),
-      direction: WindowOpenDirection::Right,
+      style: WindowTransitionStyle::SlideRight,
       opacity_from: 1.0,
     }
   }
@@ -474,6 +500,13 @@ pub struct WindowCloseConfig {
   pub enabled: bool,
   pub duration_ms: u32,
   pub easing: EasingFunction,
+  /// Transition style for the close animation.
+  ///
+  /// - `fade` (default): fade out only; set `opacity_to` for target opacity.
+  /// - `slide_right` / `slide_left` / `slide_top` / `slide_bottom`: slide off
+  ///   that edge while fading.
+  /// - `zoom`: zoom out from the window center while fading.
+  pub style: WindowTransitionStyle,
   /// Final opacity (0.0–1.0). At `0.0` the window fades to fully transparent.
   pub opacity_to: f32,
 }
@@ -484,6 +517,7 @@ impl Default for WindowCloseConfig {
       enabled: false,
       duration_ms: 150,
       easing: EasingFunction::CubicBezier(0.32, 0.0, 0.67, 0.0),
+      style: WindowTransitionStyle::Fade,
       opacity_to: 0.0,
     }
   }
