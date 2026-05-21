@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+  cell::Cell,
+  time::{Duration, Instant},
+};
 
 use wm_common::EasingFunction;
 use wm_platform::{OpacityValue, Rect};
@@ -8,7 +11,15 @@ use crate::animation::engine::{animation_progress, apply_easing};
 /// State of an individual window animation.
 #[derive(Clone, Debug)]
 pub struct WindowAnimationState {
-  pub start_time: Instant,
+  /// Time of the first rendered frame.
+  ///
+  /// Lazily initialized on the first `eased_progress` call so the clock
+  /// starts when the first frame is actually rendered (aligned to VSync)
+  /// rather than when the animation struct is created mid-`platform_sync`.
+  /// Without lazy init, a cold-start gap of 1–2 DWM frames causes the first
+  /// rendered frame to already show non-zero progress, producing a visible
+  /// jump at the start of the animation.
+  start_time: Cell<Option<Instant>>,
   pub duration: Duration,
   pub easing: EasingFunction,
 
@@ -30,7 +41,7 @@ impl WindowAnimationState {
     easing: EasingFunction,
   ) -> Self {
     Self {
-      start_time: Instant::now(),
+      start_time: Cell::new(None),
       duration: Duration::from_millis(u64::from(duration_ms)),
       easing,
       start_rect,
@@ -45,8 +56,17 @@ impl WindowAnimationState {
   /// Non-overshooting curves snap to 1.0 at 99% eased progress to avoid
   /// the "stuck at destination" look. Overshooting curves run to full
   /// wall-clock duration to preserve their bounce.
+  ///
+  /// Lazily initializes `start_time` on the first call so elapsed time is
+  /// measured from the first rendered frame rather than from animation
+  /// creation time.
   pub fn eased_progress(&self) -> f32 {
-    let raw = animation_progress(self.start_time, self.duration);
+    let start = self.start_time.get().unwrap_or_else(|| {
+      let now = Instant::now();
+      self.start_time.set(Some(now));
+      now
+    });
+    let raw = animation_progress(start, self.duration);
     let eased = apply_easing(raw, &self.easing);
     let done = if self.easing.can_overshoot() {
       raw == 1.0

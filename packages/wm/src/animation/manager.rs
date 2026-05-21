@@ -258,6 +258,15 @@ impl AnimationManager {
           // VSync wake-up and tick delivery is minimised.
           wm_platform::set_thread_priority_highest();
 
+          // Send an immediate tick so the first animation frame begins
+          // without waiting for the next VSync. Without this the surrogate
+          // is frozen at its start position for up to one full frame period
+          // (~16 ms at 60 Hz, ~8 ms at 120 Hz) before any movement begins.
+          if tx.send(()).is_err() {
+            timer_flag.store(false, Ordering::Relaxed);
+            return;
+          }
+
           loop {
             if !timer_flag.load(Ordering::Relaxed) {
               break;
