@@ -197,6 +197,7 @@ impl ResizeSession {
           bottom: cy + half_h,
         },
       );
+      surrogate.set_visible(true);
     }
     surrogate.set_window_opacity(opacity);
   }

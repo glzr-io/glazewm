@@ -697,10 +697,10 @@ impl AnimationManager {
               .unwrap_or(1.0);
             let is_close =
               self.pending_close_windows.contains_key(&window_id);
-            let zoom_progress =
+            let forward_progress =
               if is_close { 1.0 - progress } else { progress };
             let session = self.resize_sessions.get_mut(&window_id).unwrap();
-            session.update_zoom_fade(zoom_progress, opacity_u8);
+            session.update_zoom_fade(forward_progress, opacity_u8);
           } else if let Some(monitor_rect) = monitor_rect {
             session.update_clipped(&current_rect, &monitor_rect, opacity_u8);
           } else {
@@ -839,7 +839,8 @@ impl AnimationManager {
       return;
     }
 
-    // Zoom/fade: surrogate stays at target position. Slide: offset start.
+    // Stationary styles keep the surrogate at target position; slide styles
+    // offset the start one full window dimension off-screen.
     let start_rect = if is_stationary {
       target_rect.clone()
     } else {
@@ -853,18 +854,25 @@ impl AnimationManager {
       anim_config.easing.clone(),
     );
 
-    // Zoom always fades in (from 0) unless the user explicitly set opacity_from.
-    let effective_opacity_from = if is_zoom && anim_config.opacity_from >= 1.0 {
-      0.0_f32
-    } else {
-      anim_config.opacity_from
-    };
+    // Zoom open does NOT auto-fade — the surrogate is fully opaque so the
+    // small thumbnail is immediately visible as it grows. Fade-in while zooming
+    // makes the initial frames invisible (opacity=0 + tiny size = nothing to
+    // see), which is why it felt unsmooth. Users can still set opacity_from
+    // explicitly to combine fade with zoom.
+    let effective_opacity_from = anim_config.opacity_from;
 
     if effective_opacity_from < 1.0 {
       let effect_frac = effect_opacity as f32 / 255.0;
       let start_frac = effective_opacity_from.clamp(0.0, 1.0) * effect_frac;
       anim.start_opacity = Some(OpacityValue(start_frac));
       anim.target_opacity = Some(OpacityValue(effect_frac));
+    }
+
+    // Cloak zoom windows immediately so the real window never appears at full
+    // size before the surrogate takes over. Non-zoom styles are cloaked later
+    // in the Frozen branch of platform_sync (on the first frame).
+    if is_zoom {
+      let _ = native_window.set_cloaked(true);
     }
 
     match ResizeSession::begin(
@@ -880,11 +888,12 @@ impl AnimationManager {
         let initial_opacity_u8 = (effective_opacity_from.clamp(0.0, 1.0)
           * effect_opacity as f32)
           .round() as u8;
-        if is_zoom {
-          session.update_zoom_fade(0.0, initial_opacity_u8);
-        } else if effective_opacity_from < 1.0 {
+        if effective_opacity_from < 1.0 {
           session.update(&start_rect, initial_opacity_u8);
         }
+        // For zoom: the drive loop handles the first frame. update_zoom_fade
+        // is NOT called here so the surrogate stays hidden until the first
+        // animation tick sets the correct progress.
         self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
         if !is_stationary {
@@ -892,6 +901,10 @@ impl AnimationManager {
         }
       }
       Err(err) => {
+        // Undo early cloak so the window doesn't disappear permanently.
+        if is_zoom {
+          let _ = native_window.set_cloaked(false);
+        }
         tracing::warn!(
           "Failed to begin open animation for {window_id}: {err}."
         );

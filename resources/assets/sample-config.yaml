@@ -67,7 +67,7 @@ animations:
 
   # Animation settings for when a window is closed (Windows only).
   window_close:
-    enabled: false
+    enabled: true
     duration_ms: 150
     # See 'window_move.easing' for available options.
     easing: "ease_in_cubic"
