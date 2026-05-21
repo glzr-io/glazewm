@@ -270,47 +270,74 @@ impl ResizeSession {
   /// Redirects the session to a new target rect while the surrogate is still
   /// active.
   ///
-  /// For **shrinking** sessions: only updates the stored `target_rect`. The
-  /// single synchronous move happens in [`pre_commit`] once the animation
-  /// reaches its final destination.
+  /// `current_rect` is the current animated position (used to recompute the
+  /// grow/shrink direction for the new `start → new_target` span). When the
+  /// direction changes, the DWM thumbnail is re-registered at the appropriate
+  /// dimensions so the curtain-reveal or clip/wipe renders correctly:
   ///
-  /// For **growing** sessions: additionally sends a synchronous `SetWindowPos`
-  /// to pre-position the cloaked real window at `new_target` and re-registers
-  /// the DWM thumbnail at the new target dimensions. This ensures the
-  /// curtain-reveal correctly covers the newly expanded area when a second
-  /// window close redirects an in-flight animation to a larger target.
+  /// - Shrinking → growing: registers thumbnail at `new_target` dimensions and
+  ///   sends a synchronous `SetWindowPos` to pre-position the cloaked real
+  ///   window at the new target so DWM captures the correctly-sized content.
+  /// - Growing → shrinking: registers thumbnail at `current_rect` dimensions
+  ///   so the clip/wipe effect starts from the correct boundary.
+  /// - Same direction: growing updates position and thumbnail; shrinking only
+  ///   stores the new target.
   ///
   /// [`pre_commit`]: ResizeSession::pre_commit
-  pub fn update_target(&mut self, new_target: &Rect) {
+  pub fn update_target(&mut self, current_rect: &Rect, new_target: &Rect) {
+    let new_is_growing = new_target.width() >= current_rect.width()
+      && new_target.height() >= current_rect.height();
+    let direction_changed = new_is_growing != self.is_growing;
+
+    self.is_growing = new_is_growing;
     self.target_rect = new_target.clone();
 
-    if !self.is_growing || self.hwnd == 0 {
+    if self.hwnd == 0 {
       return;
     }
 
-    // SAFETY: Window is cloaked when `update_target` is called (invoked from
-    // `start_animation_if_needed` during an active Frozen animation), so this
-    // `SetWindowPos` is invisible to the user.
-    unsafe {
-      let _ = SetWindowPos(
-        HWND(self.hwnd),
-        HWND(0),
-        new_target.x(),
-        new_target.y(),
-        new_target.width(),
-        new_target.height(),
-        SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
-      );
-    }
-
-    if let Some(surrogate) = &mut self.surrogate {
-      let logical = to_logical(new_target, &self.border_inset);
-      surrogate.reregister_thumbnail(
-        HWND(self.hwnd),
-        logical.width(),
-        logical.height(),
-        self.border_inset,
-      );
+    if new_is_growing {
+      // Growing: pre-position the cloaked real window and register the
+      // thumbnail at target dimensions for curtain-reveal. Required on every
+      // growing redirect (not just direction changes) so the curtain-reveal
+      // covers the newly expanded area.
+      //
+      // SAFETY: Window is cloaked when `update_target` is called (invoked from
+      // `start_animation_if_needed` during an active Frozen animation), so this
+      // `SetWindowPos` is invisible to the user.
+      unsafe {
+        let _ = SetWindowPos(
+          HWND(self.hwnd),
+          HWND(0),
+          new_target.x(),
+          new_target.y(),
+          new_target.width(),
+          new_target.height(),
+          SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_NOZORDER,
+        );
+      }
+      if let Some(surrogate) = &mut self.surrogate {
+        let logical = to_logical(new_target, &self.border_inset);
+        surrogate.reregister_thumbnail(
+          HWND(self.hwnd),
+          logical.width(),
+          logical.height(),
+          self.border_inset,
+        );
+      }
+    } else if direction_changed {
+      // Was growing, now shrinking: re-register thumbnail at current
+      // dimensions so the clip/wipe starts from the correct boundary rather
+      // than the stale (larger) growing target.
+      if let Some(surrogate) = &mut self.surrogate {
+        let logical = to_logical(current_rect, &self.border_inset);
+        surrogate.reregister_thumbnail(
+          HWND(self.hwnd),
+          logical.width(),
+          logical.height(),
+          self.border_inset,
+        );
+      }
     }
   }
 

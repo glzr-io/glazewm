@@ -10,6 +10,8 @@ use wm_common::{
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
+#[cfg(target_os = "windows")]
+use crate::commands::window::detach_window_for_close;
 use wm_platform::{
   Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
 };
@@ -307,20 +309,36 @@ impl WindowManager {
               if let Ok(rect) = window.to_rect().and_then(|r| {
                 window.total_border_delta().map(|d| r.apply_delta(&d, None))
               }) {
+                let window_id = window.id();
                 let _ = window.native().set_cloaked(true);
-                let native_ref = window.native();
-                state.animation_manager.start_close_animation(
-                  window.id(),
-                  rect,
-                  effect_opacity,
-                  config,
-                  &*native_ref,
-                );
-                return Ok(());
+                {
+                  let native_ref = window.native();
+                  state.animation_manager.start_close_animation(
+                    window_id,
+                    rect,
+                    effect_opacity,
+                    config,
+                    &*native_ref,
+                  );
+                }
+
+                // If the surrogate was created successfully, immediately
+                // detach the window from the layout tree so sibling windows
+                // begin their reflow animations in parallel with the close
+                // surrogate. `AnimationManager::update_internal` will send
+                // `WM_CLOSE` once the close animation finishes.
+                if state
+                  .animation_manager
+                  .has_close_animation(&window_id)
+                {
+                  detach_window_for_close(window, state)?;
+                  return Ok(());
+                }
               }
             }
 
-            // Fallback: no animation or rect unavailable — close immediately.
+            // Fallback: animations disabled, rect unavailable, or surrogate
+            // creation failed — close immediately.
             if let Err(err) = window.native().close() {
               warn!("Failed to close window: {:?}", err);
             }

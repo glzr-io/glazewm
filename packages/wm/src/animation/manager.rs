@@ -17,7 +17,7 @@ use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
 use crate::{
   animation::state::WindowAnimationState,
   commands::general::platform_sync,
-  traits::{CommonGetters, WindowGetters},
+  traits::CommonGetters,
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -157,6 +157,12 @@ impl AnimationManager {
     window_id: &Uuid,
   ) -> Option<&WindowAnimationState> {
     self.animations.get(window_id)
+  }
+
+  /// Returns `true` if a close animation is in flight for the given window.
+  #[cfg(target_os = "windows")]
+  pub fn has_close_animation(&self, window_id: &Uuid) -> bool {
+    self.pending_close_windows.contains_key(window_id)
   }
 
   /// Removes a window's animation and any associated resize session.
@@ -325,14 +331,73 @@ impl AnimationManager {
       }
     }
 
-    // Finalize completed close animations before `remove_completed_animations`
-    // so that their sessions are dropped directly (not moved to
-    // `pending_session_cleanup`) and the normal `Apply` branch in
-    // `platform_sync` never uncloaks these windows.
+    // Drive close surrogates directly. These windows have been detached from
+    // the layout tree when the close animation started, so they are not
+    // queued for redraw by the loop above and cannot be driven through
+    // `platform_sync`. We replicate the same per-frame update logic used
+    // inside `start_animation_if_needed` for surrogate sessions.
     #[cfg(target_os = "windows")]
     {
-      use crate::commands::window::unmanage_window;
+      let close_in_progress: Vec<Uuid> = state
+        .animation_manager
+        .pending_close_windows
+        .keys()
+        .filter(|id| {
+          state
+            .animation_manager
+            .animations
+            .get(id)
+            .map_or(false, |a| !a.is_complete())
+        })
+        .copied()
+        .collect();
 
+      for id in &close_in_progress {
+        let is_zoom = state
+          .animation_manager
+          .resize_sessions
+          .get(id)
+          .map(|s| s.zoom)
+          .unwrap_or(false);
+
+        // Extract values before taking a mutable borrow on resize_sessions.
+        let anim_data =
+          state.animation_manager.animations.get(id).map(|a| {
+            let (rect, opacity) = a.current_state();
+            let progress = a.eased_progress();
+            (rect, opacity, progress)
+          });
+
+        let Some((current_rect, opacity, progress)) = anim_data else {
+          continue;
+        };
+        let opacity_u8 =
+          opacity.map(|o| o.to_alpha()).unwrap_or(u8::MAX);
+
+        if is_zoom {
+          if let Some(session) =
+            state.animation_manager.resize_sessions.get_mut(id)
+          {
+            session.update_zoom_fade(1.0 - progress, opacity_u8);
+          }
+        } else if let Some(session) =
+          state.animation_manager.resize_sessions.get_mut(id)
+        {
+          session.update(&current_rect, opacity_u8);
+        }
+      }
+    }
+
+    // Finalize completed close animations before `remove_completed_animations`
+    // so that their sessions are dropped directly (not moved to
+    // `pending_session_cleanup`) and `platform_sync` never attempts to
+    // reposition or uncloak these windows.
+    //
+    // The window was already detached from the layout tree when the close
+    // animation started, so `WM_CLOSE` is sent via the stored HWND rather
+    // than through the container tree.
+    #[cfg(target_os = "windows")]
+    {
       let close_done: Vec<Uuid> = state
         .animation_manager
         .pending_close_windows
@@ -347,18 +412,29 @@ impl AnimationManager {
         .collect();
 
       for id in close_done {
-        // Drop surrogate and animation directly — bypasses pending_session_cleanup
-        // so platform_sync does not attempt to reposition and uncloak the window.
+        let hwnd = state
+          .animation_manager
+          .pending_close_windows
+          .get(&id)
+          .copied();
+
+        // Drop surrogate and animation directly — bypasses
+        // `pending_session_cleanup` so `platform_sync` does not attempt to
+        // reposition or uncloak the window.
         state.animation_manager.animations.remove(&id);
         state.animation_manager.resize_sessions.remove(&id);
         state.animation_manager.pending_close_windows.remove(&id);
 
-        if let Some(container) = state.container_by_id(id) {
-          if let Ok(window) = container.as_window_container() {
-            if let Err(err) = window.native().close() {
-              tracing::warn!("Failed to send WM_CLOSE for {id}: {err}.");
-            }
-            unmanage_window(window, state)?;
+        // Reconstruct a `NativeWindow` from the stored HWND and send
+        // `WM_CLOSE` to destroy the OS window. The layout was already
+        // updated when the animation started, so no `unmanage_window` call
+        // is needed here.
+        if let Some(handle) = hwnd {
+          let native = NativeWindow::from_handle(handle);
+          if let Err(err) = native.close() {
+            tracing::warn!(
+              "Failed to send WM_CLOSE for window {id}: {err}."
+            );
           }
         }
       }
@@ -639,7 +715,7 @@ impl AnimationManager {
         // process's message loop is slow.
         #[cfg(target_os = "windows")]
         if let Some(session) = self.resize_sessions.get_mut(&window_id) {
-          session.update_target(&target_rect);
+          session.update_target(&start_rect, &target_rect);
         } else {
           let surrogate_color = if is_resize {
             config.value.animations.window_resize.surrogate_color.as_ref()
