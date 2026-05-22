@@ -186,11 +186,15 @@ impl SystemTray {
       "../../../resources/assets/icon.png"
     ))?;
 
-    let tray_icon = TrayIconBuilder::new()
+    let builder = TrayIconBuilder::new()
       .with_menu(Box::new(tray_menu))
       .with_tooltip(format!("GlazeWM v{}", env!("VERSION_NUMBER")))
-      .with_icon(icon)
-      .build()?;
+      .with_icon(icon);
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.with_icon_as_template(true);
+
+    let tray_icon = builder.build()?;
 
     Ok(tray_icon)
   }
