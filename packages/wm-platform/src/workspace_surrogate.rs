@@ -127,6 +127,13 @@ impl WorkspaceSurrogate {
   /// visible strip. The DWM thumbnail's `rcSource` is updated to display
   /// the correct content slice, preventing stretching and spill onto
   /// adjacent monitors.
+  /// Advances the surrogate along the horizontal axis to `eased_progress`
+  /// (0.0 → 1.0).
+  ///
+  /// `slide_distance` is the effective travel distance for the slide (may be
+  /// less than `monitor_width` to eliminate the seam gap between workspaces).
+  /// `monitor_x` and `monitor_width` are still the full monitor bounds used
+  /// for clipping.
   pub fn update_slide_horizontal(
     &mut self,
     eased_progress: f32,
@@ -134,8 +141,9 @@ impl WorkspaceSurrogate {
     direction: i32,
     monitor_x: i32,
     monitor_width: i32,
+    slide_distance: i32,
   ) {
-    self.slide_axis(eased_progress, is_incoming, direction, monitor_x, monitor_width, false);
+    self.slide_axis(eased_progress, is_incoming, direction, monitor_x, monitor_width, slide_distance, false);
   }
 
   /// Advances the surrogate along the vertical axis to `eased_progress`
@@ -152,8 +160,9 @@ impl WorkspaceSurrogate {
     direction: i32,
     monitor_y: i32,
     monitor_height: i32,
+    slide_distance: i32,
   ) {
-    self.slide_axis(eased_progress, is_incoming, direction, monitor_y, monitor_height, true);
+    self.slide_axis(eased_progress, is_incoming, direction, monitor_y, monitor_height, slide_distance, true);
   }
 
   /// Animates a zoom-from-center transition to `eased_progress` (0.0 → 1.0).
@@ -201,7 +210,9 @@ impl WorkspaceSurrogate {
 
   /// Advances the surrogate along either axis. `is_vertical = false` slides
   /// on the x-axis; `true` slides on the y-axis. `monitor_origin` and
-  /// `monitor_size` are the relevant monitor bounds along the chosen axis.
+  /// `monitor_size` are the full monitor bounds used for clipping.
+  /// `slide_distance` is the effective travel distance (may be less than
+  /// `monitor_size` to close the seam gap between the two workspace panels).
   fn slide_axis(
     &mut self,
     eased_progress: f32,
@@ -209,14 +220,15 @@ impl WorkspaceSurrogate {
     direction: i32,
     monitor_origin: i32,
     monitor_size: i32,
+    slide_distance: i32,
     is_vertical: bool,
   ) {
-    // Incoming: start at +direction*size offset, end at 0.
-    // Outgoing: start at 0, end at -direction*size offset.
+    // Incoming: start at +direction*slide_distance offset, end at 0.
+    // Outgoing: start at 0, end at -direction*slide_distance offset.
     let offset = if is_incoming {
-      (direction as f32 * monitor_size as f32 * (1.0 - eased_progress)) as i32
+      (direction as f32 * slide_distance as f32 * (1.0 - eased_progress)) as i32
     } else {
-      (-direction as f32 * monitor_size as f32 * eased_progress) as i32
+      (-direction as f32 * slide_distance as f32 * eased_progress) as i32
     };
 
     // Axis-dependent dimensions.

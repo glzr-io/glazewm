@@ -65,6 +65,17 @@ struct WorkspaceSwitchState {
   monitor_y: i32,
   /// Height of the animation monitor in screen pixels.
   monitor_height: i32,
+  /// Effective horizontal slide travel distance in screen pixels.
+  ///
+  /// Less than `monitor_width` by the sum of the outgoing workspace's
+  /// trailing gap and the incoming workspace's leading gap (both equal to
+  /// `outer_gap` in a standard config). This makes the two workspace panels
+  /// start adjacent with no visible seam between them.
+  slide_distance_h: i32,
+  /// Effective vertical slide travel distance in screen pixels.
+  ///
+  /// Mirrors `slide_distance_h` on the y-axis.
+  slide_distance_v: i32,
 }
 
 /// Result of [`AnimationManager::start_animation_if_needed`], describing
@@ -491,6 +502,16 @@ impl AnimationManager {
 
         for entry in ws.windows.values_mut() {
           if let Some(ref mut s) = entry.surrogate {
+            // At completion, hide outgoing surrogates immediately rather than
+            // advancing them to eased_final=1.0. With the seam-gap adjustment
+            // the outgoing slide distance is less than monitor_width, so at
+            // t=1.0 the trailing edge of the outgoing panel would sit
+            // `leading_gap` pixels inside the monitor boundary — leaving a
+            // thin sliver visible for the final composition frame.
+            if ws_done && !entry.is_incoming {
+              s.hide_thumbnail();
+              continue;
+            }
             match ws.style {
               WorkspaceSwitchStyle::SlideHorizontal
               | WorkspaceSwitchStyle::SlideCrossfadeHorizontal
@@ -502,6 +523,7 @@ impl AnimationManager {
                   ws.direction,
                   ws.monitor_x,
                   ws.monitor_width,
+                  ws.slide_distance_h,
                 );
               }
               WorkspaceSwitchStyle::SlideVertical
@@ -514,6 +536,7 @@ impl AnimationManager {
                   ws.direction,
                   ws.monitor_y,
                   ws.monitor_height,
+                  ws.slide_distance_v,
                 );
               }
               WorkspaceSwitchStyle::Fade => {
@@ -840,6 +863,20 @@ impl AnimationManager {
       .unwrap_or(false)
   }
 
+  /// Returns `true` when `window_id` is an incoming participant held in
+  /// `pending_ws_cleanup` (the one-tick cleanup state after the animation
+  /// completes). Used to force synchronous `SetWindowPos` before uncloaking
+  /// so the window is already at its target position when revealed.
+  #[cfg(target_os = "windows")]
+  pub fn is_pending_ws_cleanup_incoming(&self, window_id: &Uuid) -> bool {
+    self
+      .pending_ws_cleanup
+      .as_ref()
+      .and_then(|ws| ws.windows.get(window_id))
+      .map(|e| e.is_incoming)
+      .unwrap_or(false)
+  }
+
   /// Installs a workspace-switch animation for the provided windows.
   ///
   /// Accepts pre-created [`WorkspaceSurrogate`] instances together with their
@@ -863,6 +900,109 @@ impl AnimationManager {
 
     let duration_ms = ws_config.duration_ms;
 
+    // Compute slide travel distances that eliminate the visible seam between
+    // outgoing and incoming workspaces. With a plain monitor_width/height
+    // offset, the two panels have a (trailing_gap + leading_gap) strip of raw
+    // desktop between them — equal to 2×outer_gap in a standard layout. By
+    // reducing the slide distance by that sum, the panels start adjacent and
+    // move as one seamless surface.
+    let h_monitor_right = monitor_x + monitor_width;
+    let v_monitor_bottom = monitor_y + monitor_height;
+
+    let slide_distance_h = {
+      let (trailing, leading) = if direction >= 0 {
+        // Outgoing moves left; trailing edge = right side of outgoing content.
+        // Incoming from right; leading edge = left side of incoming content.
+        let max_out_right = windows
+          .iter()
+          .filter(|(_, _, is_in)| !is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.right)
+          .max()
+          .unwrap_or(h_monitor_right);
+        let min_in_left = windows
+          .iter()
+          .filter(|(_, _, is_in)| *is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.left)
+          .min()
+          .unwrap_or(monitor_x);
+        (
+          (h_monitor_right - max_out_right).max(0),
+          (min_in_left - monitor_x).max(0),
+        )
+      } else {
+        // Outgoing moves right; trailing edge = left side of outgoing content.
+        // Incoming from left; leading edge = right side of incoming content.
+        let min_out_left = windows
+          .iter()
+          .filter(|(_, _, is_in)| !is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.left)
+          .min()
+          .unwrap_or(monitor_x);
+        let max_in_right = windows
+          .iter()
+          .filter(|(_, _, is_in)| *is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.right)
+          .max()
+          .unwrap_or(h_monitor_right);
+        (
+          (min_out_left - monitor_x).max(0),
+          (h_monitor_right - max_in_right).max(0),
+        )
+      };
+      (monitor_width - trailing - leading).max(1)
+    };
+
+    let slide_distance_v = {
+      let (trailing, leading) = if direction >= 0 {
+        // Outgoing moves up; trailing edge = bottom side of outgoing content.
+        // Incoming from below; leading edge = top side of incoming content.
+        let max_out_bottom = windows
+          .iter()
+          .filter(|(_, _, is_in)| !is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.bottom)
+          .max()
+          .unwrap_or(v_monitor_bottom);
+        let min_in_top = windows
+          .iter()
+          .filter(|(_, _, is_in)| *is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.top)
+          .min()
+          .unwrap_or(monitor_y);
+        (
+          (v_monitor_bottom - max_out_bottom).max(0),
+          (min_in_top - monitor_y).max(0),
+        )
+      } else {
+        // Outgoing moves down; trailing edge = top side of outgoing content.
+        // Incoming from above; leading edge = bottom side of incoming content.
+        let min_out_top = windows
+          .iter()
+          .filter(|(_, _, is_in)| !is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.top)
+          .min()
+          .unwrap_or(monitor_y);
+        let max_in_bottom = windows
+          .iter()
+          .filter(|(_, _, is_in)| *is_in)
+          .filter_map(|(_, s, _)| s.as_ref())
+          .map(|s| s.rect.bottom)
+          .max()
+          .unwrap_or(v_monitor_bottom);
+        (
+          (min_out_top - monitor_y).max(0),
+          (v_monitor_bottom - max_in_bottom).max(0),
+        )
+      };
+      (monitor_height - trailing - leading).max(1)
+    };
+
     let ws_windows: HashMap<Uuid, WorkspaceSwitchEntry> = windows
       .into_iter()
       .map(|(id, surrogate, is_incoming)| {
@@ -874,6 +1014,7 @@ impl AnimationManager {
       tracing::info!(
         "Starting workspace-switch animation: style={:?}, direction={}, \
          monitor=({monitor_x},{monitor_y},{monitor_width}x{monitor_height}), \
+         slide_distance=({slide_distance_h}x{slide_distance_v}), \
          windows={}",
         ws_config.style,
         direction,
@@ -890,6 +1031,8 @@ impl AnimationManager {
         monitor_width,
         monitor_y,
         monitor_height,
+        slide_distance_h,
+        slide_distance_v,
       });
     } else {
       tracing::warn!("Workspace-switch skipped: no windows to animate.");

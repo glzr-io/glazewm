@@ -695,11 +695,20 @@ fn redraw_containers(
         // window — adjacent windows must stay in lock-step with the overlay.
         // For pure moves (no surrogate) async is correct and avoids blocking
         // on the target process's message queue each frame.
+        // Also treat incoming ws-switch windows as having a surrogate when
+        // being uncloaked at animation completion. Without this, the window
+        // would be repositioned with `SWP_ASYNCWINDOWPOS` and immediately
+        // uncloaked — if its message queue is slow, it appears at its old
+        // position for one frame.
         #[cfg(target_os = "windows")]
         let has_surrogate = state
           .animation_manager
           .resize_sessions
-          .contains_key(&window.id());
+          .contains_key(&window.id())
+          || (is_visible
+            && state
+              .animation_manager
+              .is_pending_ws_cleanup_incoming(&window.id()));
         #[cfg(not(target_os = "windows"))]
         let has_surrogate = false;
 
