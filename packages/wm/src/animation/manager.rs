@@ -1067,7 +1067,7 @@ impl AnimationManager {
         monitor_height,
         slide_distance_h,
         slide_distance_v,
-        zoom_factor: ws_config.zoom_factor.clamp(0.0, 0.99),
+        zoom_factor: ws_config.zoom_factor.clamp(0.0, 1.0),
       });
     } else {
       tracing::warn!("Workspace-switch skipped: no windows to animate.");

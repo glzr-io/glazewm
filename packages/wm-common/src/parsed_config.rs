@@ -611,7 +611,8 @@ pub struct WorkspaceSwitchAnimationConfig {
   /// exits; the incoming grows from `1.0 - zoom_factor` to `1.0` as it enters.
   /// Scaling is from the monitor center so all windows move inward together,
   /// preserving the workspace-as-a-panel illusion. Has no effect on `fade` or
-  /// `zoom` styles. Valid range: `0.0` (disabled, default) to `< 1.0`.
+  /// `zoom` styles. Valid range: `0.0` (no zoom) to `1.0` (collapses to a
+  /// point). Recommended range: `0.05`–`0.15` for a subtle depth effect.
   pub zoom_factor: f32,
 }
 
@@ -622,7 +623,7 @@ impl Default for WorkspaceSwitchAnimationConfig {
       duration_ms: 300,
       easing: EasingFunction::CubicBezier(0.33, 1.0, 0.68, 1.0),
       style: WorkspaceSwitchStyle::default(),
-      zoom_factor: 0.0,
+      zoom_factor: 0.1,
     }
   }
 }

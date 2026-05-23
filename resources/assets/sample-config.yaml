@@ -62,8 +62,14 @@ animations:
     #   'slide_fade_in_horizontal'     - horizontal slide, incoming fades in
     #   'slide_fade_in_vertical'       - vertical slide, incoming fades in
     #   'fade'                         - pure crossfade, no slide
-    #   'zoom'                         - each window zooms in/out from its center
+    #   'zoom'                         - outgoing shrinks to center, incoming expands
     style: "slide_horizontal"
+    # Amount of workspace-level zoom applied during slide transitions. The
+    # outgoing workspace shrinks from 1.0 to (1 - zoom_factor) as it exits;
+    # the incoming grows from (1 - zoom_factor) to 1.0. Scaling is from the
+    # monitor center so all windows move inward together. Range: 0.0 (no zoom)
+    # to 1.0 (collapses to a point). Has no effect on 'fade' or 'zoom' styles.
+    zoom_factor: 0.1
 
   # Animation settings for when a window is closed (Windows only).
   window_close:
