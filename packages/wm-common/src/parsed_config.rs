@@ -605,6 +605,14 @@ pub struct WorkspaceSwitchAnimationConfig {
   /// - `fade`: pure crossfade, no positional slide.
   /// - `zoom`: outgoing shrinks to center, incoming expands from center.
   pub style: WorkspaceSwitchStyle,
+  /// Amount of workspace-level scale applied during slide transitions.
+  ///
+  /// The outgoing workspace shrinks from `1.0` to `1.0 - zoom_factor` as it
+  /// exits; the incoming grows from `1.0 - zoom_factor` to `1.0` as it enters.
+  /// Scaling is from the monitor center so all windows move inward together,
+  /// preserving the workspace-as-a-panel illusion. Has no effect on `fade` or
+  /// `zoom` styles. Valid range: `0.0` (disabled, default) to `< 1.0`.
+  pub zoom_factor: f32,
 }
 
 impl Default for WorkspaceSwitchAnimationConfig {
@@ -614,6 +622,7 @@ impl Default for WorkspaceSwitchAnimationConfig {
       duration_ms: 300,
       easing: EasingFunction::CubicBezier(0.33, 1.0, 0.68, 1.0),
       style: WorkspaceSwitchStyle::default(),
+      zoom_factor: 0.0,
     }
   }
 }

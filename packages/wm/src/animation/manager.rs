@@ -76,6 +76,12 @@ struct WorkspaceSwitchState {
   ///
   /// Mirrors `slide_distance_h` on the y-axis.
   slide_distance_v: i32,
+  /// Scale applied to the whole workspace during slide transitions.
+  ///
+  /// Derived from `WorkspaceSwitchAnimationConfig::zoom_factor`. `0.0` means
+  /// no zoom (plain slide). The outgoing workspace scales from `1.0` to
+  /// `1.0 - zoom_factor`; the incoming from `1.0 - zoom_factor` to `1.0`.
+  zoom_factor: f32,
 }
 
 /// Result of [`AnimationManager::start_animation_if_needed`], describing
@@ -517,27 +523,55 @@ impl AnimationManager {
               | WorkspaceSwitchStyle::SlideCrossfadeHorizontal
               | WorkspaceSwitchStyle::SlideFadeOutHorizontal
               | WorkspaceSwitchStyle::SlideFadeInHorizontal => {
-                s.update_slide_horizontal(
-                  eased_final,
-                  entry.is_incoming,
-                  ws.direction,
-                  ws.monitor_x,
-                  ws.monitor_width,
-                  ws.slide_distance_h,
-                );
+                if ws.zoom_factor > 0.0 {
+                  s.update_slide_zoom_horizontal(
+                    eased_final,
+                    entry.is_incoming,
+                    ws.direction,
+                    ws.monitor_x,
+                    ws.monitor_width,
+                    ws.monitor_y,
+                    ws.monitor_height,
+                    ws.slide_distance_h,
+                    ws.zoom_factor,
+                  );
+                } else {
+                  s.update_slide_horizontal(
+                    eased_final,
+                    entry.is_incoming,
+                    ws.direction,
+                    ws.monitor_x,
+                    ws.monitor_width,
+                    ws.slide_distance_h,
+                  );
+                }
               }
               WorkspaceSwitchStyle::SlideVertical
               | WorkspaceSwitchStyle::SlideCrossfadeVertical
               | WorkspaceSwitchStyle::SlideFadeOutVertical
               | WorkspaceSwitchStyle::SlideFadeInVertical => {
-                s.update_slide_vertical(
-                  eased_final,
-                  entry.is_incoming,
-                  ws.direction,
-                  ws.monitor_y,
-                  ws.monitor_height,
-                  ws.slide_distance_v,
-                );
+                if ws.zoom_factor > 0.0 {
+                  s.update_slide_zoom_vertical(
+                    eased_final,
+                    entry.is_incoming,
+                    ws.direction,
+                    ws.monitor_x,
+                    ws.monitor_width,
+                    ws.monitor_y,
+                    ws.monitor_height,
+                    ws.slide_distance_v,
+                    ws.zoom_factor,
+                  );
+                } else {
+                  s.update_slide_vertical(
+                    eased_final,
+                    entry.is_incoming,
+                    ws.direction,
+                    ws.monitor_y,
+                    ws.monitor_height,
+                    ws.slide_distance_v,
+                  );
+                }
               }
               WorkspaceSwitchStyle::Fade => {
                 s.update_fade(eased_final, entry.is_incoming);
@@ -1033,6 +1067,7 @@ impl AnimationManager {
         monitor_height,
         slide_distance_h,
         slide_distance_v,
+        zoom_factor: ws_config.zoom_factor.clamp(0.0, 0.99),
       });
     } else {
       tracing::warn!("Workspace-switch skipped: no windows to animate.");

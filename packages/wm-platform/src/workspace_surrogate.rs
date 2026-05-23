@@ -165,6 +165,75 @@ impl WorkspaceSurrogate {
     self.slide_axis(eased_progress, is_incoming, direction, monitor_y, monitor_height, slide_distance, true);
   }
 
+  /// Advances the surrogate along the horizontal axis with a simultaneous
+  /// whole-workspace scale to `eased_progress` (0.0 → 1.0).
+  ///
+  /// Each surrogate is positioned at the scaled screen coordinates of its
+  /// window (scaling from the monitor center), so the entire workspace
+  /// shrinks/grows as one unit. The outgoing workspace scales from `1.0` to
+  /// `1.0 - zoom_factor`; the incoming scales from `1.0 - zoom_factor` to
+  /// `1.0`. `slide_distance` controls horizontal travel (see
+  /// [`update_slide_horizontal`]).
+  ///
+  /// [`update_slide_horizontal`]: WorkspaceSurrogate::update_slide_horizontal
+  pub fn update_slide_zoom_horizontal(
+    &mut self,
+    eased_progress: f32,
+    is_incoming: bool,
+    direction: i32,
+    monitor_x: i32,
+    monitor_width: i32,
+    monitor_y: i32,
+    monitor_height: i32,
+    slide_distance: i32,
+    zoom_factor: f32,
+  ) {
+    self.slide_zoom_axis(
+      eased_progress,
+      is_incoming,
+      direction,
+      monitor_x,
+      monitor_width,
+      monitor_y,
+      monitor_height,
+      slide_distance,
+      zoom_factor,
+      false,
+    );
+  }
+
+  /// Advances the surrogate along the vertical axis with a simultaneous
+  /// whole-workspace scale to `eased_progress` (0.0 → 1.0).
+  ///
+  /// Mirrors [`update_slide_zoom_horizontal`] on the y-axis.
+  ///
+  /// [`update_slide_zoom_horizontal`]: WorkspaceSurrogate::update_slide_zoom_horizontal
+  pub fn update_slide_zoom_vertical(
+    &mut self,
+    eased_progress: f32,
+    is_incoming: bool,
+    direction: i32,
+    monitor_x: i32,
+    monitor_width: i32,
+    monitor_y: i32,
+    monitor_height: i32,
+    slide_distance: i32,
+    zoom_factor: f32,
+  ) {
+    self.slide_zoom_axis(
+      eased_progress,
+      is_incoming,
+      direction,
+      monitor_x,
+      monitor_width,
+      monitor_y,
+      monitor_height,
+      slide_distance,
+      zoom_factor,
+      true,
+    );
+  }
+
   /// Animates a zoom-from-center transition to `eased_progress` (0.0 → 1.0).
   ///
   /// Each surrogate independently zooms in (incoming) or out (outgoing) from
@@ -205,6 +274,130 @@ impl WorkspaceSurrogate {
     };
 
     self.inner.set_thumbnail_rects(rc_src, rc_dst);
+    self.inner.set_visible(true);
+  }
+
+  /// Shared implementation for [`update_slide_zoom_horizontal`] and
+  /// [`update_slide_zoom_vertical`].
+  ///
+  /// Computes a per-frame scale from the monitor center (both axes) combined
+  /// with a slide offset on the primary axis (`is_vertical` selects which).
+  /// Each surrogate is repositioned every frame to its zoomed+slid screen
+  /// coordinates; `rcSource`/`rcDestination` map the visible slice of the
+  /// source content to fill the surrogate exactly.
+  ///
+  /// [`update_slide_zoom_horizontal`]: WorkspaceSurrogate::update_slide_zoom_horizontal
+  /// [`update_slide_zoom_vertical`]: WorkspaceSurrogate::update_slide_zoom_vertical
+  #[allow(clippy::too_many_arguments)]
+  fn slide_zoom_axis(
+    &mut self,
+    eased_progress: f32,
+    is_incoming: bool,
+    direction: i32,
+    monitor_x: i32,
+    monitor_width: i32,
+    monitor_y: i32,
+    monitor_height: i32,
+    slide_distance: i32,
+    zoom_factor: f32,
+    is_vertical: bool,
+  ) {
+    // Outgoing: scale 1.0 → (1 - zoom_factor) as it exits.
+    // Incoming: scale (1 - zoom_factor) → 1.0 as it enters.
+    let zoom_t = if is_incoming {
+      1.0 - eased_progress
+    } else {
+      eased_progress
+    };
+    let scale = 1.0 - zoom_factor * zoom_t;
+
+    if scale <= 0.0 {
+      self.inner.set_visible(false);
+      return;
+    }
+
+    // Slide offset on the primary axis.
+    let slide_offset = if is_incoming {
+      (direction as f32 * slide_distance as f32 * (1.0 - eased_progress)) as i32
+    } else {
+      (-direction as f32 * slide_distance as f32 * eased_progress) as i32
+    };
+
+    // Zoom all four edges from the monitor center.
+    let cx = monitor_x + monitor_width / 2;
+    let cy = monitor_y + monitor_height / 2;
+    let zoomed_left =
+      cx + ((self.rect.left - cx) as f32 * scale).round() as i32;
+    let zoomed_top =
+      cy + ((self.rect.top - cy) as f32 * scale).round() as i32;
+    let zoomed_right =
+      cx + ((self.rect.right - cx) as f32 * scale).round() as i32;
+    let zoomed_bottom =
+      cy + ((self.rect.bottom - cy) as f32 * scale).round() as i32;
+
+    // Apply slide offset on the primary axis only.
+    let (final_left, final_top, final_right, final_bottom) = if is_vertical {
+      (
+        zoomed_left,
+        zoomed_top + slide_offset,
+        zoomed_right,
+        zoomed_bottom + slide_offset,
+      )
+    } else {
+      (
+        zoomed_left + slide_offset,
+        zoomed_top,
+        zoomed_right + slide_offset,
+        zoomed_bottom,
+      )
+    };
+
+    // Clip to monitor bounds.
+    let monitor_right = monitor_x + monitor_width;
+    let monitor_bottom = monitor_y + monitor_height;
+    let vis_left = final_left.max(monitor_x);
+    let vis_top = final_top.max(monitor_y);
+    let vis_right = final_right.min(monitor_right);
+    let vis_bottom = final_bottom.min(monitor_bottom);
+
+    if vis_left >= vis_right || vis_top >= vis_bottom {
+      self.inner.set_visible(false);
+      return;
+    }
+
+    // Map the visible screen area back to source-window coordinates.
+    // screen_x = final_left + src_x * scale  →  src_x = (screen_x - final_left) / scale
+    let ww = self.rect.right - self.rect.left;
+    let wh = self.rect.bottom - self.rect.top;
+    let src_left =
+      (((vis_left - final_left) as f32 / scale).round() as i32).clamp(0, ww);
+    let src_top =
+      (((vis_top - final_top) as f32 / scale).round() as i32).clamp(0, wh);
+    let src_right =
+      (((vis_right - final_left) as f32 / scale).round() as i32).clamp(0, ww);
+    let src_bottom =
+      (((vis_bottom - final_top) as f32 / scale).round() as i32).clamp(0, wh);
+
+    let vis_w = vis_right - vis_left;
+    let vis_h = vis_bottom - vis_top;
+
+    let rc_src =
+      RECT { left: src_left, top: src_top, right: src_right, bottom: src_bottom };
+    let rc_dst = RECT { left: 0, top: 0, right: vis_w, bottom: vis_h };
+    self.inner.set_thumbnail_rects(rc_src, rc_dst);
+
+    let surr_rect = Rect::from_xy(vis_left, vis_top, vis_w, vis_h);
+    let _ = self.inner.reposition(&surr_rect);
+
+    if self.fade {
+      let fade_alpha = if is_incoming {
+        (self.opacity as f32 * eased_progress).round() as u8
+      } else {
+        (self.opacity as f32 * (1.0 - eased_progress)).round() as u8
+      };
+      self.inner.set_window_opacity(fade_alpha);
+    }
+
     self.inner.set_visible(true);
   }
 
