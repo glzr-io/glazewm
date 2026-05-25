@@ -60,6 +60,73 @@ pub fn dwm_flush() {
   }
 }
 
+/// Per-monitor vsync waiter using `IDXGIOutput::WaitForVBlank`.
+///
+/// Unlike `DwmFlush`, which aligns to the primary monitor's global
+/// composition cycle, this waits for the vertical-blank signal of a
+/// specific monitor. This gives the animation tick thread a full frame
+/// period to update surrogates before the next DWM composition, regardless
+/// of which monitor is the Windows primary and regardless of whether
+/// multiple monitors with different refresh rates are connected.
+#[cfg(target_os = "windows")]
+#[derive(Clone)]
+pub struct DxgiVsyncWaiter {
+  output: windows::Win32::Graphics::Dxgi::IDXGIOutput,
+}
+
+#[cfg(target_os = "windows")]
+impl DxgiVsyncWaiter {
+  /// Locates the `IDXGIOutput` whose `HMONITOR` matches `monitor_handle`.
+  ///
+  /// Enumerates all DXGI adapters and their outputs. Returns `None` when
+  /// DXGI is unavailable or no output matches the given handle.
+  pub fn for_monitor(monitor_handle: isize) -> Option<Self> {
+    use windows::Win32::{
+      Graphics::{
+        Dxgi::{CreateDXGIFactory, IDXGIFactory, DXGI_OUTPUT_DESC},
+        Gdi::HMONITOR,
+      },
+    };
+
+    // SAFETY: No preconditions for `CreateDXGIFactory`.
+    let factory: IDXGIFactory = unsafe { CreateDXGIFactory().ok()? };
+
+    let mut ai = 0u32;
+    loop {
+      let Ok(adapter) = (unsafe { factory.EnumAdapters(ai) }) else {
+        break; // DXGI_ERROR_NOT_FOUND — no more adapters.
+      };
+      let mut oi = 0u32;
+      loop {
+        let Ok(output) = (unsafe { adapter.EnumOutputs(oi) }) else {
+          break; // No more outputs on this adapter.
+        };
+        let mut desc = DXGI_OUTPUT_DESC::default();
+        // SAFETY: `output` is a valid `IDXGIOutput`; `desc` is stack-allocated
+        // and passed as an out-parameter per the windows-rs 0.52 convention.
+        if unsafe { output.GetDesc(&mut desc) }.is_ok()
+          && desc.Monitor == HMONITOR(monitor_handle)
+        {
+          return Some(Self { output });
+        }
+        oi += 1;
+      }
+      ai += 1;
+    }
+    None
+  }
+
+  /// Blocks until the next vertical-blank signal from this output.
+  ///
+  /// Returns `true` on success, `false` on error (caller should fall back
+  /// to an alternative wait strategy).
+  pub fn wait(&self) -> bool {
+    // SAFETY: `self.output` is a valid `IDXGIOutput` kept alive by the
+    // `Clone`-counted reference.
+    unsafe { self.output.WaitForVBlank().is_ok() }
+  }
+}
+
 /// Sets the calling thread's scheduling priority to highest.
 ///
 /// Called at the start of the animation timer thread to reduce scheduling

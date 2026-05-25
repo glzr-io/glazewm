@@ -257,6 +257,7 @@ fn redraw_containers(
         let mut monitor_width = 0i32;
         let mut monitor_y = 0i32;
         let mut monitor_height = 0i32;
+        let mut monitor_handle = 0isize;
 
         for window in windows_to_update.iter() {
           let id = window.id();
@@ -271,11 +272,13 @@ fn redraw_containers(
 
           if monitor_width == 0 {
             if let Some(m) = window.monitor() {
-              let b = m.native_properties().bounds;
+              let props = m.native_properties();
+              let b = &props.bounds;
               monitor_x = b.x();
               monitor_width = b.width();
               monitor_y = b.y();
               monitor_height = b.height();
+              monitor_handle = props.handle;
             }
           }
 
@@ -371,6 +374,7 @@ fn redraw_containers(
             monitor_width,
             monitor_y,
             monitor_height,
+            monitor_handle,
             config,
           );
         }

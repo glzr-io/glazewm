@@ -31,6 +31,8 @@ windows = { version = "0.52", features = [
   "implement",
   "Win32_Devices_HumanInterfaceDevice",
   "Win32_Foundation",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
   "Win32_Graphics_Dwm",
   "Win32_Graphics_Gdi",
   "Win32_Security",

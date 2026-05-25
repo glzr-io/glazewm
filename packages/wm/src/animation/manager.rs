@@ -2,7 +2,7 @@ use std::{
   collections::HashMap,
   sync::{
     atomic::{AtomicBool, Ordering},
-    Arc,
+    Arc, Mutex,
   },
   time::{Duration, Instant},
 };
@@ -12,7 +12,9 @@ use uuid::Uuid;
 use wm_common::{EasingFunction, WindowTransitionStyle, WorkspaceSwitchStyle};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate};
+use wm_platform::{
+  DxgiVsyncWaiter, NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate,
+};
 
 use crate::{
   animation::state::WindowAnimationState,
@@ -106,6 +108,14 @@ pub struct AnimationManager {
   animation_tick_tx: mpsc::UnboundedSender<()>,
   /// Whether the animation timer thread is currently running.
   animation_timer_running: Arc<AtomicBool>,
+  /// DXGI vsync waiter for the animation monitor.
+  ///
+  /// When `Some`, the timer thread calls `WaitForVBlank` on this output
+  /// instead of `DwmFlush` or `sleep_high_res`. This gives a full frame
+  /// period after each vsync to update surrogates, regardless of which
+  /// monitor is the Windows primary. Cleared on workspace-switch completion.
+  #[cfg(target_os = "windows")]
+  animation_timer_vsync: Arc<Mutex<Option<DxgiVsyncWaiter>>>,
   /// Active resize sessions keyed by window ID.
   ///
   /// A session is created when a movement/resize animation starts with
@@ -144,6 +154,8 @@ impl AnimationManager {
       animations: HashMap::new(),
       animation_tick_tx,
       animation_timer_running: Arc::new(AtomicBool::new(false)),
+      #[cfg(target_os = "windows")]
+      animation_timer_vsync: Arc::new(Mutex::new(None)),
       #[cfg(target_os = "windows")]
       resize_sessions: HashMap::new(),
       #[cfg(target_os = "windows")]
@@ -252,6 +264,7 @@ impl AnimationManager {
     sessions.extend(self.pending_session_cleanup.drain(..));
     self.workspace_switch = None;
     self.pending_ws_cleanup = None;
+    *self.animation_timer_vsync.lock().unwrap() = None;
     // On WM shutdown close-animation windows are left open — only clear
     // the tracking state without sending WM_CLOSE.
     self.pending_close_windows.clear();
@@ -260,9 +273,16 @@ impl AnimationManager {
 
   /// Starts the animation timer if it is not already running.
   ///
-  /// On Windows, ticks are aligned to DWM composition frames via `DwmFlush`,
-  /// which naturally caps the rate to the monitor's refresh rate. On
-  /// non-Windows, `DwmFlush` is a no-op, so a fixed 60 fps sleep is used.
+  /// The timer thread uses a two-tier vsync strategy on Windows:
+  ///
+  /// 1. **`IDXGIOutput::WaitForVBlank`** — during workspace-switch, waits for
+  ///    the animation monitor's specific vblank signal. Per-monitor and reliable
+  ///    at any Hz. Wakes right after vsync, leaving a full frame period for
+  ///    surrogate updates before the next composition.
+  /// 2. **`DwmFlush`** — baseline for window move/resize animations, aligning
+  ///    to the primary monitor's composition cycle.
+  ///
+  /// On non-Windows, `DwmFlush` is a no-op so a fixed 60 fps sleep is used.
   pub fn ensure_timer_running(&self) {
     if self.has_active_animations()
       && !self.animation_timer_running.load(Ordering::Relaxed) {
@@ -270,21 +290,23 @@ impl AnimationManager {
       self.animation_timer_running.store(true, Ordering::Relaxed);
       let tx = self.animation_tick_tx.clone();
       let timer_flag = self.animation_timer_running.clone();
+      #[cfg(target_os = "windows")]
+      let vsync_waiter = self.animation_timer_vsync.clone();
 
-      // Spawn a real OS thread (not a Tokio task) so it can call the
-      // blocking `DwmFlush` without stalling the async runtime.
+      // Spawn a real OS thread (not a Tokio task) so blocking vsync waits
+      // do not stall the async runtime.
       let timer_flag_err = timer_flag.clone();
       std::thread::Builder::new()
         .name("glazewm-anim-tick".into())
         .spawn(move || {
-          // Elevate priority so scheduling jitter between the DwmFlush
-          // VSync wake-up and tick delivery is minimised.
+          // Elevate priority so scheduling jitter between the vsync
+          // wake-up and tick delivery is minimised.
           wm_platform::set_thread_priority_highest();
 
           // Send an immediate tick so the first animation frame begins
-          // without waiting for the next VSync. Without this the surrogate
+          // without waiting for the next vblank. Without this the surrogate
           // is frozen at its start position for up to one full frame period
-          // (~16 ms at 60 Hz, ~8 ms at 120 Hz) before any movement begins.
+          // (~16 ms at 60 Hz, ~5.7 ms at 175 Hz) before any movement begins.
           if tx.send(()).is_err() {
             timer_flag.store(false, Ordering::Relaxed);
             return;
@@ -295,12 +317,25 @@ impl AnimationManager {
               break;
             }
 
-            // On Windows, `DwmFlush` blocks until the next VSync, which
-            // naturally limits ticks to the monitor's refresh rate. On
-            // non-Windows it is a no-op, so fall back to a 60 fps sleep.
-            wm_platform::dwm_flush();
+            // Per-monitor IDXGIOutput::WaitForVBlank during workspace-switch.
+            // Clone under the lock so the wait runs without holding it —
+            // cleanup can clear the Arc without blocking an in-progress wait.
+            #[cfg(target_os = "windows")]
+            let dxgi_waited = {
+              let waiter = vsync_waiter.lock().unwrap().clone();
+              waiter.map(|w| w.wait()).unwrap_or(false)
+            };
             #[cfg(not(target_os = "windows"))]
-            std::thread::sleep(std::time::Duration::from_micros(16_667));
+            let dxgi_waited = false;
+
+            if !dxgi_waited {
+              // DwmFlush for window move/resize animations (no workspace-switch
+              // active). On non-Windows this is a no-op, so a fixed 60 fps
+              // sleep paces the loop.
+              wm_platform::dwm_flush();
+              #[cfg(not(target_os = "windows"))]
+              std::thread::sleep(std::time::Duration::from_micros(16_667));
+            }
 
             if tx.send(()).is_err() {
               break;
@@ -638,6 +673,11 @@ impl AnimationManager {
         wm_platform::dwm_flush();
       }
       state.animation_manager.pending_ws_cleanup = None;
+      // Reset to 0 so the timer thread reverts to `DwmFlush` for any
+      // subsequent window move/resize animations.
+      // Clear the DXGI waiter so the timer thread reverts to DwmFlush for
+      // subsequent window move/resize animations.
+      *state.animation_manager.animation_timer_vsync.lock().unwrap() = None;
     }
 
     // Keep the timer running while animations are active; stop it otherwise
@@ -917,6 +957,10 @@ impl AnimationManager {
   /// incoming/outgoing flags. A shared driver advances all surrogates in
   /// lock-step so the entire workspace moves as one panel. Any previous
   /// workspace-switch state is dropped.
+  ///
+  /// `monitor_handle` is the `HMONITOR` of the animation monitor, used to
+  /// look up the `IDXGIOutput` for per-monitor vsync waiting.
+  /// on secondary monitors whose refresh rate differs from the primary.
   #[cfg(target_os = "windows")]
   pub fn start_workspace_switch(
     &mut self,
@@ -926,6 +970,7 @@ impl AnimationManager {
     monitor_width: i32,
     monitor_y: i32,
     monitor_height: i32,
+    monitor_handle: isize,
     config: &UserConfig,
   ) {
     self.workspace_switch = None;
@@ -1054,6 +1099,11 @@ impl AnimationManager {
         direction,
         ws_windows.len(),
       );
+      // Install the per-monitor DXGI vsync waiter so the timer thread wakes
+      // up right after each vblank, giving a full frame period for surrogate
+      // updates before the next DWM composition.
+      *self.animation_timer_vsync.lock().unwrap() =
+        DxgiVsyncWaiter::for_monitor(monitor_handle);
       self.workspace_switch = Some(WorkspaceSwitchState {
         windows: ws_windows,
         start_time: None,
