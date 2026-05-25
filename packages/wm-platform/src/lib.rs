@@ -127,6 +127,102 @@ impl DxgiVsyncWaiter {
   }
 }
 
+/// RAII guard that reverts an MMCSS thread registration on drop.
+///
+/// Obtain via [`try_set_thread_mmcss`]. Dropping this guard calls
+/// `AvRevertMmThread`, restoring the thread to normal scheduling. This
+/// ensures cleanup even if the animation thread exits through an early-return
+/// path.
+#[cfg(target_os = "windows")]
+pub struct MmcssGuard(isize);
+
+#[cfg(target_os = "windows")]
+impl Drop for MmcssGuard {
+  fn drop(&mut self) {
+    use windows::Win32::System::LibraryLoader::{
+      GetModuleHandleW, GetProcAddress,
+    };
+
+    type AvRevertFn = unsafe extern "system" fn(isize) -> i32;
+
+    static FN: std::sync::OnceLock<Option<AvRevertFn>> =
+      std::sync::OnceLock::new();
+
+    let Some(f) = *FN.get_or_init(|| {
+      // SAFETY: avrt.dll was already loaded by `try_set_thread_mmcss`.
+      unsafe {
+        let module =
+          GetModuleHandleW(windows::core::w!("avrt.dll")).ok()?;
+        let proc =
+          GetProcAddress(module, windows::core::s!("AvRevertMmThread"))?;
+        Some(std::mem::transmute::<
+          unsafe extern "system" fn() -> isize,
+          AvRevertFn,
+        >(proc))
+      }
+    }) else {
+      return;
+    };
+
+    // SAFETY: `self.0` is a valid AVRT handle from `AvSetMmThreadCharacteristicsW`.
+    unsafe { f(self.0) };
+  }
+}
+
+/// Registers the calling thread with the Multimedia Class Scheduler Service
+/// (MMCSS) for display post-processing.
+///
+/// MMCSS gives the thread near-real-time scheduling guarantees beyond
+/// `THREAD_PRIORITY_HIGHEST`, reducing OS scheduling jitter after a vsync
+/// wake-up. This is the mechanism Windows uses internally for DWM, video
+/// players, and game render threads.
+///
+/// Returns a [`MmcssGuard`] that automatically reverts the registration on
+/// drop, or `None` if `avrt.dll` is unavailable or registration fails.
+#[cfg(target_os = "windows")]
+pub fn try_set_thread_mmcss() -> Option<MmcssGuard> {
+  use windows::Win32::System::LibraryLoader::{
+    GetProcAddress, LoadLibraryW,
+  };
+
+  type AvSetMmFn =
+    unsafe extern "system" fn(*const u16, *mut u32) -> isize;
+
+  static FN: std::sync::OnceLock<Option<AvSetMmFn>> =
+    std::sync::OnceLock::new();
+
+  let f = (*FN.get_or_init(|| {
+    // SAFETY: `avrt.dll` is a standard system library present on Vista+.
+    unsafe {
+      let module =
+        LoadLibraryW(windows::core::w!("avrt.dll")).ok()?;
+      let proc = GetProcAddress(
+        module,
+        windows::core::s!("AvSetMmThreadCharacteristicsW"),
+      )?;
+      Some(std::mem::transmute::<
+        unsafe extern "system" fn() -> isize,
+        AvSetMmFn,
+      >(proc))
+    }
+  }))?;
+
+  // "DisplayPostProcessing" is the MMCSS task class used by DWM and video
+  // renderers. It grants near-real-time scheduling priority.
+  let task: Vec<u16> = "DisplayPostProcessing\0".encode_utf16().collect();
+  let mut idx: u32 = 0;
+
+  // SAFETY: `task` is a null-terminated wide string; `idx` is a valid
+  // stack-allocated output parameter.
+  let handle = unsafe { f(task.as_ptr(), &mut idx) };
+
+  if handle != 0 {
+    Some(MmcssGuard(handle))
+  } else {
+    None
+  }
+}
+
 /// Sets the calling thread's scheduling priority to highest.
 ///
 /// Called at the start of the animation timer thread to reduce scheduling

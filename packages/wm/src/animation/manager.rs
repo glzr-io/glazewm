@@ -7,6 +7,18 @@ use std::{
   time::{Duration, Instant},
 };
 
+/// Pipeline latency estimate from vsync wake to DWM composition pickup.
+///
+/// The animation timer thread records the `Instant` at which
+/// `IDXGIOutput::WaitForVBlank` returns. By the time `update_internal` runs
+/// and calls `DwmUpdateThumbnailProperties`, roughly this many microseconds
+/// have elapsed (Tokio scheduling + compute). Using vsync_time +
+/// `VSYNC_PIPELINE_OFFSET_US` as "now" shifts the computed position forward
+/// to where it will be when DWM actually composites, eliminating the
+/// systematic one-pipeline-delay lag on high-Hz monitors.
+#[cfg(target_os = "windows")]
+const VSYNC_PIPELINE_OFFSET_US: u64 = 1_500;
+
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wm_common::{EasingFunction, WindowTransitionStyle, WorkspaceSwitchStyle};
@@ -111,11 +123,20 @@ pub struct AnimationManager {
   /// DXGI vsync waiter for the animation monitor.
   ///
   /// When `Some`, the timer thread calls `WaitForVBlank` on this output
-  /// instead of `DwmFlush` or `sleep_high_res`. This gives a full frame
-  /// period after each vsync to update surrogates, regardless of which
-  /// monitor is the Windows primary. Cleared on workspace-switch completion.
+  /// instead of `DwmFlush`. This gives a full frame period after each vsync
+  /// to update surrogates, regardless of which monitor is the Windows primary.
+  /// Cleared on workspace-switch completion.
   #[cfg(target_os = "windows")]
   animation_timer_vsync: Arc<Mutex<Option<DxgiVsyncWaiter>>>,
+  /// Timestamp of the most recent `IDXGIOutput::WaitForVBlank` wake-up.
+  ///
+  /// Written by the timer thread immediately after vsync fires. Read by
+  /// `update_internal` to compute animation progress at a predictive
+  /// timestamp (vsync time + [`VSYNC_PIPELINE_OFFSET_US`]) rather than
+  /// `Instant::now()`, compensating for the fixed pipeline delay between
+  /// vsync wake and DWM composition.
+  #[cfg(target_os = "windows")]
+  animation_vsync_time: Arc<Mutex<Option<Instant>>>,
   /// Active resize sessions keyed by window ID.
   ///
   /// A session is created when a movement/resize animation starts with
@@ -156,6 +177,8 @@ impl AnimationManager {
       animation_timer_running: Arc::new(AtomicBool::new(false)),
       #[cfg(target_os = "windows")]
       animation_timer_vsync: Arc::new(Mutex::new(None)),
+      #[cfg(target_os = "windows")]
+      animation_vsync_time: Arc::new(Mutex::new(None)),
       #[cfg(target_os = "windows")]
       resize_sessions: HashMap::new(),
       #[cfg(target_os = "windows")]
@@ -265,6 +288,7 @@ impl AnimationManager {
     self.workspace_switch = None;
     self.pending_ws_cleanup = None;
     *self.animation_timer_vsync.lock().unwrap() = None;
+    *self.animation_vsync_time.lock().unwrap() = None;
     // On WM shutdown close-animation windows are left open — only clear
     // the tracking state without sending WM_CLOSE.
     self.pending_close_windows.clear();
@@ -292,6 +316,8 @@ impl AnimationManager {
       let timer_flag = self.animation_timer_running.clone();
       #[cfg(target_os = "windows")]
       let vsync_waiter = self.animation_timer_vsync.clone();
+      #[cfg(target_os = "windows")]
+      let vsync_time = self.animation_vsync_time.clone();
 
       // Spawn a real OS thread (not a Tokio task) so blocking vsync waits
       // do not stall the async runtime.
@@ -299,9 +325,13 @@ impl AnimationManager {
       std::thread::Builder::new()
         .name("glazewm-anim-tick".into())
         .spawn(move || {
-          // Elevate priority so scheduling jitter between the vsync
-          // wake-up and tick delivery is minimised.
+          // Elevate scheduling priority. MMCSS "DisplayPostProcessing" gives
+          // near-real-time guarantees beyond THREAD_PRIORITY_HIGHEST, matching
+          // the scheduling class used by DWM and video renderers. Falls back
+          // gracefully to THREAD_PRIORITY_HIGHEST if avrt.dll is unavailable.
           wm_platform::set_thread_priority_highest();
+          #[cfg(target_os = "windows")]
+          let _mmcss = wm_platform::try_set_thread_mmcss();
 
           // Send an immediate tick so the first animation frame begins
           // without waiting for the next vblank. Without this the surrogate
@@ -320,10 +350,16 @@ impl AnimationManager {
             // Per-monitor IDXGIOutput::WaitForVBlank during workspace-switch.
             // Clone under the lock so the wait runs without holding it —
             // cleanup can clear the Arc without blocking an in-progress wait.
+            // Record the wake-up time immediately after vsync fires so
+            // `update_internal` can compute phase-accurate animation progress.
             #[cfg(target_os = "windows")]
             let dxgi_waited = {
               let waiter = vsync_waiter.lock().unwrap().clone();
-              waiter.map(|w| w.wait()).unwrap_or(false)
+              let waited = waiter.map(|w| w.wait()).unwrap_or(false);
+              if waited {
+                *vsync_time.lock().unwrap() = Some(Instant::now());
+              }
+              waited
             };
             #[cfg(not(target_os = "windows"))]
             let dxgi_waited = false;
@@ -343,6 +379,8 @@ impl AnimationManager {
           }
 
           timer_flag.store(false, Ordering::Relaxed);
+          // `_mmcss` is dropped here, automatically reverting the MMCSS
+          // registration via `MmcssGuard::drop`.
         })
         .unwrap_or_else(|err| {
           tracing::warn!("Failed to spawn animation tick thread: {err}.");
@@ -517,11 +555,28 @@ impl AnimationManager {
     // tick.
     #[cfg(target_os = "windows")]
     let ws_complete_ids: Option<Vec<Uuid>> = {
-      use crate::animation::engine::{animation_progress, apply_easing};
+      use crate::animation::engine::{
+        animation_progress_at, apply_easing,
+      };
 
       if let Some(ws) = &mut state.animation_manager.workspace_switch {
         let start = *ws.start_time.get_or_insert_with(Instant::now);
-        let raw_progress = animation_progress(start, ws.duration);
+
+        // For workspace-switch, use the vsync wake-up time plus a pipeline
+        // offset as "now" so the computed position aligns with the DWM
+        // composition event rather than the moment this code runs.
+        let raw_progress = {
+          let now = state
+            .animation_manager
+            .animation_vsync_time
+            .lock()
+            .unwrap()
+            .map(|t| {
+              t + std::time::Duration::from_micros(VSYNC_PIPELINE_OFFSET_US)
+            })
+            .unwrap_or_else(Instant::now);
+          animation_progress_at(start, ws.duration, now)
+        };
         let eased = apply_easing(raw_progress, &ws.easing);
 
         // Complete early once eased progress reaches 99% for non-overshooting
@@ -675,9 +730,10 @@ impl AnimationManager {
       state.animation_manager.pending_ws_cleanup = None;
       // Reset to 0 so the timer thread reverts to `DwmFlush` for any
       // subsequent window move/resize animations.
-      // Clear the DXGI waiter so the timer thread reverts to DwmFlush for
-      // subsequent window move/resize animations.
+      // Clear the DXGI waiter and vsync timestamp so the timer thread reverts
+      // to DwmFlush for subsequent window move/resize animations.
       *state.animation_manager.animation_timer_vsync.lock().unwrap() = None;
+      *state.animation_manager.animation_vsync_time.lock().unwrap() = None;
     }
 
     // Keep the timer running while animations are active; stop it otherwise
