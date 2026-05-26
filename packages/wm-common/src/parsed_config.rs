@@ -516,7 +516,9 @@ pub enum FocusTrigger {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct FocusChangeConfig {
+  /// Whether the focus-change animation is enabled.
   pub enabled: bool,
+  /// Duration of the animation in milliseconds.
   pub duration_ms: u32,
   /// See `window_move.easing` for available options.
   pub easing: EasingFunction,

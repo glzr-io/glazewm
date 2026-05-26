@@ -101,7 +101,7 @@ animations:
     enabled: false
     duration_ms: 150
     # See 'window_move.easing' for available options.
-    easing: "linear"
+    easing: "cubic_bezier(0.16, 1.0, 0.3, 1.0)"
     # Animation style. Options:
     #   'opacity' (default) - window briefly dims then restores opacity
     #   'scale'             - window briefly pops in from a slightly smaller size
