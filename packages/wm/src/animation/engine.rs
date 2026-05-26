@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 use wm_common::EasingFunction;
 
 /// Calculates the current progress of an animation (0.0 to 1.0).
+#[cfg(test)]
 pub fn animation_progress(
   start_time: Instant,
   duration: Duration,
