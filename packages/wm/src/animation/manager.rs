@@ -287,8 +287,8 @@ impl AnimationManager {
     sessions.extend(self.pending_session_cleanup.drain(..));
     self.workspace_switch = None;
     self.pending_ws_cleanup = None;
-    *self.animation_timer_vsync.lock().unwrap() = None;
-    *self.animation_vsync_time.lock().unwrap() = None;
+    *self.animation_timer_vsync.lock().expect("animation mutex poisoned") = None;
+    *self.animation_vsync_time.lock().expect("animation mutex poisoned") = None;
     // On WM shutdown close-animation windows are left open — only clear
     // the tracking state without sending WM_CLOSE.
     self.pending_close_windows.clear();
@@ -354,10 +354,10 @@ impl AnimationManager {
             // `update_internal` can compute phase-accurate animation progress.
             #[cfg(target_os = "windows")]
             let dxgi_waited = {
-              let waiter = vsync_waiter.lock().unwrap().clone();
+              let waiter = vsync_waiter.lock().expect("animation mutex poisoned").clone();
               let waited = waiter.map(|w| w.wait()).unwrap_or(false);
               if waited {
-                *vsync_time.lock().unwrap() = Some(Instant::now());
+                *vsync_time.lock().expect("animation mutex poisoned") = Some(Instant::now());
               }
               waited
             };
@@ -570,7 +570,7 @@ impl AnimationManager {
             .animation_manager
             .animation_vsync_time
             .lock()
-            .unwrap()
+            .expect("animation mutex poisoned")
             .map(|t| {
               t + std::time::Duration::from_micros(VSYNC_PIPELINE_OFFSET_US)
             })
@@ -732,8 +732,8 @@ impl AnimationManager {
       // subsequent window move/resize animations.
       // Clear the DXGI waiter and vsync timestamp so the timer thread reverts
       // to DwmFlush for subsequent window move/resize animations.
-      *state.animation_manager.animation_timer_vsync.lock().unwrap() = None;
-      *state.animation_manager.animation_vsync_time.lock().unwrap() = None;
+      *state.animation_manager.animation_timer_vsync.lock().expect("animation mutex poisoned") = None;
+      *state.animation_manager.animation_vsync_time.lock().expect("animation mutex poisoned") = None;
     }
 
     // Keep the timer running while animations are active; stop it otherwise
@@ -920,8 +920,10 @@ impl AnimationManager {
         Some((true, effect_opacity, zoom)) => {
           let monitor_rect =
             self.slide_in_monitor_rects.get(&window_id).cloned();
-          let session =
-            self.resize_sessions.get_mut(&window_id).unwrap();
+          let session = self
+            .resize_sessions
+            .get_mut(&window_id)
+            .expect("resize session must exist after status check");
           let opacity_u8 = opacity
             .as_ref()
             .map(|o| o.to_alpha())
@@ -937,7 +939,10 @@ impl AnimationManager {
               self.pending_close_windows.contains_key(&window_id);
             let forward_progress =
               if is_close { 1.0 - progress } else { progress };
-            let session = self.resize_sessions.get_mut(&window_id).unwrap();
+            let session = self
+              .resize_sessions
+              .get_mut(&window_id)
+              .expect("resize session must exist after status check");
             session.update_zoom_fade(forward_progress, opacity_u8);
           } else if let Some(monitor_rect) = monitor_rect {
             session.update_clipped(&current_rect, &monitor_rect, opacity_u8);
@@ -1158,7 +1163,7 @@ impl AnimationManager {
       // Install the per-monitor DXGI vsync waiter so the timer thread wakes
       // up right after each vblank, giving a full frame period for surrogate
       // updates before the next DWM composition.
-      *self.animation_timer_vsync.lock().unwrap() =
+      *self.animation_timer_vsync.lock().expect("animation mutex poisoned") =
         DxgiVsyncWaiter::for_monitor(monitor_handle);
       self.workspace_switch = Some(WorkspaceSwitchState {
         windows: ws_windows,
