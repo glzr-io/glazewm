@@ -10,6 +10,8 @@ use wm_common::{
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
+#[cfg(target_os = "windows")]
+use crate::commands::window::detach_window_for_close;
 use wm_platform::{
   Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
 };
@@ -44,7 +46,7 @@ use crate::{
   },
   ipc_server::IpcServer,
   models::{Container, WorkspaceTarget},
-  traits::{CommonGetters, WindowGetters},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -52,6 +54,7 @@ use crate::{
 pub struct WindowManager {
   pub event_rx: mpsc::UnboundedReceiver<WmEvent>,
   pub exit_rx: mpsc::UnboundedReceiver<()>,
+  pub animation_tick_rx: mpsc::UnboundedReceiver<()>,
   pub state: WmState,
 }
 
@@ -62,13 +65,25 @@ impl WindowManager {
   ) -> anyhow::Result<Self> {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
+    let (animation_tick_tx, animation_tick_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
+    let mut state = WmState::new(
+      dispatcher,
+      event_tx,
+      exit_tx,
+      animation_tick_tx,
+    );
     state.populate(config)?;
+
+    // Start animation timer if `populate` created any animations. This
+    // mirrors the `ensure_timer_running` call at the end of `process_event`
+    // for the initial population path.
+    state.animation_manager.ensure_timer_running();
 
     Ok(Self {
       event_rx,
       exit_rx,
+      animation_tick_rx,
       state,
     })
   }
@@ -147,7 +162,19 @@ impl WindowManager {
       platform_sync(state, config)?;
     }
 
+    self.state.animation_manager.ensure_timer_running();
+
     Ok(())
+  }
+
+  /// Updates all active animations and redraws windows that are animating.
+  pub fn update_animations(
+    &mut self,
+    config: &UserConfig,
+  ) -> anyhow::Result<()> {
+    use crate::animation::AnimationManager;
+    // Access animation_manager through state to avoid double borrow
+    AnimationManager::update_internal(&mut self.state, config)
   }
 
   pub fn process_commands(
@@ -178,6 +205,12 @@ impl WindowManager {
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
+
+    // Start animation timer if animations were created by a command (e.g.
+    // startup commands or IPC commands). Without this, surrogate animations
+    // started outside of the platform event loop would never tick, leaving
+    // windows permanently cloaked.
+    self.state.animation_manager.ensure_timer_running();
 
     Ok(new_subject_container_id)
   }
@@ -253,7 +286,59 @@ impl WindowManager {
       InvokeCommand::Close => {
         match subject_container.as_window_container() {
           Ok(window) => {
-            // Window handle might no longer be valid here.
+            #[cfg(target_os = "windows")]
+            if config.value.animations.window_close.enabled {
+              use wm_platform::NativeWindowWindowsExt;
+
+              let effect_cfg = if window.id()
+                == state
+                  .focused_container()
+                  .map(|c| c.id())
+                  .unwrap_or_default()
+              {
+                &config.value.window_effects.focused_window
+              } else {
+                &config.value.window_effects.other_windows
+              };
+              let effect_opacity = if effect_cfg.transparency.enabled {
+                effect_cfg.transparency.opacity.to_alpha()
+              } else {
+                u8::MAX
+              };
+
+              if let Ok(rect) = window.to_rect().and_then(|r| {
+                window.total_border_delta().map(|d| r.apply_delta(&d, None))
+              }) {
+                let window_id = window.id();
+                let _ = window.native().set_cloaked(true);
+                {
+                  let native_ref = window.native();
+                  state.animation_manager.start_close_animation(
+                    window_id,
+                    rect,
+                    effect_opacity,
+                    config,
+                    &*native_ref,
+                  );
+                }
+
+                // If the surrogate was created successfully, immediately
+                // detach the window from the layout tree so sibling windows
+                // begin their reflow animations in parallel with the close
+                // surrogate. `AnimationManager::update_internal` will send
+                // `WM_CLOSE` once the close animation finishes.
+                if state
+                  .animation_manager
+                  .has_close_animation(&window_id)
+                {
+                  detach_window_for_close(window, state)?;
+                  return Ok(());
+                }
+              }
+            }
+
+            // Fallback: animations disabled, rect unavailable, or surrogate
+            // creation failed — close immediately.
             if let Err(err) = window.native().close() {
               warn!("Failed to close window: {:?}", err);
             }
