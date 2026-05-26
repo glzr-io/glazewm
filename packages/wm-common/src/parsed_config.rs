@@ -459,14 +459,6 @@ pub enum WindowTransitionStyle {
   /// Zoom in/out from the window center. Automatically fades when
   /// `opacity_from`/`opacity_to` are set; otherwise pure scale.
   Zoom,
-  /// Reveal/conceal by sweeping a strip from left to right.
-  WipeRight,
-  /// Reveal/conceal by sweeping a strip from right to left.
-  WipeLeft,
-  /// Reveal/conceal by sweeping a strip from bottom to top.
-  WipeTop,
-  /// Reveal/conceal by sweeping a strip from top to bottom.
-  WipeBottom,
 }
 
 impl WindowTransitionStyle {
@@ -475,11 +467,7 @@ impl WindowTransitionStyle {
   /// Stationary styles keep the surrogate at the window's final position for
   /// the full animation; the surrogate window itself never moves.
   pub fn is_stationary(&self) -> bool {
-    matches!(
-      self,
-      Self::Fade | Self::Zoom | Self::WipeRight | Self::WipeLeft
-        | Self::WipeTop | Self::WipeBottom
-    )
+    matches!(self, Self::Fade | Self::Zoom)
   }
 }
 

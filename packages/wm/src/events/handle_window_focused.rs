@@ -67,6 +67,7 @@ pub fn handle_window_focused(
       #[cfg(target_os = "windows")]
       if config.value.animations.focus_change.enabled {
         state.pending_sync.queue_focus_animation(window.id());
+        state.pending_sync.queue_container_to_redraw(window.clone());
       }
       return Ok(());
     }
@@ -108,6 +109,7 @@ pub fn handle_window_focused(
       let fc = &config.value.animations.focus_change;
       if fc.enabled && fc.trigger == FocusTrigger::All {
         state.pending_sync.queue_focus_animation(window.id());
+        state.pending_sync.queue_container_to_redraw(window.clone());
       }
     }
 

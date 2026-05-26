@@ -25,8 +25,7 @@ use wm_common::{EasingFunction, FocusAnimationStyle, WindowTransitionStyle, Work
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{
-  DxgiVsyncWaiter, NativeWindowWindowsExt, ResizeSession, WipeDirection,
-  WorkspaceSurrogate,
+  DxgiVsyncWaiter, NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate,
 };
 
 use crate::{
@@ -444,12 +443,12 @@ impl AnimationManager {
         .collect();
 
       for id in &close_in_progress {
-        let (is_zoom, wipe_direction) = state
+        let is_zoom = state
           .animation_manager
           .resize_sessions
           .get(id)
-          .map(|s| (s.zoom, s.wipe_direction))
-          .unwrap_or((false, None));
+          .map(|s| s.zoom)
+          .unwrap_or(false);
 
         // Extract values before taking a mutable borrow on resize_sessions.
         let anim_data =
@@ -470,13 +469,6 @@ impl AnimationManager {
             state.animation_manager.resize_sessions.get_mut(id)
           {
             session.update_zoom_fade(1.0 - progress, opacity_u8);
-          }
-        } else if let Some(direction) = wipe_direction {
-          // For close, wipe conceals: 1.0 - progress gives 1.0→0.0.
-          if let Some(session) =
-            state.animation_manager.resize_sessions.get_mut(id)
-          {
-            session.update_wipe(direction, 1.0 - progress, opacity_u8);
           }
         } else if let Some(session) =
           state.animation_manager.resize_sessions.get_mut(id)
@@ -921,11 +913,11 @@ impl AnimationManager {
       let session_status = self
         .resize_sessions
         .get(&window_id)
-        .map(|s| (s.has_surrogate(), s.effect_opacity, s.zoom, s.wipe_direction));
+        .map(|s| (s.has_surrogate(), s.effect_opacity, s.zoom));
 
       #[cfg(target_os = "windows")]
       match session_status {
-        Some((true, effect_opacity, zoom, wipe_direction)) => {
+        Some((true, effect_opacity, zoom)) => {
           let monitor_rect =
             self.slide_in_monitor_rects.get(&window_id).cloned();
           let session = self
@@ -952,18 +944,6 @@ impl AnimationManager {
               .get_mut(&window_id)
               .expect("resize session must exist after status check");
             session.update_zoom_fade(forward_progress, opacity_u8);
-          } else if let Some(direction) = wipe_direction {
-            // Extract progress with a separate borrow before mutably using session.
-            let progress = self
-              .animations
-              .get(&window_id)
-              .map(|a| a.eased_progress())
-              .unwrap_or(1.0);
-            let session = self
-              .resize_sessions
-              .get_mut(&window_id)
-              .expect("resize session must exist after status check");
-            session.update_wipe(direction, progress, opacity_u8);
           } else if let Some(monitor_rect) = monitor_rect {
             session.update_clipped(&current_rect, &monitor_rect, opacity_u8);
           } else {
@@ -971,7 +951,7 @@ impl AnimationManager {
           }
           return (AnimationPositionResult::Frozen, None);
         }
-        Some((false, _, _, _)) => {
+        Some((false, _, _)) => {
           // Thumbnail failed — drop the transparent surrogate and snap.
           self.resize_sessions.remove(&window_id);
           self.animations.remove(&window_id);
@@ -1279,13 +1259,6 @@ impl AnimationManager {
     ) {
       Ok(mut session) => {
         session.zoom = is_zoom;
-        session.wipe_direction = match &anim_config.style {
-          WindowTransitionStyle::WipeRight => Some(WipeDirection::Right),
-          WindowTransitionStyle::WipeLeft => Some(WipeDirection::Left),
-          WindowTransitionStyle::WipeTop => Some(WipeDirection::Top),
-          WindowTransitionStyle::WipeBottom => Some(WipeDirection::Bottom),
-          _ => None,
-        };
         let initial_opacity_u8 = (effective_opacity_from.clamp(0.0, 1.0)
           * effect_opacity as f32)
           .round() as u8;
@@ -1372,13 +1345,6 @@ impl AnimationManager {
         // Show the surrogate immediately — the real window is already cloaked.
         session.show();
         session.zoom = is_zoom;
-        session.wipe_direction = match &anim_config.style {
-          WindowTransitionStyle::WipeRight => Some(WipeDirection::Right),
-          WindowTransitionStyle::WipeLeft => Some(WipeDirection::Left),
-          WindowTransitionStyle::WipeTop => Some(WipeDirection::Top),
-          WindowTransitionStyle::WipeBottom => Some(WipeDirection::Bottom),
-          _ => None,
-        };
         self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
         self.pending_close_windows

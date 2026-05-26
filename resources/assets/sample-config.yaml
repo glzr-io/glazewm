@@ -41,10 +41,6 @@ animations:
     #   'slide_bottom'           - slides in from the bottom
     #   'fade'                   - no slide; combine with opacity_from for pure fade
     #   'zoom'                   - zoom in from window center
-    #   'wipe_right'             - reveal left→right (stationary window)
-    #   'wipe_left'              - reveal right→left (stationary window)
-    #   'wipe_top'               - reveal bottom→top (stationary window)
-    #   'wipe_bottom'            - reveal top→bottom (stationary window)
     style: "slide_right"
     # Starting opacity (0.0–1.0). At 1.0 no fade is applied; at 0.0 the
     # window fades in from fully transparent. Can be combined with any style.
@@ -88,10 +84,6 @@ animations:
     #   'slide_left'             - slide off the left edge while fading
     #   'slide_top'              - slide off the top edge while fading
     #   'slide_bottom'           - slide off the bottom edge while fading
-    #   'wipe_right'             - conceal left→right (stationary window)
-    #   'wipe_left'              - conceal right→left (stationary window)
-    #   'wipe_top'               - conceal bottom→top (stationary window)
-    #   'wipe_bottom'            - conceal top→bottom (stationary window)
     style: "fade"
     # Final opacity (0.0–1.0). At 0.0 the window fades to fully transparent.
     opacity_to: 0.0

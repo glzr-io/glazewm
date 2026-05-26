@@ -36,7 +36,7 @@ pub use native_surrogate::NativeSurrogate;
 #[cfg(target_os = "windows")]
 mod resize_session;
 #[cfg(target_os = "windows")]
-pub use resize_session::{ResizeSession, WipeDirection};
+pub use resize_session::ResizeSession;
 #[cfg(target_os = "windows")]
 mod workspace_surrogate;
 #[cfg(target_os = "windows")]
