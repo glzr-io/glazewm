@@ -9,6 +9,18 @@ use windows::Win32::{
 
 use crate::{native_surrogate::to_logical, Color, NativeSurrogate, Rect};
 
+/// Direction of a wipe reveal for open/close animations.
+///
+/// `WipeRight` sweeps the visible strip left → right; `WipeLeft` right → left;
+/// `WipeTop` bottom → top; `WipeBottom` top → bottom.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WipeDirection {
+  Right,
+  Left,
+  Top,
+  Bottom,
+}
+
 /// Tracks a single window's resize/move animation and manages its surrogate
 /// overlay.
 ///
@@ -54,6 +66,10 @@ pub struct ResizeSession {
   /// toward/away from the surrogate center instead of repositioning the
   /// surrogate window. Used for zoom-in (open) and zoom-out (close) effects.
   pub zoom: bool,
+  /// When `Some`, each frame crops the DWM thumbnail source and destination
+  /// to reveal the window progressively from the given edge. Used for wipe
+  /// open/close effects. Mutually exclusive with `zoom`.
+  pub wipe_direction: Option<WipeDirection>,
 }
 
 impl ResizeSession {
@@ -138,6 +154,7 @@ impl ResizeSession {
       effect_opacity,
       is_growing,
       zoom: false,
+      wipe_direction: None,
     })
   }
 
@@ -200,6 +217,72 @@ impl ResizeSession {
       surrogate.set_visible(true);
     }
     surrogate.set_window_opacity(opacity);
+  }
+
+  /// Reveals or conceals the DWM thumbnail by cropping it from the given edge.
+  ///
+  /// `progress` is the eased animation progress (0.0 = nothing visible,
+  /// 1.0 = fully revealed). Both `rcSource` (in the source window's coordinate
+  /// space, offset by `border_inset`) and `rcDestination` (in the surrogate's
+  /// local coordinate space) are updated together so the visible crop matches
+  /// the actual content at each frame. Hides the surrogate when the revealed
+  /// strip is zero-sized to avoid a transparent-rect artifact.
+  pub fn update_wipe(
+    &mut self,
+    direction: WipeDirection,
+    progress: f32,
+    opacity: u8,
+  ) {
+    let Some(ref mut surrogate) = self.surrogate else {
+      return;
+    };
+
+    let logical = to_logical(&self.target_rect, &self.border_inset);
+    let w = logical.width();
+    let h = logical.height();
+    let bi = &self.border_inset;
+
+    let (src, dst) = match direction {
+      WipeDirection::Right => {
+        let p = (w as f32 * progress).round() as i32;
+        (
+          RECT { left: bi.left, top: bi.top, right: bi.left + p, bottom: bi.top + h },
+          RECT { left: 0, top: 0, right: p, bottom: h },
+        )
+      }
+      WipeDirection::Left => {
+        let p = (w as f32 * progress).round() as i32;
+        let x = w - p;
+        (
+          RECT { left: bi.left + x, top: bi.top, right: bi.left + w, bottom: bi.top + h },
+          RECT { left: 0, top: 0, right: p, bottom: h },
+        )
+      }
+      WipeDirection::Top => {
+        let p = (h as f32 * progress).round() as i32;
+        let y = h - p;
+        (
+          RECT { left: bi.left, top: bi.top + y, right: bi.left + w, bottom: bi.top + h },
+          RECT { left: 0, top: 0, right: w, bottom: p },
+        )
+      }
+      WipeDirection::Bottom => {
+        let p = (h as f32 * progress).round() as i32;
+        (
+          RECT { left: bi.left, top: bi.top, right: bi.left + w, bottom: bi.top + p },
+          RECT { left: 0, top: 0, right: w, bottom: p },
+        )
+      }
+    };
+
+    if dst.right <= dst.left || dst.bottom <= dst.top {
+      surrogate.set_visible(false);
+      return;
+    }
+
+    surrogate.set_thumbnail_rects(src, dst);
+    surrogate.set_window_opacity(opacity);
+    surrogate.set_visible(true);
   }
 
   /// Updates the surrogate to the current animation frame position and opacity.

@@ -21,11 +21,12 @@ const VSYNC_PIPELINE_OFFSET_US: u64 = 1_500;
 
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use wm_common::{EasingFunction, WindowTransitionStyle, WorkspaceSwitchStyle};
+use wm_common::{EasingFunction, FocusAnimationStyle, WindowTransitionStyle, WorkspaceSwitchStyle};
 use wm_platform::{NativeWindow, OpacityValue, Rect};
 #[cfg(target_os = "windows")]
 use wm_platform::{
-  DxgiVsyncWaiter, NativeWindowWindowsExt, ResizeSession, WorkspaceSurrogate,
+  DxgiVsyncWaiter, NativeWindowWindowsExt, ResizeSession, WipeDirection,
+  WorkspaceSurrogate,
 };
 
 use crate::{
@@ -443,12 +444,12 @@ impl AnimationManager {
         .collect();
 
       for id in &close_in_progress {
-        let is_zoom = state
+        let (is_zoom, wipe_direction) = state
           .animation_manager
           .resize_sessions
           .get(id)
-          .map(|s| s.zoom)
-          .unwrap_or(false);
+          .map(|s| (s.zoom, s.wipe_direction))
+          .unwrap_or((false, None));
 
         // Extract values before taking a mutable borrow on resize_sessions.
         let anim_data =
@@ -469,6 +470,13 @@ impl AnimationManager {
             state.animation_manager.resize_sessions.get_mut(id)
           {
             session.update_zoom_fade(1.0 - progress, opacity_u8);
+          }
+        } else if let Some(direction) = wipe_direction {
+          // For close, wipe conceals: 1.0 - progress gives 1.0→0.0.
+          if let Some(session) =
+            state.animation_manager.resize_sessions.get_mut(id)
+          {
+            session.update_wipe(direction, 1.0 - progress, opacity_u8);
           }
         } else if let Some(session) =
           state.animation_manager.resize_sessions.get_mut(id)
@@ -913,11 +921,11 @@ impl AnimationManager {
       let session_status = self
         .resize_sessions
         .get(&window_id)
-        .map(|s| (s.has_surrogate(), s.effect_opacity, s.zoom));
+        .map(|s| (s.has_surrogate(), s.effect_opacity, s.zoom, s.wipe_direction));
 
       #[cfg(target_os = "windows")]
       match session_status {
-        Some((true, effect_opacity, zoom)) => {
+        Some((true, effect_opacity, zoom, wipe_direction)) => {
           let monitor_rect =
             self.slide_in_monitor_rects.get(&window_id).cloned();
           let session = self
@@ -944,6 +952,18 @@ impl AnimationManager {
               .get_mut(&window_id)
               .expect("resize session must exist after status check");
             session.update_zoom_fade(forward_progress, opacity_u8);
+          } else if let Some(direction) = wipe_direction {
+            // Extract progress with a separate borrow before mutably using session.
+            let progress = self
+              .animations
+              .get(&window_id)
+              .map(|a| a.eased_progress())
+              .unwrap_or(1.0);
+            let session = self
+              .resize_sessions
+              .get_mut(&window_id)
+              .expect("resize session must exist after status check");
+            session.update_wipe(direction, progress, opacity_u8);
           } else if let Some(monitor_rect) = monitor_rect {
             session.update_clipped(&current_rect, &monitor_rect, opacity_u8);
           } else {
@@ -951,7 +971,7 @@ impl AnimationManager {
           }
           return (AnimationPositionResult::Frozen, None);
         }
-        Some((false, _, _)) => {
+        Some((false, _, _, _)) => {
           // Thumbnail failed — drop the transparent surrogate and snap.
           self.resize_sessions.remove(&window_id);
           self.animations.remove(&window_id);
@@ -1259,6 +1279,13 @@ impl AnimationManager {
     ) {
       Ok(mut session) => {
         session.zoom = is_zoom;
+        session.wipe_direction = match &anim_config.style {
+          WindowTransitionStyle::WipeRight => Some(WipeDirection::Right),
+          WindowTransitionStyle::WipeLeft => Some(WipeDirection::Left),
+          WindowTransitionStyle::WipeTop => Some(WipeDirection::Top),
+          WindowTransitionStyle::WipeBottom => Some(WipeDirection::Bottom),
+          _ => None,
+        };
         let initial_opacity_u8 = (effective_opacity_from.clamp(0.0, 1.0)
           * effect_opacity as f32)
           .round() as u8;
@@ -1345,6 +1372,13 @@ impl AnimationManager {
         // Show the surrogate immediately — the real window is already cloaked.
         session.show();
         session.zoom = is_zoom;
+        session.wipe_direction = match &anim_config.style {
+          WindowTransitionStyle::WipeRight => Some(WipeDirection::Right),
+          WindowTransitionStyle::WipeLeft => Some(WipeDirection::Left),
+          WindowTransitionStyle::WipeTop => Some(WipeDirection::Top),
+          WindowTransitionStyle::WipeBottom => Some(WipeDirection::Bottom),
+          _ => None,
+        };
         self.animations.insert(window_id, anim);
         self.resize_sessions.insert(window_id, session);
         self.pending_close_windows
@@ -1425,6 +1459,94 @@ impl AnimationManager {
       if !entry.is_incoming {
         if let Some(ref mut s) = entry.surrogate {
           s.apply_effect_opacity();
+        }
+      }
+    }
+  }
+
+  /// Starts a focus-change animation for the given window.
+  ///
+  /// Skipped when the window already has an active animation or surrogate
+  /// (e.g. a move/resize animation takes priority), or when a workspace-switch
+  /// is animating the window.
+  ///
+  /// - `Opacity` style: inserts an animation that briefly dims `window_id` from
+  ///   50% of `effect_opacity` back to `effect_opacity`. No surrogate is used;
+  ///   the real window is updated each frame via `SetLayeredWindowAttributes`.
+  /// - `Scale` style: creates a growing `ResizeSession` from a centred,
+  ///   `scale_factor`-shrunken rect to `current_rect`. The real window is
+  ///   cloaked and the surrogate reveals the content as it grows.
+  #[cfg(target_os = "windows")]
+  pub fn start_focus_animation(
+    &mut self,
+    window_id: Uuid,
+    current_rect: Rect,
+    effect_opacity: u8,
+    config: &UserConfig,
+    native_window: &NativeWindow,
+  ) {
+    if self.animations.contains_key(&window_id)
+      || self.resize_sessions.contains_key(&window_id)
+      || self.is_workspace_switch_incoming(&window_id)
+    {
+      return;
+    }
+
+    let fc = &config.value.animations.focus_change;
+    let effect_frac = effect_opacity as f32 / 255.0;
+
+    match fc.style {
+      FocusAnimationStyle::Opacity => {
+        let dim_frac = effect_frac * 0.5;
+        let mut anim = WindowAnimationState::new_movement(
+          current_rect.clone(),
+          current_rect,
+          fc.duration_ms,
+          fc.easing.clone(),
+        );
+        anim.start_opacity = Some(OpacityValue(dim_frac));
+        anim.target_opacity = Some(OpacityValue(effect_frac));
+        self.animations.insert(window_id, anim);
+        self.ensure_timer_running();
+      }
+      FocusAnimationStyle::Scale => {
+        let sf = fc.scale_factor.clamp(0.1, 1.0_f32);
+        let w = current_rect.width();
+        let h = current_rect.height();
+        let sw = ((w as f32 * sf).round() as i32).max(1);
+        let sh = ((h as f32 * sf).round() as i32).max(1);
+        let shrunken = Rect::from_xy(
+          current_rect.x() + (w - sw) / 2,
+          current_rect.y() + (h - sh) / 2,
+          sw,
+          sh,
+        );
+        let anim = WindowAnimationState::new_movement(
+          shrunken.clone(),
+          current_rect.clone(),
+          fc.duration_ms,
+          fc.easing.clone(),
+        );
+        let _ = native_window.set_cloaked(true);
+        match ResizeSession::begin(
+          native_window.hwnd(),
+          &shrunken,
+          &current_rect,
+          None,
+          effect_opacity,
+          true,
+        ) {
+          Ok(session) => {
+            self.animations.insert(window_id, anim);
+            self.resize_sessions.insert(window_id, session);
+            self.ensure_timer_running();
+          }
+          Err(err) => {
+            let _ = native_window.set_cloaked(false);
+            tracing::warn!(
+              "Failed to begin focus scale animation for {window_id}: {err}."
+            );
+          }
         }
       }
     }

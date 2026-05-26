@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::{DisplayState, WindowRuleEvent, WmEvent};
+use wm_common::{DisplayState, FocusTrigger, WindowRuleEvent, WmEvent};
 use wm_platform::NativeWindow;
 
 use crate::{
@@ -63,6 +63,11 @@ pub fn handle_window_focused(
     if focused_container == window.clone().into() {
       state.is_focus_synced = true;
       state.pending_sync.queue_workspace_to_reorder(workspace);
+      // Keyboard/WM-command focus: always eligible for focus animation.
+      #[cfg(target_os = "windows")]
+      if config.value.animations.focus_change.enabled {
+        state.pending_sync.queue_focus_animation(window.id());
+      }
       return Ok(());
     }
 
@@ -96,6 +101,15 @@ pub fn handle_window_focused(
 
     state.is_focus_synced = true;
     state.pending_sync.queue_workspace_to_reorder(workspace);
+
+    // Manual (mouse-click) focus: only animate when trigger is `All`.
+    #[cfg(target_os = "windows")]
+    {
+      let fc = &config.value.animations.focus_change;
+      if fc.enabled && fc.trigger == FocusTrigger::All {
+        state.pending_sync.queue_focus_animation(window.id());
+      }
+    }
 
     // Broadcast the focus change event.
     state.emit_event(WmEvent::FocusChanged {

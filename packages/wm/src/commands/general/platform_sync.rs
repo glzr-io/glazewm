@@ -79,6 +79,19 @@ pub fn platform_sync(
     for window in unfocused_windows {
       apply_window_effects(&window, false, config);
     }
+
+    // Re-apply animation-driven opacity for the focused window if an
+    // opacity focus animation is running. `apply_window_effects` above
+    // may have reset the transparency to the config value; overriding it
+    // here ensures the animated opacity is visible on the first frame.
+    #[cfg(target_os = "windows")]
+    if let Ok(window) = focused_container.as_window_container() {
+      if let Some(anim) = state.animation_manager.get_animation(&window.id()) {
+        if let (_, Some(opacity)) = anim.current_state() {
+          let _ = window.native().set_transparency(&opacity);
+        }
+      }
+    }
   }
 
   state.pending_sync.clear();
@@ -228,6 +241,10 @@ fn redraw_containers(
 
     windows
   };
+
+  // Consume the pending focus animation window ID for this sync cycle.
+  #[cfg(target_os = "windows")]
+  let focus_anim_id = state.pending_sync.take_focus_animation();
 
   // Workspace-switch pre-pass: create slide surrogates for all
   // incoming/outgoing windows before any real window is repositioned.
@@ -561,8 +578,24 @@ fn redraw_containers(
       );
     }
 
-    // A slide-in creates a `ResizeSession`, making the window eligible for the
-    // `Frozen` path even when `window_move` animations are disabled.
+    // Start a focus-change animation for the newly focused window, if queued.
+    #[cfg(target_os = "windows")]
+    if focus_anim_id == Some(window.id())
+      && config.value.animations.focus_change.enabled
+    {
+      let native_ref = window.native();
+      state.animation_manager.start_focus_animation(
+        window.id(),
+        target_rect.clone(),
+        effect_opacity,
+        config,
+        &*native_ref,
+      );
+    }
+
+    // A slide-in or focus animation creates a `ResizeSession` or animation
+    // entry, making the window eligible for the `Frozen`/`Apply` animation
+    // paths even when `window_move` animations are disabled.
     #[cfg(target_os = "windows")]
     let has_slide_in = state
       .animation_manager
@@ -575,14 +608,27 @@ fn redraw_containers(
     #[cfg(not(target_os = "windows"))]
     let has_slide_in = false;
 
+    // Active focus animation (opacity style) has no surrogate but still
+    // needs `start_animation_if_needed` to return the animated opacity.
+    #[cfg(target_os = "windows")]
+    let has_focus_anim = !has_slide_in
+      && state
+        .animation_manager
+        .get_animation(&window.id())
+        .map_or(false, |a| !a.is_complete());
+    #[cfg(not(target_os = "windows"))]
+    let has_focus_anim = false;
+
     let should_use_animations = !is_outgoing_switch
       && ((!is_floating && anim_enabled)
         || (is_state_change && anim_enabled)
         || is_frozen_by_ws_animation
-        || has_slide_in);
+        || has_slide_in
+        || has_focus_anim);
 
     // Determine the rect to use for this frame.
-    let (position_result, _) = if should_use_animations {
+    #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+    let (position_result, anim_opacity) = if should_use_animations {
       // Incoming workspace-switch windows: the surrogate handles all visuals
       // for the full animation duration — freeze the real window.
       #[cfg(target_os = "windows")]
@@ -748,6 +794,14 @@ fn redraw_containers(
           state
             .animation_manager
             .hide_pending_ws_cleanup_surrogate(window.id());
+        }
+
+        // Apply animated opacity for opacity-style focus animations. The
+        // real window is not cloaked in this path, so `set_transparency`
+        // updates it directly each frame.
+        #[cfg(target_os = "windows")]
+        if let Some(ref opacity) = anim_opacity {
+          let _ = window.native().set_transparency(opacity);
         }
       }
     }

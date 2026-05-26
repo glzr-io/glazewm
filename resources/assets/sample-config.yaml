@@ -41,6 +41,10 @@ animations:
     #   'slide_bottom'           - slides in from the bottom
     #   'fade'                   - no slide; combine with opacity_from for pure fade
     #   'zoom'                   - zoom in from window center
+    #   'wipe_right'             - reveal left→right (stationary window)
+    #   'wipe_left'              - reveal right→left (stationary window)
+    #   'wipe_top'               - reveal bottom→top (stationary window)
+    #   'wipe_bottom'            - reveal top→bottom (stationary window)
     style: "slide_right"
     # Starting opacity (0.0–1.0). At 1.0 no fade is applied; at 0.0 the
     # window fades in from fully transparent. Can be combined with any style.
@@ -84,9 +88,32 @@ animations:
     #   'slide_left'             - slide off the left edge while fading
     #   'slide_top'              - slide off the top edge while fading
     #   'slide_bottom'           - slide off the bottom edge while fading
+    #   'wipe_right'             - conceal left→right (stationary window)
+    #   'wipe_left'              - conceal right→left (stationary window)
+    #   'wipe_top'               - conceal bottom→top (stationary window)
+    #   'wipe_bottom'            - conceal top→bottom (stationary window)
     style: "fade"
     # Final opacity (0.0–1.0). At 0.0 the window fades to fully transparent.
     opacity_to: 0.0
+
+  # Animation settings for when the focused window changes (Windows only).
+  focus_change:
+    enabled: false
+    duration_ms: 150
+    # See 'window_move.easing' for available options.
+    easing: "linear"
+    # Animation style. Options:
+    #   'opacity' (default) - window briefly dims then restores opacity
+    #   'scale'             - window briefly pops in from a slightly smaller size
+    style: "opacity"
+    # For 'scale' style: ratio of the initial shrunken size relative to the
+    # window's actual size. E.g. 0.98 = window starts at 98% and grows to 100%.
+    # Range: 0.5–1.0.
+    scale_factor: 0.98
+    # Which focus changes trigger the animation. Options:
+    #   'all'            - animate on all focus changes (keyboard and mouse)
+    #   'keyboard_only'  - animate only on keyboard/WM-command focus changes
+    trigger: "all"
 
 general:
   # Commands to run when the WM has started. This is useful for running a
