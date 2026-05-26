@@ -304,7 +304,9 @@ fn redraw_containers(
               })
               .ok()
               .and_then(|rect| {
-                WorkspaceSurrogate::new(hwnd, &rect, opacity, incoming_fades)
+                let viewport =
+                  Rect::from_xy(monitor_x, monitor_y, monitor_width, monitor_height);
+                WorkspaceSurrogate::new(hwnd, &rect, &viewport, opacity, incoming_fades)
                   .map_err(|e| {
                     tracing::warn!(
                       "Failed to create incoming surrogate: {e}."
@@ -325,8 +327,10 @@ fn redraw_containers(
               .cloned()
               .or_else(|| window.native().frame().ok())
               .unwrap_or_else(|| Rect::from_xy(0, 0, 0, 0));
+            let viewport =
+              Rect::from_xy(monitor_x, monitor_y, monitor_width, monitor_height);
             let surrogate =
-              WorkspaceSurrogate::new(hwnd, &current, opacity, outgoing_fades)
+              WorkspaceSurrogate::new(hwnd, &current, &viewport, opacity, outgoing_fades)
                 .map_err(|e| {
                   tracing::warn!("Failed to create outgoing surrogate: {e}.");
                   e

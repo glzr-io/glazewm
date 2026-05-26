@@ -3,20 +3,25 @@ use windows::Win32::Foundation::{HWND, RECT};
 use crate::{NativeSurrogate, Rect};
 
 /// Surrogate overlay for a single window participating in a workspace-switch
-/// slide animation.
+/// animation.
 ///
-/// Both outgoing and incoming windows slide together so the whole workspace
-/// moves as a single panel, similar to Hyprland. The surrogate window is
-/// always constrained to the monitor bounds — it is hidden (via
-/// `SW_HIDE`) when fully off-screen and shown only when it has a visible
-/// area. The DWM thumbnail's `rcSource` is updated each frame to display
-/// the correct content slice, so the surrogate window never extends onto
-/// an adjacent monitor.
+/// Both outgoing and incoming windows move together so the whole workspace
+/// slides as a single panel. The surrogate is created at the full monitor rect
+/// (`viewport`) and never repositioned; all per-frame animation is expressed
+/// via `rcSource`/`rcDestination` in `DwmUpdateThumbnailProperties`, avoiding
+/// any per-frame `SetWindowPos` calls. The surrogate is hidden (via `SW_HIDE`)
+/// when the visible area is empty.
 pub struct WorkspaceSurrogate {
   inner: NativeSurrogate,
   /// Final screen rect of the window (target position for incoming, current
   /// screen rect for outgoing).
   pub rect: Rect,
+  /// Monitor rect used as the surrogate window's fixed position and size.
+  ///
+  /// The surrogate is created at `viewport` and stays there for the entire
+  /// animation. `rcDestination` coordinates are expressed relative to
+  /// `viewport`'s top-left corner in every per-frame thumbnail update.
+  viewport: Rect,
   /// DWM thumbnail opacity (0–255) derived from the window-effects config.
   opacity: u8,
   /// When `true`, the surrogate's opacity is lerped each frame: outgoing
@@ -25,12 +30,17 @@ pub struct WorkspaceSurrogate {
 }
 
 impl WorkspaceSurrogate {
-  /// Creates a hidden surrogate for a workspace-switch slide animation.
+  /// Creates a hidden surrogate for a workspace-switch animation.
+  ///
+  /// `viewport` is the monitor rect; the surrogate window is fixed there for
+  /// the entire animation. `rect` is the source window's screen rect, used as
+  /// the thumbnail registration dimensions and the reference for per-frame
+  /// coordinate math.
   ///
   /// The surrogate is created hidden. For outgoing windows, call
   /// [`show_initial`] before cloaking the real window to avoid a blank frame.
-  /// For incoming windows, [`slide_axis`] reveals the surrogate as soon as it
-  /// enters the monitor's visible area.
+  /// For incoming windows, [`slide_axis`] reveals the surrogate as soon as the
+  /// window's visible area becomes non-empty.
   ///
   /// When `fade` is `true`, [`slide_axis`] lerps the surrogate opacity each
   /// frame: outgoing fades from `opacity` → 0; incoming fades from 0 →
@@ -43,19 +53,26 @@ impl WorkspaceSurrogate {
   pub fn new(
     hwnd: HWND,
     rect: &Rect,
+    viewport: &Rect,
     opacity: u8,
     fade: bool,
   ) -> crate::Result<Self> {
     let inner = NativeSurrogate::create(
       hwnd,
-      rect,
+      viewport,
       rect,
       None,
       opacity,
       false,
       RECT::default(),
     )?;
-    Ok(Self { inner, rect: rect.clone(), opacity, fade })
+    Ok(Self {
+      inner,
+      rect: rect.clone(),
+      viewport: viewport.clone(),
+      opacity,
+      fade,
+    })
   }
 
   /// Hides the DWM thumbnail without destroying it or hiding the surrogate window.
@@ -69,7 +86,8 @@ impl WorkspaceSurrogate {
     self.inner.set_thumbnail_visible(false);
   }
 
-  /// Shows the surrogate at full opacity covering its full rect.
+  /// Shows the surrogate at full opacity with the thumbnail at the window's
+  /// natural (unscaled) position within the monitor viewport.
   ///
   /// Always uses opacity `255` (fully opaque) so the surrogate completely
   /// covers the real window before it is cloaked, avoiding a double-blend
@@ -78,7 +96,16 @@ impl WorkspaceSurrogate {
   ///
   /// [`apply_effect_opacity`]: WorkspaceSurrogate::apply_effect_opacity
   pub fn show_initial(&mut self) {
-    let _ = self.inner.update(&self.rect, u8::MAX);
+    let rc_src =
+      RECT { left: 0, top: 0, right: self.rect.width(), bottom: self.rect.height() };
+    let rc_dst = RECT {
+      left: self.rect.left - self.viewport.left,
+      top: self.rect.top - self.viewport.top,
+      right: self.rect.right - self.viewport.left,
+      bottom: self.rect.bottom - self.viewport.top,
+    };
+    self.inner.set_thumbnail_rects(rc_src, rc_dst);
+    self.inner.set_window_opacity(u8::MAX);
     self.inner.set_visible(true);
   }
 
@@ -92,16 +119,24 @@ impl WorkspaceSurrogate {
     self.inner.set_window_opacity(self.opacity);
   }
 
-  /// Shows the surrogate at its final rect with zero window opacity.
+  /// Shows the surrogate at zero opacity with the thumbnail pre-positioned at
+  /// the window's location within the monitor viewport.
   ///
-  /// Use for incoming windows in fade-only transitions so the surrogate is
-  /// positioned and DWM-thumbnail-warmed before the animation begins without
-  /// being visible. [`update_fade`] then lerps opacity from 0 to the
-  /// configured effect opacity.
+  /// Use for incoming windows in fade-only transitions so DWM warms the
+  /// thumbnail before the animation begins without showing it. [`update_fade`]
+  /// then lerps opacity from 0 to the configured effect opacity.
   ///
   /// [`update_fade`]: WorkspaceSurrogate::update_fade
   pub fn show_fade_incoming(&mut self) {
-    let _ = self.inner.update(&self.rect, self.opacity);
+    let rc_src =
+      RECT { left: 0, top: 0, right: self.rect.width(), bottom: self.rect.height() };
+    let rc_dst = RECT {
+      left: self.rect.left - self.viewport.left,
+      top: self.rect.top - self.viewport.top,
+      right: self.rect.right - self.viewport.left,
+      bottom: self.rect.bottom - self.viewport.top,
+    };
+    self.inner.set_thumbnail_rects(rc_src, rc_dst);
     self.inner.set_window_opacity(0);
     self.inner.set_visible(true);
   }
@@ -122,18 +157,10 @@ impl WorkspaceSurrogate {
   /// Advances the surrogate along the horizontal axis to `eased_progress`
   /// (0.0 → 1.0).
   ///
-  /// The surrogate window is constrained to `[monitor_x, monitor_x +
-  /// monitor_width]` — hidden when fully off-screen, shown only for the
-  /// visible strip. The DWM thumbnail's `rcSource` is updated to display
-  /// the correct content slice, preventing stretching and spill onto
-  /// adjacent monitors.
-  /// Advances the surrogate along the horizontal axis to `eased_progress`
-  /// (0.0 → 1.0).
-  ///
-  /// `slide_distance` is the effective travel distance for the slide (may be
-  /// less than `monitor_width` to eliminate the seam gap between workspaces).
-  /// `monitor_x` and `monitor_width` are still the full monitor bounds used
-  /// for clipping.
+  /// The visible strip is clipped to `[monitor_x, monitor_x + monitor_width]`
+  /// via `rcSource`/`rcDestination`; the surrogate window itself does not move.
+  /// `slide_distance` is the effective travel distance (may be less than
+  /// `monitor_width` to close the seam gap between the two workspace panels).
   pub fn update_slide_horizontal(
     &mut self,
     eased_progress: f32,
@@ -143,7 +170,15 @@ impl WorkspaceSurrogate {
     monitor_width: i32,
     slide_distance: i32,
   ) {
-    self.slide_axis(eased_progress, is_incoming, direction, monitor_x, monitor_width, slide_distance, false);
+    self.slide_axis(
+      eased_progress,
+      is_incoming,
+      direction,
+      monitor_x,
+      monitor_width,
+      slide_distance,
+      false,
+    );
   }
 
   /// Advances the surrogate along the vertical axis to `eased_progress`
@@ -162,7 +197,15 @@ impl WorkspaceSurrogate {
     monitor_height: i32,
     slide_distance: i32,
   ) {
-    self.slide_axis(eased_progress, is_incoming, direction, monitor_y, monitor_height, slide_distance, true);
+    self.slide_axis(
+      eased_progress,
+      is_incoming,
+      direction,
+      monitor_y,
+      monitor_height,
+      slide_distance,
+      true,
+    );
   }
 
   /// Advances the surrogate along the horizontal axis with a simultaneous
@@ -282,9 +325,9 @@ impl WorkspaceSurrogate {
   ///
   /// Computes a per-frame scale from the monitor center (both axes) combined
   /// with a slide offset on the primary axis (`is_vertical` selects which).
-  /// Each surrogate is repositioned every frame to its zoomed+slid screen
-  /// coordinates; `rcSource`/`rcDestination` map the visible slice of the
-  /// source content to fill the surrogate exactly.
+  /// The surrogate is pinned at `self.viewport` (the monitor rect) for the
+  /// entire animation; zoom and slide are expressed entirely via
+  /// `rcSource`/`rcDestination` in `DwmUpdateThumbnailProperties`.
   ///
   /// [`update_slide_zoom_horizontal`]: WorkspaceSurrogate::update_slide_zoom_horizontal
   /// [`update_slide_zoom_vertical`]: WorkspaceSurrogate::update_slide_zoom_vertical
@@ -378,16 +421,17 @@ impl WorkspaceSurrogate {
     let src_bottom =
       (((vis_bottom - final_top) as f32 / scale).round() as i32).clamp(0, wh);
 
-    let vis_w = vis_right - vis_left;
-    let vis_h = vis_bottom - vis_top;
-
     let rc_src =
       RECT { left: src_left, top: src_top, right: src_right, bottom: src_bottom };
-    let rc_dst = RECT { left: 0, top: 0, right: vis_w, bottom: vis_h };
+    // `rcDestination` is relative to the surrogate's top-left, which is
+    // pinned at `self.viewport` (monitor top-left) for the entire animation.
+    let rc_dst = RECT {
+      left: vis_left - self.viewport.left,
+      top: vis_top - self.viewport.top,
+      right: vis_right - self.viewport.left,
+      bottom: vis_bottom - self.viewport.top,
+    };
     self.inner.set_thumbnail_rects(rc_src, rc_dst);
-
-    let surr_rect = Rect::from_xy(vis_left, vis_top, vis_w, vis_h);
-    let _ = self.inner.reposition(&surr_rect);
 
     if self.fade {
       let fade_alpha = if is_incoming {
@@ -401,11 +445,16 @@ impl WorkspaceSurrogate {
     self.inner.set_visible(true);
   }
 
-  /// Advances the surrogate along either axis. `is_vertical = false` slides
-  /// on the x-axis; `true` slides on the y-axis. `monitor_origin` and
-  /// `monitor_size` are the full monitor bounds used for clipping.
-  /// `slide_distance` is the effective travel distance (may be less than
-  /// `monitor_size` to close the seam gap between the two workspace panels).
+  /// Shared implementation for [`update_slide_horizontal`] and
+  /// [`update_slide_vertical`].
+  ///
+  /// The surrogate is pinned at `self.viewport` (the monitor rect) for the
+  /// entire animation. The visible strip of source content is mapped to the
+  /// corresponding screen area via `rcSource`/`rcDestination`, with no
+  /// `SetWindowPos` calls per frame.
+  ///
+  /// [`update_slide_horizontal`]: WorkspaceSurrogate::update_slide_horizontal
+  /// [`update_slide_vertical`]: WorkspaceSurrogate::update_slide_vertical
   fn slide_axis(
     &mut self,
     eased_progress: f32,
@@ -439,66 +488,49 @@ impl WorkspaceSurrogate {
     let vis_end = (current + axis_size).min(monitor_end);
 
     if vis_start >= vis_end {
-      // Completely off-screen: hide to prevent rendering on adjacent monitors.
       self.inner.set_visible(false);
       return;
     }
 
-    let constrained = vis_end - vis_start;
     // Source-window-local start of the visible strip.
     let src_start = vis_start - current;
+    let constrained = vis_end - vis_start;
 
-    // When a window exits the trailing edge of the monitor (`src_start == 0`
-    // and the window still extends past `monitor_end`), both the surrogate
-    // position and size would change every frame, creating a rendering
-    // asymmetry. Fix: anchor the surrogate at `monitor_end - axis_size` and
-    // shift only `rcDestination` inward so no `SetWindowPos` position change
-    // occurs. The uncovered surrogate area is transparent (WS_POPUP default).
-    let trailing_exit = src_start == 0 && current + axis_size > monitor_end;
-
-    // Update the DWM thumbnail: show only the visible slice of source
-    // content, mapped 1:1 onto the constrained surrogate rect.
+    // `rcSource` is the visible slice of the source window.
+    // `rcDestination` places that slice in screen space relative to the
+    // surrogate's top-left (which equals `self.viewport`, the monitor rect).
     let (rc_src, rc_dst) = if is_vertical {
-      if trailing_exit {
-        let dest_top = axis_size - constrained;
-        (
-          RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
-          RECT { left: 0, top: dest_top, right: perp_size, bottom: axis_size },
-        )
-      } else {
-        (
-          RECT { left: 0, top: src_start, right: perp_size, bottom: src_start + constrained },
-          RECT { left: 0, top: 0, right: perp_size, bottom: constrained },
-        )
-      }
-    } else if trailing_exit {
-      let dest_left = axis_size - constrained;
       (
-        RECT { left: 0, top: 0, right: constrained, bottom: perp_size },
-        RECT { left: dest_left, top: 0, right: axis_size, bottom: perp_size },
+        RECT {
+          left: 0,
+          top: src_start,
+          right: perp_size,
+          bottom: src_start + constrained,
+        },
+        RECT {
+          left: perp_pos - self.viewport.left,
+          top: vis_start - self.viewport.top,
+          right: perp_pos + perp_size - self.viewport.left,
+          bottom: vis_end - self.viewport.top,
+        },
       )
     } else {
       (
-        RECT { left: src_start, top: 0, right: src_start + constrained, bottom: perp_size },
-        RECT { left: 0, top: 0, right: constrained, bottom: perp_size },
+        RECT {
+          left: src_start,
+          top: 0,
+          right: src_start + constrained,
+          bottom: perp_size,
+        },
+        RECT {
+          left: vis_start - self.viewport.left,
+          top: perp_pos - self.viewport.top,
+          right: vis_end - self.viewport.left,
+          bottom: perp_pos + perp_size - self.viewport.top,
+        },
       )
     };
     self.inner.set_thumbnail_rects(rc_src, rc_dst);
-
-    // For trailing-exit: fix the surrogate at `monitor_end - axis_size` so
-    // only `rcDestination` changes each frame (no position movement).
-    let (surr_pos, surr_size) = if trailing_exit {
-      (monitor_end - axis_size, axis_size)
-    } else {
-      (vis_start, constrained)
-    };
-
-    let constrained_rect = if is_vertical {
-      Rect::from_xy(perp_pos, surr_pos, perp_size, surr_size)
-    } else {
-      Rect::from_xy(surr_pos, perp_pos, surr_size, perp_size)
-    };
-    let _ = self.inner.reposition(&constrained_rect);
 
     if self.fade {
       let fade_alpha = if is_incoming {
