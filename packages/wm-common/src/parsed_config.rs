@@ -485,15 +485,19 @@ impl Default for WindowOpenConfig {
   fn default() -> Self {
     WindowOpenConfig {
       enabled: true,
-      duration_ms: 200,
-      easing: EasingFunction::CubicBezier(0.0, 0.0, 0.58, 1.0),
+      duration_ms: 150,
+      easing: EasingFunction::CubicBezier(0.16, 1.0, 0.3, 1.0),
       style: WindowTransitionStyle::SlideRight,
       opacity_from: 1.0,
     }
   }
 }
 
-/// Animation settings for when a window is closed (Windows only).
+/// Animation settings for when a window is closed.
+///
+/// # Platform-specific
+///
+/// Only has an effect on Windows.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WindowCloseConfig {
