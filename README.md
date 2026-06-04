@@ -59,6 +59,12 @@ scoop bucket add extras
 scoop install extras/glazewm
 ```
 
+**Homebrew (macOS)**
+
+```sh
+brew install --cask glzr-io/tap/glazewm glzr-io/tap/zebar
+```
+
 ## Contributing
 
 Help fix something that annoys you, or add a feature you've been wanting for a long time! Contributions are very welcome.
