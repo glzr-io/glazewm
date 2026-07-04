@@ -120,16 +120,14 @@ pub trait CommonGetters {
 
   /// Children in order of last focus.
   fn child_focus_order(&self) -> Box<dyn Iterator<Item = Container> + '_> {
-    let child_focus_order = self.borrow_child_focus_order();
+    let mut index = 0;
 
-    Box::new(std::iter::from_fn(move || {
-      for child_id in child_focus_order.iter() {
-        if let Some(child) = self.child_by_id(child_id) {
-          return Some(child);
-        }
+    Box::new(std::iter::from_fn(move || loop {
+      let child_id = *self.borrow_child_focus_order().get(index)?;
+      index += 1;
+      if let Some(child) = self.child_by_id(&child_id) {
+        return Some(child);
       }
-
-      None
     }))
   }
 
