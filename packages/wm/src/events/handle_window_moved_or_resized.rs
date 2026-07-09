@@ -16,7 +16,7 @@ use crate::{
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
-  traits::{CommonGetters, WindowGetters},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -350,7 +350,35 @@ pub fn handle_window_moved_or_resized(
           )?;
         }
       }
-      _ => {}
+      _ => {
+        // A tiling window changed size without us commanding it. The
+        // usual cause is an app resizing itself in response to
+        // `WM_DPICHANGED` after we moved it onto a monitor with a
+        // different DPI: it snaps to its old size scaled by the DPI
+        // ratio, overriding the frame we set and overflowing its tile
+        // onto the neighbouring monitor. This arrives after our
+        // `SetWindowPos`, so the size can only be reasserted here, once
+        // the DPI change has settled.
+        //
+        // Act only while a DPI adjustment is pending and only when the
+        // frame's *size* diverges from the window's computed rect: a
+        // cross-workspace move first emits position-only echoes (from
+        // re-tiling) whose size already matches, and consuming the flag
+        // on those would leave nothing to correct the later self-resize.
+        // Reasserting via a redraw and clearing the flag on the real
+        // divergence fixes the leak while firing at most once per DPI
+        // transition, so it can't feed back into a redraw loop.
+        if window.has_pending_dpi_adjustment() {
+          let target = window
+            .to_rect()?
+            .apply_delta(&window.total_border_delta()?, None);
+
+          if size_diverged(&frame_position, &target) {
+            window.set_has_pending_dpi_adjustment(false);
+            state.pending_sync.queue_container_to_redraw(window.clone());
+          }
+        }
+      }
     }
   }
 
@@ -539,11 +567,26 @@ fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
   (is_left_corner || is_right_corner) && is_bottom_of_monitor
 }
 
+/// Gets whether a window's actual frame has diverged in *size* from the
+/// size we last commanded for it.
+///
+/// Used to distinguish an app resizing itself (e.g. after `WM_DPICHANGED`)
+/// from position-only echoes emitted while re-tiling, which keep the same
+/// size. Sub-tile differences from borders and shadows are ignored via a
+/// threshold; a DPI-scaled self-resize is off by the scale ratio, i.e.
+/// hundreds of pixels, so it clears the threshold comfortably.
+fn size_diverged(frame: &Rect, target: &Rect) -> bool {
+  const DIVERGENCE_THRESHOLD_PX: i32 = 50;
+
+  (frame.width() - target.width()).abs() > DIVERGENCE_THRESHOLD_PX
+    || (frame.height() - target.height()).abs() > DIVERGENCE_THRESHOLD_PX
+}
+
 #[cfg(test)]
 mod tests {
   use wm_platform::Rect;
 
-  use super::is_in_corner;
+  use super::{is_in_corner, size_diverged};
 
   #[test]
   fn matches_corner_positions() {
@@ -562,5 +605,31 @@ mod tests {
     let frame = Rect::from_xy(100, 100, 800, 600);
 
     assert!(!is_in_corner(&frame, &monitor));
+  }
+
+  #[test]
+  fn size_divergence_ignores_sub_tile_differences() {
+    let target = Rect::from_xy(0, 0, 1000, 800);
+
+    // Identical size does not diverge.
+    assert!(!size_diverged(&target, &target));
+
+    // Border/shadow-scale differences stay under the threshold, even at a
+    // shifted position.
+    let shifted = Rect::from_xy(500, 500, 1010, 790);
+    assert!(!size_diverged(&shifted, &target));
+  }
+
+  #[test]
+  fn size_divergence_detects_dpi_rescale() {
+    let target = Rect::from_xy(0, 0, 1000, 800);
+
+    // A 1.5x DPI self-resize is off by hundreds of pixels.
+    let rescaled = Rect::from_xy(0, 0, 1500, 1200);
+    assert!(size_diverged(&rescaled, &target));
+
+    // Divergence in a single dimension is enough.
+    let taller = Rect::from_xy(0, 0, 1000, 1200);
+    assert!(size_diverged(&taller, &target));
   }
 }

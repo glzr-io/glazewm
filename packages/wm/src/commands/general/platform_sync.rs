@@ -445,13 +445,17 @@ fn reposition_window(
         _ => {
           swp_flags |= SWP_FRAMECHANGED;
 
+          // Capture whether a scale correction is needed *before* the
+          // move, while the window's DPI context still reflects its old
+          // monitor.
+          let needs_dpi_correction = needs_dpi_scale_correction(window);
+
           window.native().set_window_pos(z_order, &rect, swp_flags)?;
 
-          // When there's a mismatch between the DPI of the monitor and the
-          // window, the window might be sized incorrectly after the first
-          // move. If we set the position twice, inconsistencies after the
-          // first move are resolved.
-          if window.has_pending_dpi_adjustment() {
+          // A second `SetWindowPos`, issued after Windows has updated the
+          // window's DPI in response to the first, re-sizes it under the
+          // now-correct scale.
+          if needs_dpi_correction {
             window.native().set_window_pos(z_order, &rect, swp_flags)?;
           }
         }
@@ -469,6 +473,32 @@ fn reposition_window(
   }
 
   Ok(())
+}
+
+/// Whether a window needs a corrective second `SetWindowPos` to be sized
+/// at the right scale for the monitor it's being placed on.
+///
+/// A window whose DPI-awareness context still reflects a monitor other
+/// than its target is sized under the wrong scale by the first
+/// `SetWindowPos` (e.g. leaking onto the neighbouring monitor); a second
+/// call, once Windows has updated the window's DPI in response to the
+/// first, corrects it.
+///
+/// The mismatch is detected live by comparing the window's current DPI
+/// against its target monitor, so freshly-opened windows are caught too:
+/// the OS may spawn a window straight onto its target monitor, where the
+/// `has_pending_dpi_adjustment` hint (set only on a cross-monitor spawn)
+/// misses that the window's initial context carries the wrong DPI. That
+/// hint is still honoured as a fallback. A window already at the correct
+/// scale needs no second call.
+#[cfg(target_os = "windows")]
+fn needs_dpi_scale_correction(window: &WindowContainer) -> bool {
+  let window_dpi = window.native().dpi().ok();
+  let monitor_dpi = window.monitor().map(|m| m.native_properties().dpi);
+  let has_dpi_mismatch =
+    matches!((window_dpi, monitor_dpi), (Some(w), Some(m)) if w != m);
+
+  has_dpi_mismatch || window.has_pending_dpi_adjustment()
 }
 
 fn jump_cursor(

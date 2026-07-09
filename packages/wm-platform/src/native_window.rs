@@ -199,6 +199,17 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool;
 
+  /// DPI of the window's current per-monitor DPI-awareness context.
+  ///
+  /// This lags a cross-monitor move until Windows delivers
+  /// `WM_DPICHANGED`, so comparing it against the target monitor's DPI
+  /// reveals whether the window still needs a scale correction.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn dpi(&self) -> crate::Result<u32>;
+
   /// Thin wrapper around [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos).
   ///
   /// # Platform-specific
@@ -357,6 +368,10 @@ impl NativeWindowWindowsExt for NativeWindow {
 
   fn has_window_style_ex(&self, style: WINDOW_EX_STYLE) -> bool {
     self.inner.has_window_style_ex(style)
+  }
+
+  fn dpi(&self) -> crate::Result<u32> {
+    self.inner.dpi()
   }
 
   fn set_window_pos(

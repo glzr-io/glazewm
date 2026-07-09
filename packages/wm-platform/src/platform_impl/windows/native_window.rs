@@ -17,6 +17,7 @@ use windows::{
       PROCESS_QUERY_LIMITED_INFORMATION,
     },
     UI::{
+      HiDpi::GetDpiForWindow,
       Input::KeyboardAndMouse::{
         SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEINPUT,
       },
@@ -159,6 +160,20 @@ impl NativeWindow {
   pub(crate) fn size(&self) -> crate::Result<(f64, f64)> {
     let frame = self.frame()?;
     Ok((f64::from(frame.width()), f64::from(frame.height())))
+  }
+
+  /// Implements [`NativeWindow::dpi`].
+  pub(crate) fn dpi(&self) -> crate::Result<u32> {
+    let dpi = unsafe { GetDpiForWindow(self.hwnd()) };
+
+    // `GetDpiForWindow` returns 0 for an invalid window handle.
+    if dpi == 0 {
+      return Err(crate::Error::Platform(
+        "`GetDpiForWindow` returned an invalid DPI.".to_string(),
+      ));
+    }
+
+    Ok(dpi)
   }
 
   /// Implements [`NativeWindow::is_valid`].
