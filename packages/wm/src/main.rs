@@ -20,19 +20,31 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
-use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
+use wm_common::{
+  AppCommand, GrabAndMoveModifier, InvokeCommand, Verbosity, WmEvent,
+};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
-  Dispatcher, DisplayListener, EventLoop, KeybindingListener,
-  MouseEventKind, MouseListener, PlatformEvent, SingleInstance,
-  WindowListener,
+  Dispatcher, DisplayListener, DragModifier, EventLoop,
+  KeybindingListener, MouseDragEvent, MouseDragHook, MouseEventKind,
+  MouseListener,
+  PlatformEvent, SingleInstance, WindowListener,
 };
 
 use crate::{
-  ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
-  wm::WindowManager,
+  ipc_server::IpcServer, sys_tray::SystemTray,
+  traits::WindowGetters, user_config::UserConfig, wm::WindowManager,
 };
+
+/// Maps the config-level grab-and-move modifier to its platform
+/// representation.
+fn drag_modifier(modifier: &GrabAndMoveModifier) -> DragModifier {
+  match modifier {
+    GrabAndMoveModifier::Alt => DragModifier::Alt,
+    GrabAndMoveModifier::Win => DragModifier::Win,
+  }
+}
 
 mod commands;
 mod events;
@@ -169,6 +181,12 @@ async fn start_wm(
     dispatcher,
   )?;
 
+  let mut mouse_drag_hook = MouseDragHook::new(
+    &drag_modifier(&config.value.general.grab_and_move.modifier),
+    config.value.general.grab_and_move.enabled,
+    dispatcher,
+  )?;
+
   // Run user's startup commands.
   if let Err(err) = wm.process_commands(
     &config.value.general.startup_commands.clone(),
@@ -201,6 +219,31 @@ async fn start_wm(
       Some(event) = mouse_listener.next_event() => {
         tracing::debug!("Received mouse event: {:?}", event);
         wm.process_event(PlatformEvent::Mouse(event), &mut config)
+      },
+      Some(event) = mouse_drag_hook.next_event() => {
+        tracing::debug!("Received mouse drag event: {:?}", event);
+
+        let (window_id, is_start) = match event {
+          MouseDragEvent::Started { window_id } => (window_id, true),
+          MouseDragEvent::Ended { window_id } => (window_id, false),
+        };
+
+        // Look up the dragged window among managed windows; the hook
+        // only starts drags on managed windows, but the window can be
+        // unmanaged by the time the event is processed.
+        let native_window = wm
+          .state
+          .windows()
+          .iter()
+          .find(|window| window.native().id() == window_id)
+          .map(|window| window.native().clone());
+
+        match native_window {
+          Some(native_window) => {
+            wm.process_window_drag(&native_window, is_start, &mut config)
+          }
+          None => Ok(()),
+        }
       },
       Some(event) = window_listener.next_event() => {
         tracing::debug!("Received window event: {:?}", event);
@@ -243,9 +286,24 @@ async fn start_wm(
       Some(wm_event) = wm.event_rx.recv() => {
         tracing::debug!("Received WM event: {:?}", wm_event);
 
+        // Keep the grab-and-move hook's set of managed windows fresh.
+        // Manage/unmanage always emit WM events, so this can't go
+        // stale; the update is diff-checked internally.
+        mouse_drag_hook.update_managed_windows(
+          &wm
+            .state
+            .windows()
+            .iter()
+            .map(|window| window.native().id())
+            .collect::<Vec<_>>(),
+        );
+
         // Disable mouse listener when the WM is paused.
         if let WmEvent::PauseChanged { is_paused } = wm_event {
           let _ = mouse_listener.enable(!is_paused);
+          mouse_drag_hook.set_enabled(
+            !is_paused && config.value.general.grab_and_move.enabled,
+          );
         }
 
         // Update keybinding and mouse listeners on config changes.
@@ -269,6 +327,14 @@ async fn start_wm(
               &[MouseEventKind::LeftButtonUp]
             },
           )?;
+
+          let grab_and_move = &config.value.general.grab_and_move;
+          mouse_drag_hook.set_modifier(
+            &drag_modifier(&grab_and_move.modifier),
+          );
+          mouse_drag_hook.set_enabled(
+            !wm.state.is_paused && grab_and_move.enabled,
+          );
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {

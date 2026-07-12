@@ -150,6 +150,35 @@ impl WindowManager {
     Ok(())
   }
 
+  /// Processes a hook-driven window drag lifecycle event
+  /// (grab-and-move).
+  ///
+  /// Runs the same handler a native interactive move produces, so
+  /// `active_drag` and tiling reflow behave identically to a title-bar
+  /// drag.
+  pub fn process_window_drag(
+    &mut self,
+    native_window: &wm_platform::NativeWindow,
+    is_start: bool,
+    config: &mut UserConfig,
+  ) -> anyhow::Result<()> {
+    let state = &mut self.state;
+
+    handle_window_moved_or_resized(
+      native_window,
+      is_start,
+      !is_start,
+      state,
+      config,
+    )?;
+
+    if !state.is_paused && state.pending_sync.has_changes() {
+      platform_sync(state, config)?;
+    }
+
+    Ok(())
+  }
+
   pub fn process_commands(
     &mut self,
     commands: &Vec<InvokeCommand>,

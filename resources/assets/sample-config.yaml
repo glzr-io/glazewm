@@ -27,6 +27,17 @@ general:
     # - 'window_focus': Jump when focus changes between windows.
     trigger: 'monitor_focus'
 
+  # (Windows-only) Move windows by holding a modifier key and dragging
+  # with the mouse from anywhere on the window — as if dragged by the
+  # title bar. Tiling windows reflow on drop; windows matching `ignore`
+  # rules are unaffected.
+  grab_and_move:
+    # Whether to enable grab-and-move.
+    enabled: false
+
+    # Modifier key that activates a drag: 'alt' or 'win'.
+    modifier: 'alt'
+
   # How windows should be hidden when switching workspaces.
   # - 'cloak': (Windows-only) Recommended option for Windows.
   # - 'hide': (Windows-only) Legacy option for Windows. Has stability issues with some apps.
