@@ -207,6 +207,15 @@ fn redraw_containers(
   // Get monitors by their optimal hide corner.
   let monitors_by_hide_corner = state.monitors_by_hide_corner();
 
+  // Plain repositions are collected here and committed atomically after
+  // the loop via a `DeferWindowPos` transaction. Individual (especially
+  // `SWP_ASYNCWINDOWPOS`) repositions land frames apart per-app, so two
+  // windows exchanging rects expose the desktop in the vacated slot
+  // between the two moves — a visible background flash on every swap.
+  #[cfg(target_os = "windows")]
+  let mut deferred_repositions: Vec<(WindowContainer, Rect, WindowZOrder)> =
+    Vec::new();
+
   for window in windows_to_update.iter().rev() {
     let should_bring_to_front = windows_to_bring_to_front.contains(window);
 
@@ -285,7 +294,34 @@ fn redraw_containers(
       DisplayState::Showing | DisplayState::Shown
     );
 
-    if let Err(err) =
+    // A plain reposition of an ordinary, steady-state-visible window is
+    // batchable: it takes the catch-all `SetWindowPos` arm of
+    // `reposition_window` with no restore, no DPI fix-up, and a no-op
+    // visibility step. Anything state-special keeps the individual path.
+    #[cfg(target_os = "windows")]
+    let batchable = is_visible
+      && matches!(window.display_state(), DisplayState::Shown)
+      && window.active_drag().is_none()
+      && !window.has_pending_dpi_adjustment()
+      && matches!(
+        window.state(),
+        WindowState::Tiling | WindowState::Floating(_)
+      )
+      && !window.native().is_minimized().unwrap_or(true)
+      && !window.native().is_maximized().unwrap_or(true);
+    #[cfg(not(target_os = "windows"))]
+    let batchable = false;
+
+    if batchable {
+      #[cfg(target_os = "windows")]
+      {
+        let rect = window
+          .to_rect()?
+          .apply_delta(&window.total_border_delta()?, None);
+
+        deferred_repositions.push(((*window).clone(), rect, z_order.clone()));
+      }
+    } else if let Err(err) =
       reposition_window(window, *hide_corner, &z_order, is_visible, config)
     {
       tracing::warn!("Failed to set window position: {}", err);
@@ -332,7 +368,89 @@ fn redraw_containers(
     }
   }
 
+  // Commit all plain repositions collected above in a single atomic
+  // `DeferWindowPos` transaction, so windows exchanging rects (swaps)
+  // land in the same compositor frame with no exposed gap.
+  #[cfg(target_os = "windows")]
+  flush_deferred_repositions(&deferred_repositions, config);
+
   Ok(())
+}
+
+/// Commits the plain repositions collected during the redraw loop in a
+/// single atomic `DeferWindowPos` transaction.
+///
+/// A lone entry takes the historical individual (async) path — identical
+/// behavior to before batching existed. Two or more entries commit
+/// atomically so exchanged rects land in the same compositor frame. On
+/// any batch failure, falls back to individual repositions.
+#[cfg(target_os = "windows")]
+fn flush_deferred_repositions(
+  entries: &[(WindowContainer, Rect, WindowZOrder)],
+  config: &UserConfig,
+) {
+  use wm_platform::{
+    WindowPosBatch, SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+    SWP_NOCOPYBITS, SWP_NOSENDCHANGING,
+  };
+
+  if entries.is_empty() {
+    return;
+  }
+
+  let flags =
+    SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED;
+
+  let individual =
+    |window: &WindowContainer, rect: &Rect, z_order: &WindowZOrder| {
+      if let Err(err) = window.native().set_window_pos(
+        z_order,
+        rect,
+        flags | SWP_ASYNCWINDOWPOS,
+      ) {
+        tracing::warn!("Failed to set window position: {}", err);
+      }
+    };
+
+  if entries.len() == 1 {
+    let (window, rect, z_order) = &entries[0];
+    individual(window, rect, z_order);
+  } else {
+    let atomic = (|| -> anyhow::Result<()> {
+      #[allow(clippy::cast_possible_truncation)]
+      let mut batch = WindowPosBatch::begin(entries.len() as i32)?;
+
+      for (window, rect, z_order) in entries {
+        window
+          .native()
+          .defer_window_pos(&mut batch, z_order, rect, flags)?;
+      }
+
+      batch.commit()?;
+      Ok(())
+    })();
+
+    if let Err(err) = atomic {
+      tracing::warn!(
+        "Atomic reposition batch failed ({err}); falling back to \
+         individual repositions."
+      );
+      for (window, rect, z_order) in entries {
+        individual(window, rect, z_order);
+      }
+    }
+  }
+
+  // Parity with `reposition_window`'s visibility step. All batched
+  // windows are steady-state visible, so both calls are no-ops kept for
+  // exact behavioral parity with the individual path.
+  for (window, _, _) in entries {
+    if config.value.general.hide_method == HideMethod::Cloak {
+      let _ = window.native().set_cloaked(false);
+    } else {
+      let _ = window.native().show();
+    }
+  }
 }
 
 fn reposition_window(

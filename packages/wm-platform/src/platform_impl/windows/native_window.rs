@@ -21,6 +21,7 @@ use windows::{
         SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEINPUT,
       },
       WindowsAndMessaging::{
+        BeginDeferWindowPos, DeferWindowPos, EndDeferWindowPos,
         EnumWindows, GetAncestor, GetClassNameW, GetDesktopWindow,
         GetForegroundWindow, GetLayeredWindowAttributes, GetShellWindow,
         GetWindow, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
@@ -28,7 +29,8 @@ use windows::{
         IsZoomed, SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, WindowFromPoint, GA_ROOT,
-        GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP,
+        GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HDWP, HWND_NOTOPMOST,
+        HWND_TOP,
         HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA,
         LWA_COLORKEY, SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS,
         SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
@@ -47,6 +49,76 @@ use crate::{
   Color, CornerStyle, Delta, Dispatcher, LengthValue, OpacityValue, Point,
   Rect, RectDelta, WindowId, WindowZOrder,
 };
+
+/// A batched, atomic multi-window reposition transaction
+/// (`BeginDeferWindowPos` / `DeferWindowPos` / `EndDeferWindowPos`).
+///
+/// Every window deferred into the batch is repositioned in a single
+/// atomic operation at [`commit`], landing in the same compositor frame.
+/// This closes the background flash visible when windows exchange rects
+/// via individual `SetWindowPos` calls (especially async ones): the
+/// vacated region stays exposed for however many frames separate the
+/// two moves (diagnosed 2026-07-14 — window swaps flashing the desktop
+/// even with animations and transparency disabled).
+///
+/// [`commit`]: WindowPosBatch::commit
+pub struct WindowPosBatch {
+  hdwp: HDWP,
+}
+
+impl WindowPosBatch {
+  /// Begins a transaction sized for `capacity` windows. The OS grows the
+  /// internal structure automatically if more are deferred.
+  pub fn begin(capacity: i32) -> crate::Result<Self> {
+    let hdwp = unsafe { BeginDeferWindowPos(capacity) }?;
+    Ok(Self { hdwp })
+  }
+
+  /// Adds a window reposition to the transaction. Nothing moves until
+  /// [`commit`](WindowPosBatch::commit).
+  ///
+  /// `SWP_ASYNCWINDOWPOS` is stripped: a deferred transaction commits
+  /// synchronously by design. On failure the transaction is poisoned
+  /// (per the Win32 contract) and should be abandoned, not committed.
+  pub(crate) fn defer(
+    &mut self,
+    window: &NativeWindow,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()> {
+    let z_order_hwnd = match z_order {
+      WindowZOrder::TopMost => HWND_TOPMOST,
+      WindowZOrder::Top => HWND_TOP,
+      WindowZOrder::Normal => HWND_NOTOPMOST,
+      WindowZOrder::AfterWindow(window_id) => HWND(window_id.0),
+    };
+
+    let flags = flags & !SWP_ASYNCWINDOWPOS;
+
+    self.hdwp = unsafe {
+      DeferWindowPos(
+        self.hdwp,
+        window.hwnd(),
+        z_order_hwnd,
+        rect.x(),
+        rect.y(),
+        rect.width(),
+        rect.height(),
+        flags,
+      )
+    }?;
+
+    Ok(())
+  }
+
+  /// Commits the transaction: every deferred reposition lands in one
+  /// atomic operation (a single compositor frame).
+  pub fn commit(self) -> crate::Result<()> {
+    unsafe { EndDeferWindowPos(self.hdwp) }?;
+    Ok(())
+  }
+}
 
 /// Magic number used to identify programmatic mouse inputs from our own
 /// process.
@@ -667,16 +739,38 @@ impl NativeWindow {
     &self,
     opacity_value: &OpacityValue,
   ) -> crate::Result<()> {
+    let target = opacity_value.to_alpha();
+
+    // Idempotence guard: re-applying an unchanged alpha is not free —
+    // `SetLayeredWindowAttributes` forces DWM to re-evaluate the window's
+    // composition, which visibly flickers system-backdrop materials
+    // (Acrylic/Mica) on windows that carry them. Effects passes re-apply
+    // transparency liberally (e.g. the all-windows pass queued on
+    // animation completion), so skip when the window is already layered
+    // at the target alpha (diagnosed 2026-07-14: window swaps flickering
+    // every glass window on screen).
+    unsafe {
+      let mut alpha = u8::MAX;
+      let mut flags = LAYERED_WINDOW_ATTRIBUTES_FLAGS::default();
+      if GetLayeredWindowAttributes(
+        self.hwnd(),
+        None,
+        Some(&raw mut alpha),
+        Some(&raw mut flags),
+      )
+      .is_ok()
+        && flags.contains(LWA_ALPHA)
+        && alpha == target
+      {
+        return Ok(());
+      }
+    }
+
     // Make the window layered if it isn't already.
     self.add_window_style_ex(WS_EX_LAYERED);
 
     unsafe {
-      SetLayeredWindowAttributes(
-        self.hwnd(),
-        None,
-        opacity_value.to_alpha(),
-        LWA_ALPHA,
-      )?;
+      SetLayeredWindowAttributes(self.hwnd(), None, target, LWA_ALPHA)?;
     }
 
     Ok(())

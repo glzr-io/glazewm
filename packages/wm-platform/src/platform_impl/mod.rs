@@ -7,5 +7,8 @@ mod platform;
 
 pub(crate) use platform::*;
 
+#[cfg(target_os = "windows")]
+pub use platform::WindowPosBatch;
+
 #[cfg(all(not(target_os = "windows"), not(target_os = "macos"),))]
 compile_error!("The platform you're compiling for is not supported.");

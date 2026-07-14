@@ -15,6 +15,8 @@ use crate::{platform_impl, Rect};
 use crate::{platform_impl::AXUIElementExt, ThreadBound};
 #[cfg(target_os = "windows")]
 use crate::{Color, CornerStyle, Delta, OpacityValue, RectDelta};
+#[cfg(target_os = "windows")]
+pub use crate::platform_impl::WindowPosBatch;
 
 /// Unique identifier of a window.
 ///
@@ -211,6 +213,21 @@ pub trait NativeWindowWindowsExt {
     flags: SET_WINDOW_POS_FLAGS,
   ) -> crate::Result<()>;
 
+  /// Adds this window's reposition to a [`WindowPosBatch`] transaction
+  /// instead of executing it immediately. All batched repositions land
+  /// atomically (same compositor frame) when the batch is committed.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn defer_window_pos(
+    &self,
+    batch: &mut WindowPosBatch,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()>;
+
   /// Shows the window asynchronously.
   ///
   /// NOTE: Cloaked windows do not get shown until uncloaked.
@@ -366,6 +383,16 @@ impl NativeWindowWindowsExt for NativeWindow {
     flags: SET_WINDOW_POS_FLAGS,
   ) -> crate::Result<()> {
     self.inner.set_window_pos(z_order, rect, flags)
+  }
+
+  fn defer_window_pos(
+    &self,
+    batch: &mut WindowPosBatch,
+    z_order: &WindowZOrder,
+    rect: &Rect,
+    flags: SET_WINDOW_POS_FLAGS,
+  ) -> crate::Result<()> {
+    batch.defer(&self.inner, z_order, rect, flags)
   }
 
   fn show(&self) -> crate::Result<()> {
