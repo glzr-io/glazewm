@@ -44,6 +44,9 @@ gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true
 
+  # Edge inset used to reveal neighboring windows in an accordion layout.
+  accordion_padding: '30px'
+
   # Gap between adjacent windows.
   inner_gap: '20px'
 
@@ -220,6 +223,10 @@ keybindings:
   # be inserted.
   - commands: ['toggle-tiling-direction']
     bindings: ['alt+v']
+
+  # Toggle between tiles and accordion tiling layouts.
+  - commands: ['toggle-tiling-layout']
+    bindings: ['alt+b']
 
   # Change focus from tiling windows -> floating -> fullscreen.
   - commands: ['wm-cycle-focus']

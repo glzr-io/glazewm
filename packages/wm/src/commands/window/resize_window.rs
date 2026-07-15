@@ -20,22 +20,16 @@ pub fn resize_window(
       let parent_width = match window.as_tiling_container() {
         Ok(tiling_window) => tiling_window
           .container_to_resize(true)?
-          .and_then(|container| container.parent())
-          .and_then(|parent| {
-            parent.to_rect().ok().map(|rect| rect.width())
-          })
-          .and_then(|parent_width| {
-            let (horizontal_gap, _) = tiling_window.inner_gaps().ok()?;
+          .and_then(|container| {
+            let parent_width = container.parent()?.to_rect().ok()?.width();
+            let (horizontal_gap, _) = container.inner_gaps().ok()?;
+            let sibling_count = container.tiling_siblings().count();
 
             #[allow(
               clippy::cast_possible_wrap,
               clippy::cast_possible_truncation
             )]
-            Some(
-              parent_width
-                - horizontal_gap
-                  * tiling_window.tiling_siblings().count() as i32,
-            )
+            Some(parent_width - horizontal_gap * sibling_count as i32)
           }),
         _ => window.parent().and_then(|parent| {
           parent.to_rect().ok().map(|rect| rect.width())
@@ -54,22 +48,17 @@ pub fn resize_window(
       let parent_height = match window.as_tiling_container() {
         Ok(tiling_window) => tiling_window
           .container_to_resize(false)?
-          .and_then(|container| container.parent())
-          .and_then(|parent| {
-            parent.to_rect().ok().map(|rect| rect.height())
-          })
-          .and_then(|parent_height| {
-            let (_, vertical_gap) = tiling_window.inner_gaps().ok()?;
+          .and_then(|container| {
+            let parent_height =
+              container.parent()?.to_rect().ok()?.height();
+            let (_, vertical_gap) = container.inner_gaps().ok()?;
+            let sibling_count = container.tiling_siblings().count();
 
             #[allow(
               clippy::cast_possible_wrap,
               clippy::cast_possible_truncation
             )]
-            Some(
-              parent_height
-                - vertical_gap
-                  * tiling_window.tiling_siblings().count() as i32,
-            )
+            Some(parent_height - vertical_gap * sibling_count as i32)
           }),
         _ => window.parent().and_then(|parent| {
           parent.to_rect().ok().map(|rect| rect.height())

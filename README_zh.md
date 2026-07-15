@@ -212,10 +212,13 @@ keybindings:
 
 ### 配置：间隙
 
-窗口之间的间隙可以通过配置文件中的 `gaps` 属性更改。内部和外部间隙分别设置。
+窗口周围的间距可以通过配置文件中的 `gaps` 属性更改。内部间隙、外部间隙和手风琴布局留白可分别设置。
 
 ```yaml
 gaps:
+  # 用于露出手风琴布局中相邻窗口的边缘内缩。
+  accordion_padding: "30px"
+
   # 相邻窗口之间的间隙。
   inner_gap: "20px"
 
@@ -354,6 +357,10 @@ binding_modes:
 **问：如何创建 `<插入布局>`？**
 
 您可以通过使用 `alt+v` 更改平铺方向来创建自定义布局。这会改变下一个窗口相对于当前窗口的放置位置。如果当前窗口的方向是水平的，新窗口将放置在其右侧。如果是垂直的，将放置在其下方。这也适用于移动窗口；固定窗口的平铺方向将影响移动窗口的放置位置。
+
+每个方向容器都可以使用两种平铺布局：`tiles` 会让每个窗口占据一个完整可见的区块；`accordion` 会让窗口相互堆叠，并通过 `accordion_padding` 在布局轴两端露出相邻窗口。水平 accordion 类似标签页布局，垂直 accordion 类似堆叠布局。使用 `toggle-tiling-layout`（默认配置绑定为 `alt+b`）或 `set-tiling-layout tiles|accordion` 可以切换布局。运行 `glazewm query tiling-layout` 可查看当前布局，运行 `glazewm sub -e tiling_layout_changed` 可订阅显式布局命令触发的变化。
+
+在 macOS 上，只有聚焦窗口能够被可靠地提升到最前，因为 macOS 没有提供可可靠调整其他受管窗口相对层级的公共 API。因此，嵌套的 accordion 子树可能在视觉上相互穿插；建议在 macOS 上使用直接包含窗口的扁平 accordion 布局。Windows 会维护完整的 MRU 子树层级顺序。
 
 社区制作的脚本如 [Dutch-Raptor/GAT-GWM](https://github.com/Dutch-Raptor/GAT-GWM) 和 [burgr033/GlazeWM-autotiling-python](https://github.com/burgr033/GlazeWM-autotiling-python) 可用于自动更改平铺方向。目前不支持自动布局的原生支持。
 

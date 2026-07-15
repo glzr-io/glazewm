@@ -1,6 +1,7 @@
 use anyhow::Context;
 use wm_common::{
-  try_warn, FullscreenStateConfig, TilingDirection, WindowState,
+  try_warn, FullscreenStateConfig, TilingDirection, TilingLayout,
+  WindowState,
 };
 use wm_platform::{LengthValue, Point, Rect};
 
@@ -15,7 +16,8 @@ use crate::{
     WindowContainer,
   },
   traits::{
-    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+    CommonGetters, PositionGetters, TilingDirectionGetters,
+    TilingLayoutGetters, WindowGetters,
   },
   user_config::UserConfig,
   wm_state::WmState,
@@ -176,8 +178,17 @@ fn drop_as_tiling_window(
   // Get the deepest direction container under the dragged window.
   let target_parent: DirectionContainer = containers_at_pos
     .filter_map(|container| container.as_direction_container().ok())
+    .filter(|container| {
+      is_frontmost_direction_container_at_point(container, &mouse_pos)
+    })
     .fold(mouse_workspace.into(), |acc, container| {
-      if container.ancestors().count() > acc.ancestors().count() {
+      let container_depth = container.ancestors().count();
+      let acc_depth = acc.ancestors().count();
+
+      if container_depth > acc_depth
+        || (container_depth == acc_depth
+          && focus_path(&container) < focus_path(&acc))
+      {
         container
       } else {
         acc
@@ -204,19 +215,12 @@ fn drop_as_tiling_window(
     );
   }
 
-  let nearest_container = target_parent
-    .children()
-    .into_iter()
-    .filter_map(|container| container.as_tiling_container().ok())
-    .try_fold(None, |acc: Option<TilingContainer>, container| match acc {
-      Some(acc) => {
-        let is_nearer = acc.to_rect()?.distance_to_point(&mouse_pos)
-          < container.to_rect()?.distance_to_point(&mouse_pos);
-
-        anyhow::Ok(Some(if is_nearer { acc } else { container }))
-      }
-      None => Ok(Some(container)),
-    })?
+  let nearest_container =
+    if target_parent.tiling_layout() == TilingLayout::Accordion {
+      accordion_child_at_point(&target_parent, &mouse_pos)?
+    } else {
+      nearest_tiling_child(&target_parent, &mouse_pos)?
+    }
     .context("No nearest container.")?;
 
   let tiling_direction = target_parent.tiling_direction();
@@ -284,6 +288,109 @@ fn drop_as_tiling_window(
   Ok(moved_window)
 }
 
+/// Gets a direction container's path through ancestor focus orders.
+fn focus_path(container: &DirectionContainer) -> Vec<usize> {
+  let mut path = container
+    .self_and_ancestors()
+    .map(|ancestor| ancestor.focus_index())
+    .collect::<Vec<_>>();
+  path.reverse();
+  path
+}
+
+/// Whether a direction container is in the frontmost accordion subtree
+/// at a point.
+fn is_frontmost_direction_container_at_point(
+  container: &DirectionContainer,
+  point: &Point,
+) -> bool {
+  for accordion_ancestor in container
+    .ancestors()
+    .filter_map(|ancestor| ancestor.as_direction_container().ok())
+    .filter(|ancestor| ancestor.tiling_layout() == TilingLayout::Accordion)
+  {
+    let Some(topmost_child) =
+      topmost_accordion_child_at_point(&accordion_ancestor, point)
+        .ok()
+        .flatten()
+    else {
+      continue;
+    };
+
+    let direct_child = container.self_and_ancestors().find(|candidate| {
+      candidate
+        .parent()
+        .is_some_and(|parent| parent.id() == accordion_ancestor.id())
+    });
+
+    if direct_child.is_some_and(|child| child.id() != topmost_child.id()) {
+      return false;
+    }
+  }
+
+  true
+}
+
+/// Gets the direct accordion child containing the topmost leaf window at a
+/// point.
+fn accordion_child_at_point(
+  parent: &DirectionContainer,
+  point: &Point,
+) -> anyhow::Result<Option<TilingContainer>> {
+  Ok(
+    topmost_accordion_child_at_point(parent, point)?
+      .or_else(|| parent.tiling_children().next()),
+  )
+}
+
+/// Gets the direct accordion child containing the topmost leaf window at a
+/// point, without falling back when the point is only over empty space.
+fn topmost_accordion_child_at_point(
+  parent: &DirectionContainer,
+  point: &Point,
+) -> anyhow::Result<Option<TilingContainer>> {
+  for leaf in parent.descendant_focus_order() {
+    if !leaf.is_tiling_window() {
+      continue;
+    }
+
+    let leaf = leaf.as_tiling_container()?;
+
+    if leaf.to_rect()?.contains_point(point) {
+      return Ok(leaf.self_and_ancestors().find_map(|candidate| {
+        candidate
+          .parent()
+          .is_some_and(|candidate_parent| {
+            candidate_parent.id() == parent.id()
+          })
+          .then(|| candidate.as_tiling_container().ok())
+          .flatten()
+      }));
+    }
+  }
+
+  Ok(None)
+}
+
+/// Gets the tiling child nearest to a point in a tiles layout.
+fn nearest_tiling_child(
+  parent: &DirectionContainer,
+  point: &Point,
+) -> anyhow::Result<Option<TilingContainer>> {
+  parent.tiling_children().try_fold(
+    None,
+    |acc: Option<TilingContainer>, container| match acc {
+      Some(acc) => {
+        let is_nearer = acc.to_rect()?.distance_to_point(point)
+          < container.to_rect()?.distance_to_point(point);
+
+        anyhow::Ok(Some(if is_nearer { acc } else { container }))
+      }
+      None => Ok(Some(container)),
+    },
+  )
+}
+
 /// Represents where the window was dropped over another.
 #[derive(Debug, Clone, PartialEq)]
 enum DropPosition {
@@ -315,5 +422,100 @@ fn drop_position(mouse_pos: &Point, rect: &Rect) -> DropPosition {
     } else {
       DropPosition::Top
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::collections::VecDeque;
+
+  use wm_common::{GapsConfig, TilingDirection, TilingLayout};
+  use wm_platform::{LengthValue, Point};
+
+  use super::{
+    accordion_child_at_point, is_frontmost_direction_container_at_point,
+  };
+  use crate::{
+    models::{Monitor, SplitContainer, TilingWindow, Workspace},
+    traits::{CommonGetters, PositionGetters, TilingLayoutGetters},
+  };
+
+  #[test]
+  fn accordion_hit_testing_ignores_gaps_inside_focused_split() {
+    let gaps_config = GapsConfig {
+      inner_gap: LengthValue::from_px(20),
+      ..GapsConfig::default()
+    };
+    let split_windows = [
+      TilingWindow::mock().gaps_config(gaps_config.clone()).call(),
+      TilingWindow::mock().gaps_config(gaps_config.clone()).call(),
+    ];
+    let focused_split = SplitContainer::mock()
+      .tiling_direction(TilingDirection::Vertical)
+      .gaps_config(gaps_config.clone())
+      .tiling_containers(
+        split_windows.iter().cloned().map(Into::into).collect(),
+      )
+      .call();
+    let underlying_window =
+      TilingWindow::mock().gaps_config(gaps_config.clone()).call();
+    let workspace = Workspace::mock()
+      .tiling_direction(TilingDirection::Horizontal)
+      .gaps_config(gaps_config)
+      .tiling_containers(vec![
+        focused_split.clone().into(),
+        underlying_window.clone().into(),
+      ])
+      .call();
+
+    workspace.set_tiling_layout(TilingLayout::Accordion);
+    *workspace.borrow_child_focus_order_mut() =
+      VecDeque::from([focused_split.id(), underlying_window.id()]);
+    let _monitor =
+      Monitor::mock().workspaces(vec![workspace.clone()]).call();
+
+    let upper_rect = split_windows[0]
+      .to_rect()
+      .expect("Upper split window should have a rect.");
+    let lower_rect = split_windows[1]
+      .to_rect()
+      .expect("Lower split window should have a rect.");
+    let split_rect = focused_split
+      .to_rect()
+      .expect("Focused split should have a rect.");
+    let underlying_rect = underlying_window
+      .to_rect()
+      .expect("Underlying window should have a rect.");
+    let gap_point = Point {
+      x: i32::midpoint(
+        split_rect.left.max(underlying_rect.left),
+        split_rect.right.min(underlying_rect.right),
+      ),
+      y: i32::midpoint(upper_rect.bottom, lower_rect.top),
+    };
+    let leaf_point = upper_rect.center_point();
+
+    assert!(split_rect.contains_point(&gap_point));
+    assert!(underlying_rect.contains_point(&gap_point));
+    assert!(!upper_rect.contains_point(&gap_point));
+    assert!(!lower_rect.contains_point(&gap_point));
+    assert!(is_frontmost_direction_container_at_point(
+      &focused_split.clone().into(),
+      &leaf_point
+    ));
+    assert_eq!(
+      accordion_child_at_point(&workspace.clone().into(), &leaf_point)
+        .expect("Accordion leaf hit test should succeed."),
+      Some(focused_split.clone().into())
+    );
+    assert!(!is_frontmost_direction_container_at_point(
+      &focused_split.clone().into(),
+      &gap_point
+    ));
+    assert_eq!(
+      accordion_child_at_point(&workspace.into(), &gap_point)
+        .expect("Accordion hit test should succeed."),
+      Some(underlying_window.into())
+    );
   }
 }

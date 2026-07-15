@@ -83,7 +83,7 @@ impl UserConfig {
       config_path.parent().context("Invalid config path.")?;
 
     fs::create_dir_all(parent_dir).with_context(|| {
-      format!("Unable to create directory {}.", &config_path.display())
+      format!("Unable to create directory {}.", config_path.display())
     })?;
 
     fs::write(config_path, SAMPLE_CONFIG).with_context(|| {
@@ -376,5 +376,26 @@ impl UserConfig {
         true
       }
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_common::ParsedConfig;
+
+  use super::SAMPLE_CONFIG;
+
+  #[test]
+  fn sample_config_parses() {
+    serde_yaml::from_str::<ParsedConfig>(SAMPLE_CONFIG)
+      .expect("Sample config should be valid.");
+  }
+
+  #[test]
+  fn omitted_accordion_padding_uses_default() {
+    let config = serde_yaml::from_str::<ParsedConfig>("{}")
+      .expect("Empty config should use defaults.");
+
+    assert_eq!(config.gaps.accordion_padding.to_px(1000, None), 30);
   }
 }

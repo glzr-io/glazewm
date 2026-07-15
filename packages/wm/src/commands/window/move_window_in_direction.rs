@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_common::{TilingDirection, WindowState};
+use wm_common::{TilingDirection, TilingLayout, WindowState};
 use wm_platform::{Direction, Rect};
 
 use crate::{
@@ -13,7 +13,8 @@ use crate::{
     TilingContainer, TilingWindow, WindowContainer,
   },
   traits::{
-    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+    CommonGetters, PositionGetters, TilingDirectionGetters,
+    TilingLayoutGetters, WindowGetters,
   },
   user_config::UserConfig,
   wm_state::WmState,
@@ -160,10 +161,16 @@ fn move_to_sibling_container(
         state,
       )?;
 
-      state
-        .pending_sync
-        .queue_container_to_redraw(sibling_window)
-        .queue_container_to_redraw(window_to_move);
+      if parent.as_direction_container().is_ok_and(|parent| {
+        parent.tiling_layout() == TilingLayout::Accordion
+      }) {
+        state.pending_sync.queue_container_to_redraw(parent);
+      } else {
+        state
+          .pending_sync
+          .queue_container_to_redraw(sibling_window)
+          .queue_container_to_redraw(window_to_move);
+      }
     }
     TilingContainer::Split(sibling_split) => {
       let sibling_descendant =
@@ -283,6 +290,7 @@ fn invert_workspace_tiling_direction(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let workspace = window_to_move.workspace().context("No workspace.")?;
+  let previous_layout = workspace.tiling_layout();
 
   // Get top-level tiling children of the workspace.
   let workspace_children = workspace
@@ -299,6 +307,7 @@ fn invert_workspace_tiling_direction(
       workspace.tiling_direction(),
       config.value.gaps.clone(),
     );
+    split_container.set_tiling_layout(previous_layout);
 
     wrap_in_split_container(
       &split_container,
@@ -309,6 +318,7 @@ fn invert_workspace_tiling_direction(
 
   // Invert the tiling direction of the workspace.
   workspace.set_tiling_direction(workspace.tiling_direction().inverse());
+  workspace.set_tiling_layout(TilingLayout::Tiles);
 
   let target_index = match direction {
     Direction::Left | Direction::Up => 0,

@@ -6,7 +6,7 @@ use tracing::Level;
 use uuid::Uuid;
 use wm_platform::{Delta, Direction, LengthValue, OpacityValue};
 
-use crate::TilingDirection;
+use crate::{TilingDirection, TilingLayout};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -122,6 +122,8 @@ pub enum QueryCommand {
   Focused,
   /// Outputs the tiling direction of the focused container.
   TilingDirection,
+  /// Outputs the tiling layout of the focused container.
+  TilingLayout,
   /// Outputs all monitors.
   Monitors,
   /// Outputs all windows.
@@ -144,6 +146,7 @@ pub enum SubscribableEvent {
   MonitorUpdated,
   MonitorRemoved,
   TilingDirectionChanged,
+  TilingLayoutChanged,
   UserConfigChanged,
   WindowManaged,
   WindowUnmanaged,
@@ -231,9 +234,14 @@ pub enum InvokeCommand {
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,
+  ToggleTilingLayout,
   SetTilingDirection {
     #[clap(required = true)]
     tiling_direction: TilingDirection,
+  },
+  SetTilingLayout {
+    #[clap(required = true)]
+    tiling_layout: TilingLayout,
   },
   WmCycleFocus {
     #[clap(long, default_value_t = false)]
@@ -431,4 +439,68 @@ pub struct InvokeUpdateWorkspaceConfig {
 
   #[clap(long)]
   pub keep_alive: Option<bool>,
+}
+
+#[cfg(test)]
+mod tests {
+  use clap::Parser;
+
+  use super::{
+    AppCommand, InvokeCommand, QueryCommand, SubscribableEvent,
+  };
+  use crate::TilingLayout;
+
+  #[test]
+  fn parses_tiling_layout_commands() {
+    assert_eq!(
+      InvokeCommand::try_parse_from([
+        "glazewm",
+        "set-tiling-layout",
+        "accordion",
+      ])
+      .expect("Set layout command should parse."),
+      InvokeCommand::SetTilingLayout {
+        tiling_layout: TilingLayout::Accordion,
+      }
+    );
+
+    assert_eq!(
+      InvokeCommand::try_parse_from(["glazewm", "toggle-tiling-layout"])
+        .expect("Toggle layout command should parse."),
+      InvokeCommand::ToggleTilingLayout
+    );
+
+    assert!(InvokeCommand::try_parse_from([
+      "glazewm",
+      "set-tiling-layout",
+      "columns",
+    ])
+    .is_err());
+  }
+
+  #[test]
+  fn parses_tiling_layout_query_and_subscription() {
+    let query =
+      AppCommand::try_parse_from(["glazewm", "query", "tiling-layout"])
+        .expect("Layout query should parse.");
+    assert!(matches!(
+      query,
+      AppCommand::Query {
+        command: QueryCommand::TilingLayout
+      }
+    ));
+
+    let subscription = AppCommand::try_parse_from([
+      "glazewm",
+      "sub",
+      "-e",
+      "tiling_layout_changed",
+    ])
+    .expect("Layout subscription should parse.");
+    assert!(matches!(
+      subscription,
+      AppCommand::Sub { events }
+        if events == vec![SubscribableEvent::TilingLayoutChanged]
+    ));
+  }
 }

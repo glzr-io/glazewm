@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{BindingModeConfig, ContainerDto, TilingDirection, WmEvent};
+use crate::{
+  BindingModeConfig, ContainerDto, TilingDirection, TilingLayout, WmEvent,
+};
 
 pub const DEFAULT_IPC_PORT: u32 = 6123;
 
@@ -32,6 +34,7 @@ pub enum ClientResponseData {
   Focused(FocusedData),
   Monitors(MonitorsData),
   TilingDirection(TilingDirectionData),
+  TilingLayout(TilingLayoutData),
   Windows(WindowsData),
   Workspaces(WorkspacesData),
   Paused(bool),
@@ -77,6 +80,13 @@ pub struct MonitorsData {
 #[serde(rename_all = "camelCase")]
 pub struct TilingDirectionData {
   pub tiling_direction: TilingDirection,
+  pub direction_container: ContainerDto,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TilingLayoutData {
+  pub tiling_layout: TilingLayout,
   pub direction_container: ContainerDto,
 }
 

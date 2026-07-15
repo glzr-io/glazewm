@@ -15,12 +15,12 @@ use wm_common::{
   AppCommand, AppMetadataData, BindingModesData, ClientResponseData,
   ClientResponseMessage, CommandData, EventSubscribeData,
   EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand,
-  ServerMessage, SubscribableEvent, TilingDirectionData, WindowsData,
-  WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
+  ServerMessage, SubscribableEvent, TilingDirectionData, TilingLayoutData,
+  WindowsData, WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
 };
 
 use crate::{
-  traits::{CommonGetters, TilingDirectionGetters},
+  traits::{CommonGetters, TilingDirectionGetters, TilingLayoutGetters},
   user_config::UserConfig,
   wm::WindowManager,
 };
@@ -239,6 +239,18 @@ impl IpcServer {
             tiling_direction: direction_container.tiling_direction(),
           })
         }
+        QueryCommand::TilingLayout => {
+          let direction_container = wm
+            .state
+            .focused_container()
+            .and_then(|focused| focused.direction_container())
+            .context("No direction container.")?;
+
+          ClientResponseData::TilingLayout(TilingLayoutData {
+            direction_container: direction_container.to_dto()?,
+            tiling_layout: direction_container.tiling_layout(),
+          })
+        }
         QueryCommand::Paused => {
           ClientResponseData::Paused(wm.state.is_paused)
         }
@@ -369,6 +381,9 @@ impl IpcServer {
       WmEvent::MonitorRemoved { .. } => SubscribableEvent::MonitorRemoved,
       WmEvent::TilingDirectionChanged { .. } => {
         SubscribableEvent::TilingDirectionChanged
+      }
+      WmEvent::TilingLayoutChanged { .. } => {
+        SubscribableEvent::TilingLayoutChanged
       }
       WmEvent::UserConfigChanged { .. } => {
         SubscribableEvent::UserConfigChanged

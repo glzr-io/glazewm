@@ -40,6 +40,10 @@ pub struct GapsConfig {
   /// Whether to scale the gaps with the DPI of the monitor.
   pub scale_with_dpi: bool,
 
+  /// Edge inset used to reveal neighboring windows in an accordion
+  /// layout.
+  pub accordion_padding: LengthValue,
+
   /// Gap between adjacent windows.
   pub inner_gap: LengthValue,
 
@@ -55,6 +59,7 @@ impl Default for GapsConfig {
   fn default() -> Self {
     GapsConfig {
       scale_with_dpi: true,
+      accordion_padding: LengthValue::from_px(30),
       inner_gap: LengthValue::from_px(0),
       outer_gap: RectDelta::new(
         LengthValue::from_px(0),

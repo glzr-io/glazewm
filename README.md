@@ -219,10 +219,13 @@ If a key is not in the list above, it is likely still supported if you use its c
 
 ### Config: Gaps
 
-The gaps between windows can be changed via the `gaps` property in the config file. Inner and outer gaps are set separately.
+The spacing around windows can be changed via the `gaps` property in the config file. Inner gaps, outer gaps, and accordion padding are set separately.
 
 ```yaml
 gaps:
+  # Edge inset used to reveal neighboring windows in an accordion layout.
+  accordion_padding: "30px"
+
   # Gap between adjacent windows.
   inner_gap: "20px"
 
@@ -363,6 +366,10 @@ Right-click the GlazeWM icon in the system tray and select "Run on system startu
 **Q: How can I create `<insert layout>`?**
 
 You can create custom layouts by changing the tiling direction with `alt+v`. This changes where the next window is placed _in relation to the current window_. If the current window's direction is horizontal, the new window will be placed to the right of it. If it is vertical, it will be placed below it. This also applies when moving windows; the tiling direction of the stationary window will affect where the moved window will be placed.
+
+Each direction container can use either the `tiles` layout, where every window has its own visible tile, or the `accordion` layout, where windows overlap and neighboring windows peek through along the layout axis by the configured `accordion_padding`. A horizontal accordion behaves like a tabbed layout; a vertical accordion behaves like a stacked layout. Use `toggle-tiling-layout` (bound to `alt+b` in the default config) or `set-tiling-layout tiles|accordion` to change it. Run `glazewm query tiling-layout` to inspect the current layout, or `glazewm sub -e tiling_layout_changed` to subscribe to explicit layout command changes.
+
+On macOS, only the focused window can be raised reliably because macOS does not expose a reliable public API for ordering other managed windows. Nested accordion subtrees may therefore visually interleave; flat accordion layouts whose direct children are windows are recommended on macOS. Windows maintains full MRU subtree ordering.
 
 Community-made scripts like [Dutch-Raptor/GAT-GWM](https://github.com/Dutch-Raptor/GAT-GWM) and [burgr033/GlazeWM-autotiling-python](https://github.com/burgr033/GlazeWM-autotiling-python) can be used to automatically change the tiling direction. Native support for automatic layouts isn't _currently_ supported.
 

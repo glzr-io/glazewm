@@ -2,8 +2,8 @@ use anyhow::Context;
 #[cfg(target_os = "windows")]
 use wm_common::WindowEffectConfig;
 use wm_common::{
-  CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
-  WindowState, WmEvent,
+  CursorJumpTrigger, DisplayState, HideCorner, HideMethod, TilingLayout,
+  UniqueExt, WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
@@ -13,7 +13,9 @@ use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
   models::{Container, WindowContainer},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingLayoutGetters, WindowGetters,
+  },
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -24,6 +26,8 @@ pub fn platform_sync(
 ) -> anyhow::Result<()> {
   let focused_container =
     state.focused_container().context("No focused container.")?;
+
+  queue_accordion_redraws(&focused_container, state);
 
   if state.pending_sync.needs_focus_update() {
     sync_focus(&focused_container, state)?;
@@ -76,6 +80,45 @@ pub fn platform_sync(
   state.pending_sync.clear();
 
   Ok(())
+}
+
+/// Queues accordion containers for redraw when focus or z-order changes.
+///
+/// Accordion geometry depends on each parent's most recently focused
+/// direct child, so a focus-only sync can also require window movement.
+fn queue_accordion_redraws(
+  focused_container: &Container,
+  state: &mut WmState,
+) {
+  if !state.pending_sync.needs_focus_update()
+    && state.pending_sync.workspaces_to_reorder().is_empty()
+  {
+    return;
+  }
+
+  let focused_workspace = focused_container.workspace();
+  let workspaces = state
+    .pending_sync
+    .workspaces_to_reorder()
+    .iter()
+    .cloned()
+    .chain(focused_workspace)
+    .unique_by(CommonGetters::id)
+    .collect::<Vec<_>>();
+
+  let accordion_containers = workspaces
+    .into_iter()
+    .flat_map(|workspace| workspace.self_and_descendants())
+    .filter_map(|container| container.as_direction_container().ok())
+    .filter(|container| {
+      container.tiling_layout() == TilingLayout::Accordion
+    })
+    .map(Container::from)
+    .collect::<Vec<_>>();
+
+  state
+    .pending_sync
+    .queue_containers_to_redraw(accordion_containers);
 }
 
 fn sync_focus(

@@ -23,7 +23,7 @@ use crate::{
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters,
-    TilingSizeGetters, WindowGetters,
+    TilingLayoutGetters, TilingSizeGetters, WindowGetters,
   },
 };
 

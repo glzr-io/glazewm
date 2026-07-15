@@ -8,7 +8,7 @@ use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
 use wm_common::{
   ActiveDrag, ContainerDto, DisplayState, GapsConfig, TilingDirection,
-  WindowRuleConfig, WindowState,
+  TilingLayout, WindowRuleConfig, WindowState,
 };
 use wm_platform::{Direction, NativeWindow, Rect, RectDelta};
 
@@ -92,8 +92,10 @@ use crate::{
   /// Subset of containers that implement the following traits:
   /// * `CommonGetters`
   /// * `PositionGetters`
-  /// * `DirectionGetters`
+  /// * `TilingDirectionGetters`
+  /// * `TilingLayoutGetters`
   #[delegate(TilingDirectionGetters)]
+  #[delegate(TilingLayoutGetters)]
 })]
 pub enum Container {
   Root(RootContainer),
