@@ -1,0 +1,243 @@
+{
+  "clientMessage": "query monitors",
+  "data": {
+    "monitors": [
+      {
+        "type": "monitor",
+        "id": "7343a57b-03e8-4411-afce-9514eabe84b1",
+        "parentId": "6513d677-9d75-4a0f-9ae3-c9ce64493aad",
+        "children": [],
+        "childFocusOrder": [],
+        "hasFocus": false,
+        "width": 1920,
+        "height": 1080,
+        "x": -1920,
+        "y": 0,
+        "dpi": 120,
+        "scaleFactor": 1.25,
+        "handle": 576061997,
+        "deviceName": "\\\\.\\DISPLAY3",
+        "devicePath": "\\\\?\\DISPLAY#SAM7094#5&57df8f7&0&UID257#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}",
+        "hardwareId": "SAM7094",
+        "workingRect": {
+          "left": -1920,
+          "top": 47,
+          "right": 0,
+          "bottom": 1080
+        },
+        "isPrimary": false
+      },
+      {
+        "type": "monitor",
+        "id": "aec93d81-dcc9-489c-8164-02c3eb2e25a4",
+        "parentId": "6513d677-9d75-4a0f-9ae3-c9ce64493aad",
+        "children": [
+          {
+            "type": "workspace",
+            "id": "133ba3cf-9ba9-4d7a-8369-420eeb495524",
+            "name": "2",
+            "displayName": null,
+            "parentId": "aec93d81-dcc9-489c-8164-02c3eb2e25a4",
+            "children": [
+              {
+                "type": "window",
+                "id": "5e9d977e-354b-459b-bbd7-d3bb10e5a630",
+                "parentId": "133ba3cf-9ba9-4d7a-8369-420eeb495524",
+                "hasFocus": true,
+                "tilingSize": 0.9999999,
+                "width": 1908,
+                "height": 1140,
+                "x": 6,
+                "y": 53,
+                "state": {
+                  "type": "tiling"
+                },
+                "prevState": null,
+                "displayState": "shown",
+                "borderDelta": {
+                  "left": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "top": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "right": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "bottom": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  }
+                },
+                "floatingPlacement": {
+                  "left": 6,
+                  "top": 113,
+                  "right": 1904,
+                  "bottom": 1134
+                },
+                "handle": 8389680,
+                "title": "config.yaml - character-clone - Visual Studio Code",
+                "className": "Chrome_WidgetWin_1",
+                "processName": "Code",
+                "activeDrag": null
+              },
+              {
+                "type": "window",
+                "id": "9bea4486-3884-43df-b4de-1b47fff418b4",
+                "parentId": "133ba3cf-9ba9-4d7a-8369-420eeb495524",
+                "hasFocus": false,
+                "tilingSize": null,
+                "width": 183,
+                "height": 26,
+                "x": 869,
+                "y": 610,
+                "state": {
+                  "type": "minimized"
+                },
+                "prevState": null,
+                "displayState": "shown",
+                "borderDelta": {
+                  "left": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "top": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "right": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "bottom": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  }
+                },
+                "floatingPlacement": {
+                  "left": 869,
+                  "top": 610,
+                  "right": 1052,
+                  "bottom": 636
+                },
+                "handle": 1641856,
+                "title": "TKB - Google Sheets - Google Chrome",
+                "className": "Chrome_WidgetWin_1",
+                "processName": "chrome",
+                "activeDrag": null
+              },
+              {
+                "type": "window",
+                "id": "799f7d54-cb45-4066-8608-0ffbf7497465",
+                "parentId": "133ba3cf-9ba9-4d7a-8369-420eeb495524",
+                "hasFocus": false,
+                "tilingSize": null,
+                "width": 183,
+                "height": 26,
+                "x": 869,
+                "y": 610,
+                "state": {
+                  "type": "minimized"
+                },
+                "prevState": null,
+                "displayState": "shown",
+                "borderDelta": {
+                  "left": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "top": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "right": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  },
+                  "bottom": {
+                    "amount": 0.0,
+                    "unit": "pixel"
+                  }
+                },
+                "floatingPlacement": {
+                  "left": 869,
+                  "top": 610,
+                  "right": 1052,
+                  "bottom": 636
+                },
+                "handle": 526280,
+                "title": "airpod pro 3 vs bose qc ultra 2 - Tìm trên Google - Google Chrome",
+                "className": "Chrome_WidgetWin_1",
+                "processName": "chrome",
+                "activeDrag": null
+              }
+            ],
+            "childFocusOrder": [
+              "5e9d977e-354b-459b-bbd7-d3bb10e5a630",
+              "9bea4486-3884-43df-b4de-1b47fff418b4",
+              "799f7d54-cb45-4066-8608-0ffbf7497465"
+            ],
+            "hasFocus": true,
+            "isDisplayed": true,
+            "width": 1908,
+            "height": 1141,
+            "x": 6,
+            "y": 53,
+            "tilingDirection": "vertical"
+          }
+        ],
+        "childFocusOrder": [
+          "133ba3cf-9ba9-4d7a-8369-420eeb495524"
+        ],
+        "hasFocus": true,
+        "width": 1920,
+        "height": 1200,
+        "x": 0,
+        "y": 0,
+        "dpi": 120,
+        "scaleFactor": 1.25,
+        "handle": 1642231,
+        "deviceName": "\\\\.\\DISPLAY1",
+        "devicePath": "\\\\?\\DISPLAY#LEN403A#5&57df8f7&0&UID256#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}",
+        "hardwareId": "LEN403A",
+        "workingRect": {
+          "left": 0,
+          "top": 47,
+          "right": 1920,
+          "bottom": 1200
+        },
+        "isPrimary": true
+      },
+      {
+        "type": "monitor",
+        "id": "9247cc02-736e-4d9c-92d4-4fc627a7eed3",
+        "parentId": "6513d677-9d75-4a0f-9ae3-c9ce64493aad",
+        "children": [],
+        "childFocusOrder": [],
+        "hasFocus": false,
+        "width": 1920,
+        "height": 1080,
+        "x": 1920,
+        "y": 0,
+        "dpi": 120,
+        "scaleFactor": 1.25,
+        "handle": 828048527,
+        "deviceName": "\\\\.\\DISPLAY2",
+        "devicePath": "\\\\?\\DISPLAY#MSI30B9#5&57df8f7&0&UID281#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}",
+        "hardwareId": "MSI30B9",
+        "workingRect": {
+          "left": 1920,
+          "top": 47,
+          "right": 3840,
+          "bottom": 1080
+        },
+        "isPrimary": false
+      }
+    ]
+  },
+  "error": null,
+  "success": true
+}

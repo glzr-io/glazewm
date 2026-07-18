@@ -26,9 +26,10 @@ use crate::{
     },
     monitor::focus_monitor,
     window::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_size,
-      update_window_state, WindowPositionTarget,
+      ignore_window, manage_foreground_native_window,
+      move_window_in_direction, move_window_to_workspace, resize_window,
+      set_window_position, set_window_size, update_window_state,
+      WindowPositionTarget,
     },
     workspace::{
       focus_workspace, move_workspace_in_direction,
@@ -336,6 +337,7 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      InvokeCommand::Manage => manage_foreground_native_window(state, config),
       InvokeCommand::Move(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {

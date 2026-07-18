@@ -397,6 +397,19 @@ fn reposition_window(
         SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WS_MAXIMIZEBOX,
       };
 
+      // For the cloak hide method, an off-screen window does not need its
+      // position updated — it will be repositioned when its workspace is
+      // shown again. Just cloak it, skipping the `set_window_pos` (and its
+      // DPI second pass) plus the restore-state syscalls. This avoids
+      // redundant work for the (usually many) hidden windows on reload,
+      // startup, and display changes.
+      if config.value.general.hide_method == HideMethod::Cloak
+        && !is_visible
+      {
+        window.native().set_cloaked(true)?;
+        return Ok(());
+      }
+
       // Restore window if it's minimized/maximized and shouldn't be. This
       // is needed to be able to move and resize it.
       let should_restore = match &window.state() {

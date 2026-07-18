@@ -44,6 +44,19 @@ pub fn move_bounded_workspaces_to_new_monitor(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // When multi-monitor workspaces are disabled, redirect workspace
+  // assignment for non-primary monitors to the primary monitor instead.
+  if !config.value.general.multi_monitor_workspaces {
+    let primary_monitor = state.primary_monitor(config);
+    let is_primary = primary_monitor
+      .as_ref()
+      .is_some_and(|m| m.id() == monitor.id());
+
+    if !is_primary {
+      return move_bounded_workspaces_to_primary(monitor, state, config);
+    }
+  }
+
   let bound_workspace_configs = config
     .value
     .workspaces
@@ -83,6 +96,58 @@ pub fn move_bounded_workspaces_to_new_monitor(
   // first available one if needed.
   if monitor.child_count() == 0 {
     activate_workspace(None, Some(monitor.clone()), state, config)?;
+  }
+
+  Ok(())
+}
+
+/// Redirects workspace assignment for a non-primary monitor to the
+/// configured primary monitor when `multi_monitor_workspaces` is disabled.
+///
+/// `keep_alive` workspace configs that are bound to the given monitor are
+/// activated on the primary monitor instead. Existing workspaces already on
+/// the given monitor are moved to the primary. The fallback workspace
+/// creation is intentionally skipped so the non-primary monitor stays
+/// workspace-free.
+fn move_bounded_workspaces_to_primary(
+  monitor: &Monitor,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let primary_monitor = state
+    .primary_monitor(config)
+    .context("No primary monitor found.")?;
+
+  let bound_workspace_configs = config
+    .value
+    .workspaces
+    .iter()
+    .filter(|cfg| {
+      cfg.bind_to_monitor.is_some_and(|i| {
+        i as usize == monitor.index()
+      })
+    })
+    .collect::<Vec<_>>();
+
+  for workspace_config in bound_workspace_configs {
+    let existing_workspace =
+      state.workspace_by_name(&workspace_config.name);
+
+    if let Some(existing_workspace) = existing_workspace {
+      move_workspace_to_monitor(
+        &existing_workspace,
+        &primary_monitor,
+        state,
+        config,
+      )?;
+    } else if workspace_config.keep_alive {
+      activate_workspace(
+        Some(&workspace_config.name),
+        Some(primary_monitor.clone()),
+        state,
+        config,
+      )?;
+    }
   }
 
   Ok(())
@@ -131,8 +196,18 @@ pub fn move_workspace_to_monitor(
 
   match origin_monitor.child_count() {
     0 => {
-      // Prevent origin monitor from having no workspaces.
-      activate_workspace(None, Some(origin_monitor), state, config)?;
+      // Prevent origin monitor from having no workspaces. Skipped for
+      // non-primary monitors when `multi_monitor_workspaces` is disabled,
+      // since those must stay workspace-free.
+      let needs_fallback_workspace =
+        config.value.general.multi_monitor_workspaces
+          || state
+            .primary_monitor(config)
+            .is_some_and(|primary| primary.id() == origin_monitor.id());
+
+      if needs_fallback_workspace {
+        activate_workspace(None, Some(origin_monitor), state, config)?;
+      }
     }
     _ => {
       // Redraw the workspace on the origin monitor.

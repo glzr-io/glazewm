@@ -36,6 +36,9 @@ pub enum WindowEvent {
   ///
   /// - **Windows**: Corresponds to `EVENT_OBJECT_LOCATIONCHANGE`,
   ///   `EVENT_SYSTEM_MOVESIZESTART`, and `EVENT_SYSTEM_MOVESIZEEND`.
+  ///   `EVENT_OBJECT_LOCATIONCHANGE` alone applies to programmatic moves such
+  ///   as Win+Shift+Arrow between monitors (`is_interactive_start` and
+  ///   `is_interactive_end` are both `false`).
   /// - **macOS**: Corresponds to `AXWindowMoved` and `AXWindowResized`.
   ///   The `is_interactive_start` and `is_interactive_end` flags are
   ///   always `false`.

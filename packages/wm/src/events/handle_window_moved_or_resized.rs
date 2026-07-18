@@ -12,7 +12,10 @@ use wm_platform::{NativeWindow, Rect};
 use crate::{
   commands::{
     container::{flatten_split_container, move_container_within_tree},
-    window::update_window_state,
+    window::{
+      manage_window, snap_native_window_to_external_monitor_workspace,
+      unmanage_window, update_window_state,
+    },
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
@@ -31,8 +34,17 @@ pub fn handle_window_moved_or_resized(
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   is_interactive_end: bool,
   state: &mut WmState,
-  config: &UserConfig,
+  config: &mut UserConfig,
 ) -> anyhow::Result<()> {
+  if is_interactive_start {
+    state.native_windows_in_interactive_move.insert(native_window.id());
+  }
+  if is_interactive_end {
+    state
+      .native_windows_in_interactive_move
+      .remove(&native_window.id());
+  }
+
   let found_window = state.window_from_native(native_window);
 
   if let Some(window) = found_window {
@@ -198,6 +210,50 @@ pub fn handle_window_moved_or_resized(
       .nearest_monitor(&window.native())
       .context("No nearest monitor.")?;
 
+    // When multi-monitor workspaces are disabled and the window has
+    // moved to a monitor with no workspace (i.e. a non-primary monitor),
+    // unmanage it immediately — before any state checks — so it is not
+    // snapped back to the primary monitor on the next workspace switch.
+    //
+    // Hidden windows are exempt: their OS position is not meaningful for
+    // monitor membership (the OS can move them around while a monitor is
+    // being connected), and unmanaging a cloaked window would leave it
+    // permanently invisible.
+    let is_shown = matches!(
+      window.display_state(),
+      DisplayState::Shown | DisplayState::Showing
+    );
+
+    if !config.value.general.multi_monitor_workspaces
+      && is_shown
+      && nearest_monitor.displayed_workspace().is_none()
+    {
+      // A display topology change (e.g. plugging in a monitor) makes the
+      // OS transiently push managed windows onto the freshly added,
+      // workspaceless monitor. Unmanaging them here would start an
+      // unmanage/re-manage feedback loop (the snap and the WM's still
+      // in-flight async repositions echo back as more moves), flickering
+      // the window between monitors until it stops responding. While the
+      // change settles, just re-assert the window's slot instead; genuine
+      // user moves onto the monitor are handled once settling ends.
+      if state.is_display_change_settling() {
+        state.pending_sync.queue_container_to_redraw(window.clone());
+        return Ok(());
+      }
+
+      state.register_native_window_pending_remanage(
+        window.native().clone(),
+        Some(nearest_monitor.id()),
+      );
+      snap_native_window_to_external_monitor_workspace(
+        &window,
+        &nearest_monitor,
+        config,
+      );
+      unmanage_window(window.clone(), state)?;
+      return Ok(());
+    }
+
     // For `HideMethod::PlaceInCorner`, hiding/showing is implemented by
     // repositioning the window. Since the OS won't emit real
     // shown/hidden events in this mode, update `DisplayState` based on
@@ -226,8 +282,12 @@ pub fn handle_window_moved_or_resized(
     }
 
     let should_fullscreen = {
+      // Fall back to the window's own workspace when the nearest monitor
+      // has no displayed workspace (e.g. when `multi_monitor_workspaces`
+      // is disabled and the cursor is over a non-primary monitor).
       let workspace = nearest_monitor
         .displayed_workspace()
+        .or_else(|| window.workspace())
         .context("No workspace.")?;
 
       let should_fullscreen = window.should_fullscreen(&workspace)?;
@@ -350,11 +410,159 @@ pub fn handle_window_moved_or_resized(
           )?;
         }
       }
+      WindowState::Tiling => {
+        // A tiling window must occupy its layout slot. Reaching here means
+        // its frame changed without an interactive drag (handled earlier),
+        // e.g. an application restoring its own saved geometry shortly
+        // after startup. Snap it back to the slot. The duplicate-event
+        // guard above stops this once the window matches its slot again.
+        state.pending_sync.queue_container_to_redraw(window.clone());
+      }
       _ => {}
     }
+  } else if !state.is_paused
+    && !state.ignored_windows.contains(native_window)
+  {
+    maybe_remanage_native_window_after_move_to_primary(
+      native_window,
+      is_interactive_start,
+      is_interactive_end,
+      state,
+      config,
+    )?;
   }
 
   Ok(())
+}
+
+/// Called when OS reports move/resize for a window `GlazeWM` does not track,
+/// after the user finishes an interactive move.
+///
+/// When `multi_monitor_workspaces` is off, unmanaged windows normally live on
+/// non-primary monitors; once the window is on the primary display again,
+/// attach it. Qualifying handles sit in `WmState::native_windows_pending_remanage`.
+///
+/// Programmatic moves are ignored while a snap from a prior unmanage is
+/// still settling, or while a display settings change is settling:
+/// repositions issued with `SWP_ASYNCWINDOWPOS` before the window was
+/// unmanaged can land afterwards, and the OS reshuffles windows when a
+/// monitor is (dis)connected. Re-managing on such a transient move bounces
+/// the window between monitors indefinitely (notably when the OS restores
+/// windows to a re-plugged monitor). Interactive drag ends always proceed.
+///
+/// # Platform-specific
+///
+/// - **Windows**: `Win+Shift+Arrow` issues `EVENT_OBJECT_LOCATIONCHANGE` only
+///   (no move-size start/end). That path is accepted when the window is not in
+///   an active `EVENT_SYSTEM_MOVESIZE*` session.
+/// - **macOS**: Interactive end is inferred from the left mouse button.
+fn maybe_remanage_native_window_after_move_to_primary(
+  native_window: &NativeWindow,
+  is_interactive_start: bool,
+  is_interactive_end: bool,
+  state: &mut WmState,
+  config: &mut UserConfig,
+) -> anyhow::Result<()> {
+  if config.value.general.multi_monitor_workspaces {
+    return Ok(());
+  }
+
+  let is_interactive_finish =
+    move_interactive_finished(is_interactive_end, state);
+
+  let is_programmatic_move = !is_interactive_finish
+    && programmatic_move_may_complete_pending_remanage(
+      native_window,
+      is_interactive_start,
+      is_interactive_end,
+      state,
+    );
+
+  if !is_interactive_finish && !is_programmatic_move {
+    return Ok(());
+  }
+
+  // Don't re-manage on transient OS moves while a display change settles;
+  // the window is bounced around the new topology and would flicker.
+  if is_programmatic_move && state.is_display_change_settling() {
+    return Ok(());
+  }
+
+  let Some(nearest_monitor) = state.nearest_monitor(native_window)
+  else {
+    return Ok(());
+  };
+
+  if is_programmatic_move
+    && state.is_pending_remanage_snap_settling(
+      native_window,
+      nearest_monitor.id(),
+    )
+  {
+    return Ok(());
+  }
+
+  if nearest_monitor.displayed_workspace().is_none() {
+    return Ok(());
+  }
+
+  if !state.take_native_window_pending_remanage(native_window) {
+    return Ok(());
+  }
+
+  manage_window(native_window.clone(), None, state, config)
+}
+
+/// Windows: location-only changes while not in a move-size session (e.g.
+/// `Win+Shift+Arrow` between monitors).
+#[cfg(target_os = "windows")]
+fn programmatic_move_may_complete_pending_remanage(
+  native_window: &NativeWindow,
+  is_interactive_start: bool,
+  is_interactive_end: bool,
+  state: &WmState,
+) -> bool {
+  !is_interactive_start
+    && !is_interactive_end
+    && !state
+      .native_windows_in_interactive_move
+      .contains(&native_window.id())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn programmatic_move_may_complete_pending_remanage(
+  native_window: &NativeWindow,
+  is_interactive_start: bool,
+  is_interactive_end: bool,
+  state: &WmState,
+) -> bool {
+  let _ = (native_window, is_interactive_start, is_interactive_end, state);
+
+  false
+}
+
+/// Mirrors drag-end detection used for managed windows in this module.
+fn move_interactive_finished(
+  is_interactive_end: bool,
+  #[cfg_attr(target_os = "windows", allow(unused_variables))]
+  state: &WmState,
+) -> bool {
+  #[cfg(target_os = "windows")]
+  {
+    is_interactive_end
+  }
+  #[cfg(target_os = "macos")]
+  {
+    use wm_platform::MouseButton;
+
+    !state.dispatcher.is_mouse_down(&MouseButton::Left)
+  }
+  #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+  {
+    let _ = (is_interactive_end, state);
+
+    false
+  }
 }
 
 // TODO: Move to shared location. `handle_window_moved_or_resized_end.rs`
@@ -377,24 +585,25 @@ pub fn update_floating_window_position(
   let monitor = window.monitor().context("No monitor.")?;
 
   // Update the window's workspace if it goes out of bounds of its
-  // current workspace.
+  // current workspace. When the target monitor has no displayed workspace
+  // (e.g. `multi_monitor_workspaces: false` on a non-primary monitor),
+  // keep the window on its current workspace instead.
   if monitor.id() != nearest_monitor.id() {
-    let updated_workspace = nearest_monitor
-      .displayed_workspace()
-      .context("Failed to get workspace of nearest monitor.")?;
+    if let Some(updated_workspace) = nearest_monitor.displayed_workspace()
+    {
+      tracing::info!(
+        "Floating window moved to new workspace: {updated_workspace}",
+      );
 
-    tracing::info!(
-      "Floating window moved to new workspace: {updated_workspace}",
-    );
+      window.set_insertion_target(None);
 
-    window.set_insertion_target(None);
-
-    move_container_within_tree(
-      &window.clone().into(),
-      &updated_workspace.clone().into(),
-      updated_workspace.child_count(),
-      state,
-    )?;
+      move_container_within_tree(
+        &window.clone().into(),
+        &updated_workspace.clone().into(),
+        updated_workspace.child_count(),
+        state,
+      )?;
+    }
   }
 
   Ok(())

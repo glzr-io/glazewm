@@ -3,8 +3,9 @@ use wm_common::try_warn;
 
 use crate::{
   commands::monitor::{
-    add_monitor, move_bounded_workspaces_to_new_monitor, remove_monitor,
-    sort_monitors, update_monitor,
+    add_monitor, consolidate_non_primary_workspaces_onto_primary,
+    move_bounded_workspaces_to_new_monitor, remove_monitor, sort_monitors,
+    update_monitor,
   },
   models::{Monitor, NativeMonitorProperties},
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -17,6 +18,13 @@ pub fn handle_display_settings_changed(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   tracing::info!("Display settings changed.");
+
+  // Mark the start of a settling period. While it lasts, the OS reshuffles
+  // windows across the new topology and the WM's own async repositions are
+  // still landing; reactive unmanage/re-manage based on those transient
+  // moves is suppressed (see `WmState::is_display_change_settling`) to
+  // avoid a monitor-to-monitor flicker loop.
+  state.note_display_change();
 
   // Ignore the event if retrieval of the displays or their properties
   // fails (can happen transiently during sleep/wake).
@@ -33,6 +41,15 @@ pub fn handle_display_settings_changed(
         })
         .try_collect::<Vec<_>>()
     }));
+
+  // Record each monitor's DPI before updating, so that only windows on
+  // monitors whose DPI actually changed are marked for the (more
+  // expensive) double-pass DPI re-adjustment below.
+  let old_monitor_dpis: std::collections::HashMap<uuid::Uuid, u32> = state
+    .monitors()
+    .iter()
+    .map(|monitor| (monitor.id(), monitor.native_properties().dpi))
+    .collect();
 
   let mut pending_monitors = state.monitors();
   let mut unmatched_displays = Vec::new();
@@ -77,14 +94,34 @@ pub fn handle_display_settings_changed(
   // Sort monitors by position.
   sort_monitors(&state.root_container)?;
 
+  // The logical primary can change identity with the topology (e.g. the
+  // monitor matching `general.primary_monitor_hardware_id` gets plugged in
+  // after startup). Re-enforce that only the primary holds workspaces,
+  // regardless of which add/update path each monitor went through above.
+  //
+  // Runs before the loop below so that a newly added primary receives the
+  // existing workspaces instead of activating a fallback workspace.
+  if !config.value.general.multi_monitor_workspaces {
+    consolidate_non_primary_workspaces_onto_primary(state, config)?;
+  }
+
   for new_monitor in new_monitors {
     move_bounded_workspaces_to_new_monitor(&new_monitor, state, config)?;
   }
 
   for window in state.windows() {
-    // Display setting changes can spread windows out sporadically, so mark
-    // all windows as needing a DPI adjustment (just in case).
-    window.set_has_pending_dpi_adjustment(true);
+    // Only mark a window for DPI re-adjustment if its monitor's DPI
+    // changed (or it now sits on a newly added monitor). This avoids the
+    // redundant second `set_window_pos` pass for every window when the
+    // topology changed without any DPI change (e.g. plugging in a monitor
+    // with the same scaling).
+    let needs_dpi_adjustment = window.monitor().is_none_or(|monitor| {
+      old_monitor_dpis
+        .get(&monitor.id())
+        .is_none_or(|old_dpi| *old_dpi != monitor.native_properties().dpi)
+    });
+
+    window.set_has_pending_dpi_adjustment(needs_dpi_adjustment);
 
     // Need to update floating position of moved windows when a monitor is
     // disconnected or if the primary display is changed. The primary

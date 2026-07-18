@@ -1,21 +1,50 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
-use wm_platform::{NativeWindow, RectDelta};
+use wm_platform::{NativeWindow, Rect, RectDelta};
 
 use crate::{
   commands::{
     container::{attach_container, set_focused_descendant},
-    window::run_window_rules,
+    window::{
+      run_window_rules,
+      snap_new_native_window_to_external_monitor_workspace,
+    },
   },
   models::{
-    Container, Monitor, NativeWindowProperties, NonTilingWindow,
-    TilingWindow, WindowContainer,
+    Container, NativeWindowProperties, NonTilingWindow, TilingWindow,
+    WindowContainer,
   },
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
+
+/// Clears ignore for the OS foreground window and runs `manage_window` if
+/// it is not already managed.
+///
+/// Call this after the user focuses the previously ignored window; keybindings
+/// cannot target ignored windows via WM focus.
+pub fn manage_foreground_native_window(
+  state: &mut WmState,
+  config: &mut UserConfig,
+) -> anyhow::Result<()> {
+  let native_window = state.dispatcher.focused_window()?;
+
+  if native_window.is_desktop_window()? {
+    return Ok(());
+  }
+
+  state
+    .ignored_windows
+    .retain(|ignored| ignored != &native_window);
+
+  if state.window_from_native(&native_window).is_some() {
+    return Ok(());
+  }
+
+  manage_window(native_window, None, state, config)
+}
 
 pub fn manage_window(
   native_window: NativeWindow,
@@ -28,6 +57,52 @@ pub fn manage_window(
   else {
     return Ok(());
   };
+
+  // When `multi_monitor_workspaces` is disabled, windows on a monitor
+  // without a displayed workspace (i.e. a non-primary monitor) stay
+  // OS-managed. Register the window so it gets managed once it is moved
+  // onto the primary monitor. An explicit target parent (e.g. from
+  // `WmState::populate`) bypasses this.
+  if target_parent.is_none()
+    && !config.value.general.multi_monitor_workspaces
+  {
+    let workspaceless_monitor = state
+      .nearest_monitor(&native_window)
+      .filter(|monitor| monitor.displayed_workspace().is_none());
+
+    if let Some(monitor) = workspaceless_monitor {
+      // Only snap windows that would be tiled if managed, excluding
+      // secondary windows owned by another window. Non-tiling windows
+      // (e.g. Word's "Paragraph" options) and owned dialogs/pickers (e.g.
+      // VSCode's "Open File") would otherwise be blown up to the full
+      // workspace extent instead of keeping their natural size.
+      let would_be_tiled = window_state_to_create(
+        &native_properties,
+        &monitor.max_workspace_rect_from_gaps(&config.value.gaps),
+        config,
+      ) == WindowState::Tiling;
+
+      let should_snap =
+        would_be_tiled && !is_owned_secondary_window(&native_window);
+
+      if should_snap {
+        // Snap the window to the monitor's single-window workspace extent
+        // so it fills the screen like a tiled window, matching the
+        // move/unmanage path, then leave it OS-managed.
+        snap_new_native_window_to_external_monitor_workspace(
+          &native_window,
+          &monitor,
+          config,
+        );
+      }
+
+      state.register_native_window_pending_remanage(
+        native_window,
+        should_snap.then(|| monitor.id()),
+      );
+      return Ok(());
+    }
+  }
 
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
@@ -82,6 +157,30 @@ pub fn manage_window(
   }
 
   Ok(())
+}
+
+/// Whether the window is a secondary window owned by another window.
+///
+/// These are dialogs and pickers spawned by an application (e.g. VSCode's
+/// "Open File" or Word's "Paragraph" options) rather than an application's
+/// main window. Such windows should keep their natural size instead of being
+/// auto-tiled to fill a monitor.
+///
+/// # Platform-specific
+///
+/// - **Windows**: A window is considered secondary if it has an owner window.
+/// - **macOS**: Always `false` (ownership is not tracked the same way).
+fn is_owned_secondary_window(native_window: &NativeWindow) -> bool {
+  #[cfg(target_os = "windows")]
+  {
+    use wm_platform::NativeWindowWindowsExt;
+    native_window.has_owner_window()
+  }
+  #[cfg(not(target_os = "windows"))]
+  {
+    let _ = native_window;
+    false
+  }
 }
 
 /// Checks if a window is manageable and retrieves its native properties.
@@ -161,13 +260,20 @@ fn create_window(
     .nearest_monitor(&native_window)
     .context("No nearest monitor.")?;
 
+  // Fall back to the target parent's workspace when the nearest monitor
+  // has no displayed workspace (e.g. when `multi_monitor_workspaces` is
+  // disabled and a window resides on a non-primary monitor).
   let nearest_workspace = nearest_monitor
     .displayed_workspace()
+    .or_else(|| target_parent.as_ref()?.workspace())
     .context("No nearest workspace.")?;
 
   let gaps_config = config.value.gaps.clone();
-  let window_state =
-    window_state_to_create(&native_properties, &nearest_monitor, config)?;
+  let window_state = window_state_to_create(
+    &native_properties,
+    &nearest_workspace.max_workspace_rect()?,
+    config,
+  );
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -261,19 +367,20 @@ fn create_window(
 
 /// Gets the initial state for a window based on its native state.
 ///
+/// `max_workspace_rect` is the maximum bounds of the workspace the window
+/// would be placed in; it is passed in (rather than derived from a
+/// `Workspace`) so this can be computed for a monitor that has no displayed
+/// workspace.
+///
 /// Note that maximized windows are initialized as tiling.
 fn window_state_to_create(
   native_properties: &NativeWindowProperties,
-  nearest_monitor: &Monitor,
+  max_workspace_rect: &Rect,
   config: &UserConfig,
-) -> anyhow::Result<WindowState> {
+) -> WindowState {
   if native_properties.is_minimized {
-    return Ok(WindowState::Minimized);
+    return WindowState::Minimized;
   }
-
-  let nearest_workspace = nearest_monitor
-    .displayed_workspace()
-    .context("No workspace.")?;
 
   // Only initialize as fullscreen if the window *exceeds* the workspace
   // bounds (due to the 1px inset).
@@ -283,29 +390,26 @@ fn window_state_to_create(
   // needs to be within the workspace's outer gaps by at least 1px on each
   // side.
   if !native_properties.is_maximized
-    && native_properties
-      .frame
-      .inset(1)
-      .contains_rect(&nearest_workspace.max_workspace_rect()?)
+    && native_properties.frame.inset(1).contains_rect(max_workspace_rect)
   {
-    return Ok(WindowState::Fullscreen(
+    return WindowState::Fullscreen(
       config
         .value
         .window_behavior
         .state_defaults
         .fullscreen
         .clone(),
-    ));
+    );
   }
 
   // Initialize windows that can't be resized as floating.
   if !native_properties.is_resizable {
-    return Ok(WindowState::Floating(
+    return WindowState::Floating(
       config.value.window_behavior.state_defaults.floating.clone(),
-    ));
+    );
   }
 
-  Ok(WindowState::default_from_config(&config.value))
+  WindowState::default_from_config(&config.value)
 }
 
 /// Gets where to insert a new window in the container tree.

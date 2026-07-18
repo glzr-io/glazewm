@@ -7,6 +7,7 @@ use wm_common::{WindowRuleEvent, WmEvent};
 use wm_platform::NativeWindowWindowsExt;
 
 use crate::{
+  commands::monitor::sync_workspaces_to_monitor_topology,
   commands::{window::run_window_rules, workspace::sort_workspaces},
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
@@ -23,6 +24,8 @@ pub fn reload_config(
   // Keep reference to old config for comparison.
   #[cfg(target_os = "windows")]
   let old_config = config.value.clone();
+  let old_multi_monitor_workspaces =
+    config.value.general.multi_monitor_workspaces;
 
   // Re-evaluate user config file and set its values in state.
   config.reload()?;
@@ -36,6 +39,15 @@ pub fn reload_config(
   update_workspace_configs(state, config)?;
 
   update_container_gaps(state, config);
+
+  if old_multi_monitor_workspaces
+    != config.value.general.multi_monitor_workspaces
+  {
+    sync_workspaces_to_monitor_topology(state, config)?;
+    if config.value.general.multi_monitor_workspaces {
+      state.native_windows_pending_remanage.clear();
+    }
+  }
 
   #[cfg(target_os = "windows")]
   update_window_effects(&old_config, state, config)?;

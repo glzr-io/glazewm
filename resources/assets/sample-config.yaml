@@ -40,6 +40,20 @@ general:
   # - 'false': Only show windows from the currently shown workspaces.
   show_all_in_taskbar: false
 
+  # Whether workspaces can span multiple monitors.
+  # - 'true': Each monitor manages its own workspaces (default).
+  # - 'false': Only the primary monitor receives workspaces. Windows on
+  #   other monitors are left unmanaged (OS-controlled) and get managed
+  #   automatically once moved onto the primary monitor.
+  multi_monitor_workspaces: true
+
+  # Optional monitor hardware identifier. When unset, the leftmost monitor
+  # (sorted by position) is used. Useful with `multi_monitor_workspaces: false`
+  # to pin workspaces to a specific display (e.g. the laptop panel) regardless
+  # of geometry. Run `glazewm query monitors` and copy `hardwareId` (Windows:
+  # EDID string; macOS: display UUID).
+  # primary_monitor_hardware_id: 'LEN403A'
+
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
   scale_with_dpi: true
@@ -240,6 +254,11 @@ keybindings:
   # Minimize focused window.
   - commands: ['toggle-minimized']
     bindings: ['alt+m']
+
+  # Stop ignoring the OS foreground window and manage it again (focus that
+  # window first; it cannot be WM-focused while ignored).
+  - commands: ['manage']
+    bindings: ['alt+shift+n']
 
   # Close focused window.
   - commands: ['close']

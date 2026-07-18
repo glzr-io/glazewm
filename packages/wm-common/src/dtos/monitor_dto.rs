@@ -24,6 +24,10 @@ pub struct MonitorDto {
   pub handle: Option<isize>,
   pub device_name: String,
   pub device_path: Option<String>,
+  /// Windows: EDID-derived hardware ID. macOS: CoreGraphics display UUID (same value used for `general.primary_monitor_hardware_id`).
   pub hardware_id: Option<String>,
   pub working_rect: Rect,
+  /// Whether this monitor is the configured primary monitor.
+  #[serde(default)]
+  pub is_primary: bool,
 }

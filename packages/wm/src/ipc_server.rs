@@ -198,12 +198,24 @@ impl IpcServer {
           })
         }
         QueryCommand::Monitors => {
+          let primary_id = wm
+            .state
+            .primary_monitor(config)
+            .map(|m| m.id());
+
           ClientResponseData::Monitors(MonitorsData {
             monitors: wm
               .state
               .monitors()
               .into_iter()
-              .map(|monitor| monitor.to_dto())
+              .map(|monitor| {
+                let monitor_id = monitor.id();
+                let mut dto = monitor.to_dto()?;
+                if let wm_common::ContainerDto::Monitor(ref mut m) = dto {
+                  m.is_primary = primary_id == Some(monitor_id);
+                }
+                anyhow::Ok(dto)
+              })
               .try_collect()?,
           })
         }

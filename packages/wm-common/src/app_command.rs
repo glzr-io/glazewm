@@ -159,6 +159,11 @@ pub enum InvokeCommand {
   Close,
   Focus(InvokeFocusCommand),
   Ignore,
+  /// Stops ignoring the foreground window and attaches it to the layout.
+  ///
+  /// Uses the OS foreground window, not `GlazeWM`'s focused container,
+  /// because ignored windows are not in the WM tree.
+  Manage,
   Move(InvokeMoveCommand),
   MoveWorkspace {
     #[clap(long)]
