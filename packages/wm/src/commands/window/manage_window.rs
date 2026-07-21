@@ -7,6 +7,7 @@ use crate::{
   commands::{
     container::{attach_container, set_focused_descendant},
     window::run_window_rules,
+    workspace::reapply_assigned_columns,
   },
   models::{
     Container, Monitor, NativeWindowProperties, NonTilingWindow,
@@ -71,14 +72,31 @@ pub fn manage_window(
       window.workspace().context("No workspace.")?,
     );
 
+    let is_tiling = window.state() == WindowState::Tiling;
+    let workspace = window.workspace().context("No workspace.")?;
+
     // Sibling containers need to be redrawn if the window is tiling.
-    state.pending_sync.queue_container_to_redraw(
-      if window.state() == WindowState::Tiling {
-        window.parent().context("No parent.")?
-      } else {
-        window.into()
-      },
-    );
+    state.pending_sync.queue_container_to_redraw(if is_tiling {
+      window.parent().context("No parent.")?
+    } else {
+      window.clone().into()
+    });
+
+    // Reapply the workspace's columns (if any) so the new tiling window
+    // slots into the layout. This also covers startup, since every
+    // existing window is managed through here.
+    if is_tiling
+      && reapply_assigned_columns(&workspace, None, state, config)?
+    {
+      // The reapply rebuilds the workspace subtree, which can shuffle the
+      // focus order and leave a displaced window carrying a stale focused
+      // border (the default effect update only refreshes the previously
+      // focused window). Re-assert focus on the new window and reset every
+      // window's effect so exactly one — the new center — shows as
+      // focused.
+      set_focused_descendant(&window.clone().into(), None);
+      state.pending_sync.queue_all_effects_update();
+    }
   }
 
   Ok(())

@@ -159,6 +159,11 @@ pub enum InvokeCommand {
   Close,
   Focus(InvokeFocusCommand),
   Ignore,
+  Columns(InvokeColumnsCommand),
+  AssignColumns(InvokeColumnsCommand),
+  UnassignColumns,
+  Rotate(InvokeRotateCommand),
+  Center,
   Move(InvokeMoveCommand),
   MoveWorkspace {
     #[clap(long)]
@@ -344,6 +349,83 @@ pub struct InvokeFocusCommand {
 
   #[clap(long)]
   pub recent_workspace: bool,
+}
+
+#[derive(
+  Clone, Debug, Default, Deserialize, PartialEq, Serialize, ValueEnum,
+)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ColumnBias {
+  #[default]
+  Left,
+  Right,
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+pub struct InvokeColumnsCommand {
+  /// Comma-separated columns, left-to-right. Each token is a column: a
+  /// number is that many windows stacked, `*` claims an even share of
+  /// the leftover windows, and `C` is the wide center (focused window; at
+  /// most one). E.g. `*,C,*`, `C,*`, or `2,1,C,3`. `C` is optional: a
+  /// spec without one (e.g. `*,*` or `2,2`) makes plain equal-width
+  /// columns with no wide center. Must be space-free.
+  ///
+  /// Omitted (bare `columns`), it re-asserts the workspace's assigned
+  /// columns; otherwise it defaults to `*,C,*`.
+  pub spec: Option<String>,
+
+  /// Center column width as a fraction of the workspace (0.1..=0.9). The
+  /// remaining width is split equally across the other columns. Defaults
+  /// to `0.6`.
+  #[clap(long, allow_hyphen_values = true)]
+  pub center: Option<f32>,
+
+  /// Which side wins the odd leftover window when `*` columns can't
+  /// divide evenly (e.g. `*,C,*` with one window to place). Defaults to
+  /// `left`.
+  #[clap(long, value_enum)]
+  pub bias: Option<ColumnBias>,
+}
+
+impl InvokeColumnsCommand {
+  /// Default column spec when none is supplied.
+  pub const DEFAULT_SPEC: &'static str = "*,C,*";
+
+  /// Default center-column width fraction when none is supplied.
+  pub const DEFAULT_CENTER: f32 = 0.6;
+
+  /// Whether no column parameters were supplied, i.e. a bare `columns`.
+  #[must_use]
+  pub fn is_unset(&self) -> bool {
+    self.spec.is_none() && self.center.is_none() && self.bias.is_none()
+  }
+
+  /// The supplied column spec, or the default `*,C,*`.
+  #[must_use]
+  pub fn spec_or_default(&self) -> &str {
+    self.spec.as_deref().unwrap_or(Self::DEFAULT_SPEC)
+  }
+
+  /// The supplied center width, or the default `0.6`.
+  #[must_use]
+  pub fn center_or_default(&self) -> f32 {
+    self.center.unwrap_or(Self::DEFAULT_CENTER)
+  }
+
+  /// The supplied bias, or the default (`left`).
+  #[must_use]
+  pub fn bias_or_default(&self) -> ColumnBias {
+    self.bias.clone().unwrap_or_default()
+  }
+}
+
+#[derive(Args, Clone, Debug, PartialEq, Serialize)]
+pub struct InvokeRotateCommand {
+  /// Rotate counter-clockwise instead of clockwise. The layout is
+  /// preserved; only the window in each slot shifts by one.
+  #[clap(long)]
+  pub ccw: bool,
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]

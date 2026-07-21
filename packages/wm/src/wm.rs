@@ -31,8 +31,11 @@ use crate::{
       update_window_state, WindowPositionTarget,
     },
     workspace::{
-      focus_workspace, move_workspace_in_direction,
-      update_workspace_config,
+      apply_center, apply_columns, apply_rotate, assign_columns,
+      effective_columns, focus_workspace, move_window_in_columns,
+      move_workspace_in_direction, reapply_assigned_columns,
+      unassign_columns, update_workspace_config,
+      workspace_center_window_id,
     },
   },
   events::{
@@ -138,7 +141,7 @@ impl WindowManager {
           handle_window_title_changed(&window, state, config)
         }
         WindowEvent::Destroyed { window_id, .. } => {
-          handle_window_destroyed(window_id, state)
+          handle_window_destroyed(window_id, state, config)
         }
       },
     }?;
@@ -336,16 +339,84 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      InvokeCommand::Columns(args) => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
+        // A bare `columns` re-asserts the workspace's effective columns
+        // (its own assignment, or a monitor-shape-derived
+        // `general.default_columns` rule) rather than clobbering them with
+        // the command defaults, keeping the current center in place. Any
+        // explicit argument applies a one-shot layout instead.
+        if args.is_unset()
+          && effective_columns(&workspace, config)?.is_some()
+        {
+          let center = workspace_center_window_id(&workspace);
+          reapply_assigned_columns(&workspace, center, state, config)
+            .map(|_| ())
+        } else {
+          apply_columns(
+            &workspace,
+            args.spec_or_default(),
+            args.center_or_default(),
+            &args.bias_or_default(),
+            None,
+            state,
+            config,
+          )
+        }
+      }
+      InvokeCommand::AssignColumns(args) => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
+        assign_columns(
+          &workspace,
+          args.spec_or_default(),
+          args.center_or_default(),
+          &args.bias_or_default(),
+          state,
+          config,
+        )
+      }
+      InvokeCommand::UnassignColumns => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
+        unassign_columns(&workspace);
+        Ok(())
+      }
+      InvokeCommand::Rotate(args) => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
+        apply_rotate(&workspace, args.ccw, state, config)
+      }
+      InvokeCommand::Center => {
+        let workspace =
+          subject_container.workspace().context("No workspace.")?;
+
+        apply_center(&workspace, state, config)
+      }
       InvokeCommand::Move(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {
             if let Some(direction) = &args.direction {
-              move_window_in_direction(
-                window.clone(),
-                direction,
-                state,
-                config,
-              )?;
+              // Within a workspace's columns, move relocates the window
+              // inside the declarative grid; at the grid's edge (or with
+              // no columns) it falls back to the default
+              // mover, which carries the window to the
+              // neighbouring workspace/monitor.
+              if !move_window_in_columns(
+                &window, direction, state, config,
+              )? {
+                move_window_in_direction(
+                  window.clone(),
+                  direction,
+                  state,
+                  config,
+                )?;
+              }
             }
 
             if let Some(direction) = &args.workspace_in_direction {

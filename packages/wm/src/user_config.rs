@@ -57,6 +57,21 @@ impl UserConfig {
     })
   }
 
+  /// Creates a `UserConfig` directly from an in-memory `ParsedConfig` for
+  /// use in tests, bypassing all file IO.
+  #[cfg(test)]
+  #[must_use]
+  pub fn mock(value: ParsedConfig) -> Self {
+    let window_rules_by_event = Self::window_rules_by_event(&value);
+
+    Self {
+      path: PathBuf::new(),
+      value,
+      value_str: String::new(),
+      window_rules_by_event,
+    }
+  }
+
   /// Reads and validates the user config from the given path.
   ///
   /// Creates a new config file from sample if it doesn't exist.

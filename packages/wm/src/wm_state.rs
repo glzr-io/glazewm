@@ -42,6 +42,15 @@ pub struct WmState {
   /// workspace focus.
   pub recent_workspace_name: Option<String>,
 
+  /// Id of the window most recently phased out of the center slot,
+  /// whether by the `center` command or by another window taking the
+  /// center (e.g. a freshly opened window that auto-centers).
+  ///
+  /// Lets `center` toggle: when the center window is focused, it swaps
+  /// back with this window, enabling fast switching between two
+  /// windows.
+  pub last_centered_out: Option<Uuid>,
+
   /// The previously focused window that had focus effects applied.
   ///
   /// Used to efficiently update window effects by only removing focus
@@ -89,6 +98,7 @@ impl WmState {
       pending_sync: PendingSync::default(),
       prev_effects_window: None,
       recent_workspace_name: None,
+      last_centered_out: None,
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),

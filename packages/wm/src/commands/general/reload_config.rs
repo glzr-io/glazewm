@@ -7,7 +7,10 @@ use wm_common::{WindowRuleEvent, WmEvent};
 use wm_platform::NativeWindowWindowsExt;
 
 use crate::{
-  commands::{window::run_window_rules, workspace::sort_workspaces},
+  commands::{
+    window::run_window_rules,
+    workspace::{reapply_assigned_columns, sort_workspaces},
+  },
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm::WindowManager,
@@ -134,6 +137,14 @@ fn update_workspace_configs(
         }
       }
     }
+  }
+
+  // Reapply assigned columns now configs are refreshed, so editing a
+  // workspace's `columns` and reloading takes effect immediately. The
+  // configs were just replaced from the file, so this also discards any
+  // runtime manual center resize. A no-op for workspaces without columns.
+  for workspace in state.workspaces() {
+    reapply_assigned_columns(&workspace, None, state, config)?;
   }
 
   Ok(())
