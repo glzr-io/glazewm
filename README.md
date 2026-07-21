@@ -264,7 +264,7 @@ Columns turn a workspace into a **centered-focus layout**: the focused window si
 
 A column `spec` is a comma-separated, left-to-right list of columns. Each token is one column:
 
-- `C` — the wide **center** column, holding the focused window. Exactly one `C` is required.
+- `C` — the wide **center** column, holding the focused window. Optional, but at most one: include a `C` for a centered-focus layout, or leave it out (e.g. `*,*`, `2,2`) for plain **equal-width columns** where no window is privileged and `center` is ignored.
 - a **number** (`1`, `2`, `3`, …) — a *fixed* stack holding exactly that many windows.
 - `*` — a *flexible* stack that shares out whatever windows the fixed columns don't take, split evenly across all `*` columns.
 

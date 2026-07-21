@@ -366,9 +366,10 @@ pub enum ColumnBias {
 pub struct InvokeColumnsCommand {
   /// Comma-separated columns, left-to-right. Each token is a column: a
   /// number is that many windows stacked, `*` claims an even share of
-  /// the leftover windows, and `C` is the wide center (focused window;
-  /// exactly one). E.g. `*,C,*`, `C,*`, or `2,1,C,3`. Must be
-  /// space-free.
+  /// the leftover windows, and `C` is the wide center (focused window; at
+  /// most one). E.g. `*,C,*`, `C,*`, or `2,1,C,3`. `C` is optional: a
+  /// spec without one (e.g. `*,*` or `2,2`) makes plain equal-width
+  /// columns with no wide center. Must be space-free.
   ///
   /// Omitted (bare `columns`), it re-asserts the workspace's assigned
   /// columns; otherwise it defaults to `*,C,*`.

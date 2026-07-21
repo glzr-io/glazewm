@@ -1,4 +1,5 @@
 use anyhow::Context;
+use uuid::Uuid;
 use wm_common::{
   try_warn, FullscreenStateConfig, TilingDirection, WindowState,
 };
@@ -8,11 +9,15 @@ use crate::{
   commands::{
     container::{move_container_within_tree, wrap_in_split_container},
     window::{set_window_size, update_window_state},
+    workspace::{
+      reapply_assigned_columns, reapply_columns_after_move,
+      workspace_center_rect, workspace_center_window_id,
+    },
   },
   events::update_floating_window_position,
   models::{
     DirectionContainer, NonTilingWindow, SplitContainer, TilingContainer,
-    WindowContainer,
+    WindowContainer, Workspace,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
@@ -109,8 +114,31 @@ pub fn handle_window_moved_or_resized_end(
       } else {
         // Window is a temporary floating window that should be
         // reverted back to tiling.
+
+        // Capture the source workspace's center — its window id and the
+        // rect it fills — before the drop mutates the tree, so a columns
+        // reapply can keep it in place, or hand the center to the dropped
+        // window when it lands on the center band.
+        let source_workspace = window.workspace();
+        let source_center = source_workspace
+          .as_ref()
+          .and_then(workspace_center_window_id);
+        let center_rect =
+          source_workspace.as_ref().and_then(workspace_center_rect);
+        let drop_x =
+          state.dispatcher.cursor_position().ok().map(|point| point.x);
+
         let window = drop_as_tiling_window(window, state, config)?;
         window.set_active_drag(None);
+
+        reapply_columns_after_drop(
+          source_workspace.as_ref(),
+          source_center,
+          dropped_onto_center(center_rect, drop_x),
+          &window,
+          state,
+          config,
+        )?;
       }
     }
     WindowContainer::TilingWindow(window) => {
@@ -144,6 +172,59 @@ pub fn handle_window_moved_or_resized_end(
   }
 
   Ok(())
+}
+
+/// Reintegrates a window that was just dropped back into tiling into its
+/// workspace's columns layout, replacing the ad-hoc splits from
+/// [`drop_as_tiling_window`] with the declarative grid.
+///
+/// Dropped within its `source_workspace`, the window takes the center when
+/// it landed on the center band (`onto_center`), otherwise it falls into
+/// the nearest column by position while `source_center` stays the center.
+/// Dropped onto a different columns workspace, it takes that workspace's
+/// center like a grid move. A no-op when neither workspace has columns.
+fn reapply_columns_after_drop(
+  source_workspace: Option<&Workspace>,
+  source_center: Option<Uuid>,
+  onto_center: bool,
+  window: &WindowContainer,
+  state: &mut WmState,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let Some(dest_workspace) = window.workspace() else {
+    return Ok(());
+  };
+
+  match source_workspace {
+    Some(source) if source.id() != dest_workspace.id() => {
+      reapply_columns_after_move(
+        source,
+        source_center,
+        &dest_workspace,
+        window.id(),
+        state,
+        config,
+      )
+    }
+    _ => {
+      // Dropped onto the wide center → the window takes the center,
+      // displacing the old one into a side column; otherwise keep the
+      // pre-drop center and let the window slot in by position.
+      let preferred_center = if onto_center {
+        Some(window.id())
+      } else {
+        source_center
+      };
+
+      reapply_assigned_columns(
+        &dest_workspace,
+        preferred_center,
+        state,
+        config,
+      )
+      .map(|_| ())
+    }
+  }
 }
 
 /// Handles transition from temporary floating window to tiling window on
@@ -315,5 +396,54 @@ fn drop_position(mouse_pos: &Point, rect: &Rect) -> DropPosition {
     } else {
       DropPosition::Top
     }
+  }
+}
+
+/// Whether a window dropped at horizontal position `drop_x` landed on the
+/// wide center column, given the `center_rect` its window filled before
+/// the drop. True only when the workspace has a center and `drop_x` falls
+/// within that column's horizontal band, so the dropped window should take
+/// the center; otherwise the pre-drop center stays and the window slots
+/// into the nearest side column by position. `None` for either input (no
+/// center column, or no cursor reading) never takes the center.
+fn dropped_onto_center(
+  center_rect: Option<Rect>,
+  drop_x: Option<i32>,
+) -> bool {
+  let (Some(rect), Some(x)) = (center_rect, drop_x) else {
+    return false;
+  };
+
+  x >= rect.x() && x < rect.x() + rect.width()
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_platform::Rect;
+
+  use super::dropped_onto_center;
+
+  /// A center column spanning x in `[600, 1000)`.
+  fn center() -> Option<Rect> {
+    Some(Rect::from_xy(600, 0, 400, 1080))
+  }
+
+  #[test]
+  fn drop_within_center_band_takes_center() {
+    assert!(dropped_onto_center(center(), Some(600)));
+    assert!(dropped_onto_center(center(), Some(700)));
+  }
+
+  #[test]
+  fn drop_outside_center_band_keeps_center() {
+    // Left of the band, and the right edge is exclusive.
+    assert!(!dropped_onto_center(center(), Some(200)));
+    assert!(!dropped_onto_center(center(), Some(1000)));
+  }
+
+  #[test]
+  fn no_center_or_no_cursor_never_takes_center() {
+    assert!(!dropped_onto_center(None, Some(700)));
+    assert!(!dropped_onto_center(center(), None));
   }
 }

@@ -353,6 +353,7 @@ impl WindowManager {
         {
           let center = workspace_center_window_id(&workspace);
           reapply_assigned_columns(&workspace, center, state, config)
+            .map(|_| ())
         } else {
           apply_columns(
             &workspace,

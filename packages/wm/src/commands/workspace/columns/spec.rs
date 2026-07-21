@@ -22,8 +22,9 @@ pub(super) enum ColumnKind {
 /// kinds, left-to-right. A number token is that many stacked windows, `*`
 /// is a leftover-sharing stack, and `C` is the wide center.
 ///
-/// Errors on an unrecognised token, a zero fixed count, or a spec that
-/// does not contain exactly one `C`.
+/// Errors on an unrecognised token, a zero fixed count, or a spec with
+/// more than one `C`. A `C` is optional: a spec without one lays the
+/// windows out as plain equal-width columns with no wide center.
 pub(super) fn parse_columns_spec(
   spec: &str,
 ) -> anyhow::Result<Vec<ColumnKind>> {
@@ -48,9 +49,9 @@ pub(super) fn parse_columns_spec(
     .iter()
     .filter(|k| matches!(k, ColumnKind::Center))
     .count()
-    != 1
+    > 1
   {
-    anyhow::bail!("Column spec must contain exactly one `C`.");
+    anyhow::bail!("Column spec must contain at most one `C`.");
   }
 
   Ok(kinds)
@@ -59,18 +60,18 @@ pub(super) fn parse_columns_spec(
 /// Distributes `center` and the `rest` of the windows into columns per the
 /// parsed `kinds`, in on-screen order.
 ///
-/// `center` fills the `C` column; each fixed column takes its exact count;
-/// `*` columns share the leftover windows evenly, with `bias` deciding
-/// which end claims the odd window(s) when they don't divide evenly. Any
-/// windows still unplaced (fixed counts under-specify the total and there
-/// is no `*`) are appended to the last non-center column, so nothing is
-/// dropped.
+/// `center` (present iff `kinds` has a `C`) fills the `C` column; each
+/// fixed column takes its exact count; `*` columns share the leftover
+/// windows evenly, with `bias` deciding which end claims the odd window(s)
+/// when they don't divide evenly. Any windows still unplaced (fixed counts
+/// under-specify the total and there is no `*`) are appended to the last
+/// non-center column, so nothing is dropped.
 ///
 /// Generic over the item so the assignment can be unit-tested with plain
 /// indices in place of live windows.
-pub(super) fn distribute_columns<T: Clone>(
+pub(super) fn distribute_columns<T>(
   kinds: &[ColumnKind],
-  center: T,
+  mut center: Option<T>,
   rest: Vec<T>,
   bias: &ColumnBias,
 ) -> Vec<Vec<T>> {
@@ -95,7 +96,9 @@ pub(super) fn distribute_columns<T: Clone>(
   let mut columns = Vec::with_capacity(kinds.len());
   for kind in kinds {
     match kind {
-      ColumnKind::Center => columns.push(vec![center.clone()]),
+      ColumnKind::Center => columns.push(vec![center
+        .take()
+        .expect("a `C` column requires a center window")]),
       ColumnKind::Fixed(n) => {
         columns.push(rest_iter.by_ref().take(*n).collect());
       }
@@ -127,12 +130,23 @@ pub(super) fn distribute_columns<T: Clone>(
 
 /// The width fraction of each column: the center takes `center_fraction`
 /// and the remaining width is divided evenly across the non-center
-/// columns.
+/// columns. With no center column, `center_fraction` is ignored and every
+/// column takes an equal `1/n` share.
 #[allow(clippy::cast_precision_loss)]
 pub(super) fn column_widths(
   kinds: &[ColumnKind],
   center_fraction: f32,
 ) -> Vec<f32> {
+  let has_center = kinds.iter().any(|k| matches!(k, ColumnKind::Center));
+  if !has_center {
+    let share = if kinds.is_empty() {
+      0.0
+    } else {
+      1.0 / kinds.len() as f32
+    };
+    return vec![share; kinds.len()];
+  }
+
   let non_center = kinds.len().saturating_sub(1);
   let side = if non_center > 0 {
     (1.0 - center_fraction) / non_center as f32
@@ -180,8 +194,6 @@ mod tests {
 
   #[test]
   fn rejects_bad_specs() {
-    // No center.
-    assert!(parse_columns_spec("*,*").is_err());
     // More than one center.
     assert!(parse_columns_spec("C,C").is_err());
     // Zero fixed count.
@@ -191,11 +203,41 @@ mod tests {
   }
 
   #[test]
+  fn accepts_spec_without_center() {
+    // A center is optional: no `C` yields plain equal-width columns.
+    assert_eq!(
+      parse_columns_spec("*,*").unwrap(),
+      vec![ColumnKind::Star, ColumnKind::Star]
+    );
+    assert_eq!(
+      parse_columns_spec("2,2").unwrap(),
+      vec![ColumnKind::Fixed(2), ColumnKind::Fixed(2)]
+    );
+  }
+
+  #[test]
+  fn widths_are_equal_without_center() {
+    // Without a `C`, every column takes an equal share and `center` is
+    // ignored — the widths sum to 1 across `n` columns.
+    let kinds = parse_columns_spec("*,*,*").unwrap();
+    let widths = column_widths(&kinds, 0.6);
+
+    assert_eq!(widths.len(), 3);
+    for width in widths {
+      assert!((width - 1.0 / 3.0).abs() < f32::EPSILON);
+    }
+  }
+
+  #[test]
   fn distributes_even_stars() {
     // `*,C,*` with 4 side windows → two even stacks flanking the center.
     let kinds = parse_columns_spec("*,C,*").unwrap();
-    let columns =
-      distribute_columns(&kinds, 0, vec![1, 2, 3, 4], &ColumnBias::Left);
+    let columns = distribute_columns(
+      &kinds,
+      Some(0),
+      vec![1, 2, 3, 4],
+      &ColumnBias::Left,
+    );
     assert_eq!(columns, vec![vec![1, 2], vec![0], vec![3, 4]]);
   }
 
@@ -204,13 +246,21 @@ mod tests {
     let kinds = parse_columns_spec("*,C,*").unwrap();
 
     // Odd leftover: left bias gives the extra window to the first stack.
-    let left =
-      distribute_columns(&kinds, 0, vec![1, 2, 3], &ColumnBias::Left);
+    let left = distribute_columns(
+      &kinds,
+      Some(0),
+      vec![1, 2, 3],
+      &ColumnBias::Left,
+    );
     assert_eq!(left, vec![vec![1, 2], vec![0], vec![3]]);
 
     // Right bias gives it to the last stack.
-    let right =
-      distribute_columns(&kinds, 0, vec![1, 2, 3], &ColumnBias::Right);
+    let right = distribute_columns(
+      &kinds,
+      Some(0),
+      vec![1, 2, 3],
+      &ColumnBias::Right,
+    );
     assert_eq!(right, vec![vec![1], vec![0], vec![2, 3]]);
   }
 
@@ -219,8 +269,12 @@ mod tests {
     // `1,C` places one window in the fixed column and no `*` to absorb the
     // rest, so the leftovers land in the last non-center column.
     let kinds = parse_columns_spec("1,C").unwrap();
-    let columns =
-      distribute_columns(&kinds, 0, vec![1, 2, 3], &ColumnBias::Left);
+    let columns = distribute_columns(
+      &kinds,
+      Some(0),
+      vec![1, 2, 3],
+      &ColumnBias::Left,
+    );
     assert_eq!(columns, vec![vec![1, 2, 3], vec![0]]);
   }
 
@@ -231,11 +285,25 @@ mod tests {
     let kinds = parse_columns_spec("2,C,*").unwrap();
     let columns = distribute_columns(
       &kinds,
-      0,
+      Some(0),
       vec![1, 2, 3, 4, 5],
       &ColumnBias::Left,
     );
     assert_eq!(columns, vec![vec![1, 2], vec![0], vec![3, 4, 5]]);
+  }
+
+  #[test]
+  fn distributes_without_center() {
+    // No `C`: every window flows into the columns and none is pulled out
+    // as a privileged center (`center` is `None`).
+    let kinds = parse_columns_spec("*,*").unwrap();
+    let columns = distribute_columns(
+      &kinds,
+      None,
+      vec![1, 2, 3, 4],
+      &ColumnBias::Left,
+    );
+    assert_eq!(columns, vec![vec![1, 2], vec![3, 4]]);
   }
 
   #[test]

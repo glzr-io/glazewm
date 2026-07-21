@@ -13,11 +13,13 @@ mod spec;
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{ColumnBias, ColumnLayout};
-use wm_platform::Direction;
+use wm_platform::{Direction, Rect};
 
 use self::{
   grid::ColumnGrid,
-  spec::{column_widths, distribute_columns, parse_columns_spec},
+  spec::{
+    column_widths, distribute_columns, parse_columns_spec, ColumnKind,
+  },
 };
 use crate::{
   commands::{
@@ -34,9 +36,11 @@ use crate::{
 /// by a comma-separated column `spec`, laid out left-to-right. Each token
 /// is one column: a number is that many windows stacked, `*` claims an
 /// even share of the leftover windows, and `C` is the wide center (the
-/// focused window; exactly one). E.g. `*,C,*` is a center flanked by two
+/// focused window; at most one). E.g. `*,C,*` is a center flanked by two
 /// even stacks, `C,*` drops the left band for a narrow monitor, and
-/// `2,1,C,3` is fully explicit.
+/// `2,1,C,3` is fully explicit. `C` is optional: a spec without one (e.g.
+/// `*,*` or `2,2`) lays the windows into plain equal-width columns with no
+/// wide center — `center` is ignored and no window is privileged.
 ///
 /// The center window fills the `C` column at `center` width (a fraction of
 /// the workspace, clamped to `0.1..=0.9`); the remaining columns split the
@@ -80,32 +84,40 @@ pub fn apply_columns(
     window.to_rect().map_or((0, 0), |rect| (rect.x(), rect.y()))
   });
 
-  // Center = the preferred center window if it's still present, else the
-  // focused tiling window, else the middle one by position.
-  let focused_id = focused_window_id(workspace);
+  let columns = if kinds.iter().any(|k| matches!(k, ColumnKind::Center)) {
+    // Center = the preferred center window if it's still present, else the
+    // focused tiling window, else the middle one by position.
+    let focused_id = focused_window_id(workspace);
 
-  let center_index = preferred_center
-    .and_then(|id| windows.iter().position(|window| window.id() == id))
-    .or_else(|| {
-      focused_id
-        .and_then(|id| windows.iter().position(|window| window.id() == id))
-    })
-    .unwrap_or(windows.len() / 2);
+    let center_index = preferred_center
+      .and_then(|id| windows.iter().position(|window| window.id() == id))
+      .or_else(|| {
+        focused_id.and_then(|id| {
+          windows.iter().position(|window| window.id() == id)
+        })
+      })
+      .unwrap_or(windows.len() / 2);
 
-  let center_window = windows[center_index].clone();
+    let center_window = windows[center_index].clone();
 
-  // A different window is taking the center, so the one it phases out
-  // becomes the `center` toggle's swap-back target.
-  remember_outgoing_center(workspace, center_window.id(), state);
+    // A different window is taking the center, so the one it phases out
+    // becomes the `center` toggle's swap-back target.
+    remember_outgoing_center(workspace, center_window.id(), state);
 
-  let rest = windows
-    .iter()
-    .enumerate()
-    .filter(|(index, _)| *index != center_index)
-    .map(|(_, window)| window.clone())
-    .collect::<Vec<_>>();
+    let rest = windows
+      .iter()
+      .enumerate()
+      .filter(|(index, _)| *index != center_index)
+      .map(|(_, window)| window.clone())
+      .collect::<Vec<_>>();
 
-  let columns = distribute_columns(&kinds, center_window, rest, bias);
+    distribute_columns(&kinds, Some(center_window), rest, bias)
+  } else {
+    // No `C`: every window flows into the equal-width columns in on-screen
+    // order and none is pulled out as a privileged center.
+    distribute_columns(&kinds, None, windows, bias)
+  };
+
   let widths = column_widths(&kinds, center.clamp(0.1, 0.9));
 
   ColumnGrid { columns, widths }.render(workspace, state, config)
@@ -193,25 +205,31 @@ pub fn effective_columns(
 /// (window add/remove, switch-in) instead of drifting with the tree's
 /// transient sizes; config reload restores the spec value by replacing the
 /// config.
+///
+/// Returns whether a layout was reapplied (i.e. the workspace has
+/// effective columns), so callers can follow up — e.g. resetting window
+/// effects.
 pub fn reapply_assigned_columns(
   workspace: &Workspace,
   preferred_center: Option<Uuid>,
   state: &mut WmState,
   config: &UserConfig,
-) -> anyhow::Result<()> {
-  if let Some(columns) = effective_columns(workspace, config)? {
-    apply_columns(
-      workspace,
-      &columns.spec,
-      columns.center,
-      &columns.bias,
-      preferred_center,
-      state,
-      config,
-    )?;
-  }
+) -> anyhow::Result<bool> {
+  let Some(columns) = effective_columns(workspace, config)? else {
+    return Ok(false);
+  };
 
-  Ok(())
+  apply_columns(
+    workspace,
+    &columns.spec,
+    columns.center,
+    &columns.bias,
+    preferred_center,
+    state,
+    config,
+  )?;
+
+  Ok(true)
 }
 
 /// Reapplies assigned columns after a tiling window moves from `source` to
@@ -238,6 +256,21 @@ pub fn reapply_columns_after_move(
 /// `reapply_assigned_columns` can keep that window centered.
 pub fn workspace_center_window_id(workspace: &Workspace) -> Option<Uuid> {
   ColumnGrid::read(workspace).center_window_id()
+}
+
+/// On-screen rect of the workspace's wide center window — the top of its
+/// widest column — or `None` when the layout has no center (equal-width
+/// columns, or fewer than two windows). Capture this before a drag drops a
+/// window back into tiling so the follow-up reapply can tell whether the
+/// drop landed on the center band and should take it over.
+pub fn workspace_center_rect(workspace: &Workspace) -> Option<Rect> {
+  let grid = ColumnGrid::read(workspace);
+  if !grid.has_center() {
+    return None;
+  }
+
+  let center = grid.center_index();
+  grid.columns.get(center)?.first()?.to_rect().ok()
 }
 
 /// Remembers the window leaving the center as the `center` command's
@@ -423,6 +456,12 @@ pub fn apply_center(
   let mut grid = ColumnGrid::read(workspace);
 
   if grid.window_count() < 2 {
+    return Ok(());
+  }
+
+  // Equal-width columns (a `C`-less layout) have no wide center to swap
+  // into, so `center` is a no-op there.
+  if !grid.has_center() {
     return Ok(());
   }
 
@@ -694,6 +733,29 @@ mod tests {
       .collect()
   }
 
+  /// The focused window that becomes the center keeps focus across the
+  /// layout rebuild — the columns layer never drops focus on its own.
+  #[test]
+  fn apply_columns_preserves_focused_window() {
+    let (mut state, workspace, windows) = setup(5);
+    let config = mock_user_config();
+    let ids = windows.iter().map(CommonGetters::id).collect::<Vec<_>>();
+
+    focus_container_by_id(&ids[0], &mut state).unwrap();
+    apply_columns(
+      &workspace,
+      "*,C,*",
+      0.6,
+      &ColumnBias::Left,
+      None,
+      &mut state,
+      &config,
+    )
+    .unwrap();
+
+    assert_eq!(focused_window_id(&workspace), Some(ids[0]));
+  }
+
   /// `*,C,*` lays 5 windows into 2/1/2 columns with the preferred center
   /// in the wide middle column at its configured width.
   #[test]
@@ -758,6 +820,62 @@ mod tests {
     assert!((grid.center_width().unwrap() - 0.6).abs() < 1e-3);
     assert!((grid.widths[0] - 0.2).abs() < 1e-3);
     assert!((grid.widths[2] - 0.2).abs() < 1e-3);
+  }
+
+  /// A spec with no `C` lays every window into equal-width columns and
+  /// pulls none of them out as a wide center.
+  #[test]
+  fn applies_equal_width_columns_without_center() {
+    let (mut state, workspace, windows) = setup(4);
+    let config = mock_user_config();
+    let ids = windows.iter().map(CommonGetters::id).collect::<Vec<_>>();
+
+    apply_columns(
+      &workspace,
+      "*,*",
+      0.6,
+      &ColumnBias::Left,
+      None,
+      &mut state,
+      &config,
+    )
+    .unwrap();
+
+    assert_eq!(
+      id_grid(&workspace),
+      vec![vec![ids[0], ids[1]], vec![ids[2], ids[3]]]
+    );
+
+    let grid = ColumnGrid::read(&workspace);
+    assert!(!grid.has_center());
+    assert!((grid.widths[0] - 0.5).abs() < 1e-3);
+    assert!((grid.widths[1] - 0.5).abs() < 1e-3);
+  }
+
+  /// `center` has no wide column to swap into under an equal-width layout,
+  /// so it leaves the grid untouched even with a window focused.
+  #[test]
+  fn center_is_noop_without_center() {
+    let (mut state, workspace, windows) = setup(4);
+    let config = mock_user_config();
+    let ids = windows.iter().map(CommonGetters::id).collect::<Vec<_>>();
+
+    apply_columns(
+      &workspace,
+      "*,*",
+      0.6,
+      &ColumnBias::Left,
+      None,
+      &mut state,
+      &config,
+    )
+    .unwrap();
+
+    focus_container_by_id(&ids[0], &mut state).unwrap();
+    let before = id_grid(&workspace);
+    apply_center(&workspace, &mut state, &config).unwrap();
+
+    assert_eq!(id_grid(&workspace), before);
   }
 
   /// Clockwise rotate advances every window one slot around the center

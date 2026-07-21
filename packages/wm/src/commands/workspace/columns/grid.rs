@@ -76,6 +76,21 @@ impl ColumnGrid {
       .unwrap_or(0)
   }
 
+  /// Whether the grid has a single strictly-widest column — the wide
+  /// center. Equal-width columns (a `C`-less layout) have no center, so
+  /// commands that act on the center (e.g. `center`) become no-ops.
+  pub fn has_center(&self) -> bool {
+    let Some(max) = self.widths.iter().copied().reduce(f32::max) else {
+      return false;
+    };
+    self
+      .widths
+      .iter()
+      .filter(|&&w| (max - w).abs() < 1e-4)
+      .count()
+      == 1
+  }
+
   /// Id of the window in the center column's top slot, if the workspace
   /// has any tiling windows.
   pub fn center_window_id(&self) -> Option<Uuid> {
