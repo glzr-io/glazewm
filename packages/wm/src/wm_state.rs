@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -12,6 +12,7 @@ use wm_platform::{
 use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
+  animation::AnimationManager,
   commands::{
     container::set_focused_descendant,
     general::platform_sync,
@@ -35,6 +36,12 @@ pub struct WmState {
   pub dispatcher: Dispatcher,
 
   pub pending_sync: PendingSync,
+
+  /// Manager for window animations.
+  pub animation_manager: AnimationManager,
+
+  /// Tracks the target position for each window to prevent animation restart loops.
+  pub window_target_positions: HashMap<Uuid, Rect>,
 
   /// Name of the most recently focused workspace.
   ///
@@ -82,11 +89,14 @@ impl WmState {
     dispatcher: Dispatcher,
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
+    animation_tick_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
     Self {
       root_container: RootContainer::new(),
       dispatcher,
       pending_sync: PendingSync::default(),
+      animation_manager: AnimationManager::new(animation_tick_tx),
+      window_target_positions: HashMap::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
@@ -683,6 +693,17 @@ impl WmState {
 
 impl Drop for WmState {
   fn drop(&mut self) {
+    // Commit all active resize sessions before cleaning up windows so that
+    // surrogate overlays are destroyed and windows are moved to their target
+    // positions. This prevents invisible or mispositioned windows after a
+    // crash or forced exit.
+    #[cfg(target_os = "windows")]
+    for session in self.animation_manager.drain_all_sessions() {
+      if let Err(err) = session.commit() {
+        warn!("Failed to commit resize session on shutdown: {:?}", err);
+      }
+    }
+
     let managed_windows = self.windows();
 
     for window in &managed_windows {
@@ -697,6 +718,10 @@ impl Drop for WmState {
       // Reset any effects on Windows.
       #[cfg(target_os = "windows")]
       {
+        // Uncloak before showing — a surrogate animation may have cloaked
+        // this window. Without this, the window stays invisible after exit.
+        let _ = window.native().set_cloaked(false);
+
         if let Err(err) = window.native().show() {
           warn!("Failed to show window: {:?}", err);
         }

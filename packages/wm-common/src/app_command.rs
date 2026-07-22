@@ -346,6 +346,7 @@ pub struct InvokeFocusCommand {
   pub recent_workspace: bool,
 }
 
+
 #[derive(Args, Clone, Debug, PartialEq, Serialize)]
 #[group(required = true, multiple = false)]
 #[allow(clippy::struct_excessive_bools)]

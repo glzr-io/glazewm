@@ -25,6 +25,20 @@ pub fn handle_window_hidden(
       return Ok(());
     }
 
+    // On Windows, skip unmanagement if the window is currently cloaked.
+    // Cloaking is used internally by GlazeWM (e.g. surrogate resize
+    // animations) and must not be interpreted as the app hiding itself.
+    // Workspace-switch cloaking (`HideMethod::Cloak`) is already handled
+    // above via the `Hiding` display-state guard, so this only fires for
+    // surrogate-cloaked windows whose display state is still `Shown`.
+    #[cfg(target_os = "windows")]
+    {
+      use wm_platform::NativeWindowWindowsExt;
+      if window.native().is_cloaked().unwrap_or(false) {
+        return Ok(());
+      }
+    }
+
     // Unmanage the window if it's not in a display state transition. Also,
     // since window events are not 100% guaranteed to be in correct order,
     // we need to ignore events where the window is not actually hidden.

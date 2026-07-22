@@ -28,7 +28,8 @@ use windows::{
         IsZoomed, SendNotifyMessageW, SetForegroundWindow,
         SetLayeredWindowAttributes, SetWindowLongPtrW, SetWindowPlacement,
         SetWindowPos, ShowWindowAsync, WindowFromPoint, GA_ROOT,
-        GWL_EXSTYLE, GWL_STYLE, GW_OWNER, HWND_NOTOPMOST, HWND_TOP,
+        GWL_EXSTYLE, GWL_STYLE, GW_HWNDPREV, GW_OWNER, HWND_NOTOPMOST,
+        HWND_TOP,
         HWND_TOPMOST, LAYERED_WINDOW_ATTRIBUTES_FLAGS, LWA_ALPHA,
         LWA_COLORKEY, SET_WINDOW_POS_FLAGS, SWP_ASYNCWINDOWPOS,
         SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
@@ -36,7 +37,7 @@ use windows::{
         SWP_SHOWWINDOW, SW_HIDE, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE,
         SW_SHOWNA, WINDOWPLACEMENT, WINDOW_EX_STYLE, WINDOW_STYLE,
         WM_CLOSE, WPF_ASYNCWINDOWPLACEMENT, WS_DLGFRAME, WS_EX_LAYERED,
-        WS_THICKFRAME,
+        WS_EX_TOPMOST, WS_THICKFRAME,
       },
     },
   },
@@ -209,7 +210,6 @@ impl NativeWindow {
         rect.height(),
         SWP_NOACTIVATE
           | SWP_NOZORDER
-          | SWP_NOCOPYBITS
           | SWP_NOSENDCHANGING
           | SWP_ASYNCWINDOWPOS
           | SWP_FRAMECHANGED,
@@ -236,7 +236,6 @@ impl NativeWindow {
         SWP_NOACTIVATE
           | SWP_NOZORDER
           | SWP_NOMOVE
-          | SWP_NOCOPYBITS
           | SWP_NOSENDCHANGING
           | SWP_ASYNCWINDOWPOS
           | SWP_FRAMECHANGED,
@@ -259,7 +258,6 @@ impl NativeWindow {
         SWP_NOACTIVATE
           | SWP_NOZORDER
           | SWP_NOSIZE
-          | SWP_NOCOPYBITS
           | SWP_NOSENDCHANGING
           | SWP_ASYNCWINDOWPOS
           | SWP_FRAMECHANGED,
@@ -541,6 +539,33 @@ impl NativeWindow {
     }
   }
 
+  /// Returns `true` when the window is already at the requested z-order
+  /// position, making a `SetWindowPos` call redundant.
+  ///
+  /// Skipping redundant calls matters for flicker: focus changes reorder
+  /// every same-state window in the workspace, and each `SetWindowPos`
+  /// (even a positionally no-op one) can invalidate and repaint the target
+  /// window. Returns `false` for `HWND_TOP`/`HWND_TOPMOST`, whose exact
+  /// resulting position cannot be cheaply verified.
+  fn is_z_order_correct(handle: isize, z_order_hwnd: HWND) -> bool {
+    if z_order_hwnd == HWND_NOTOPMOST {
+      // `HWND_NOTOPMOST` has no effect when the window is already
+      // non-topmost.
+      let ex_style =
+        unsafe { GetWindowLongPtrW(HWND(handle), GWL_EXSTYLE) };
+      #[allow(clippy::cast_possible_wrap)]
+      let is_topmost = ex_style & WS_EX_TOPMOST.0 as isize != 0;
+      !is_topmost
+    } else if z_order_hwnd.0 > 0 {
+      // Already positioned directly below the requested insert-after
+      // window.
+      let prev = unsafe { GetWindow(HWND(handle), GW_HWNDPREV) };
+      prev == z_order_hwnd
+    } else {
+      false
+    }
+  }
+
   /// Implements [`NativeWindowWindowsExt::set_z_order`].
   pub(crate) fn set_z_order(
     &self,
@@ -553,8 +578,18 @@ impl NativeWindow {
       WindowZOrder::AfterWindow(window_id) => HWND(window_id.0),
     };
 
+    // Skip entirely when the window is already in the requested position.
+    // This avoids invalidating (and repainting) every window in the
+    // workspace on each focus change.
+    if Self::is_z_order_correct(self.handle, z_order_hwnd) {
+      return Ok(());
+    }
+
+    // `SWP_NOCOPYBITS` is deliberately omitted: the window does not move or
+    // resize, so its bits are unchanged — discarding them would force a
+    // full repaint of the client area, which flickers on slow-painting
+    // apps.
     let flags = SWP_NOACTIVATE
-      | SWP_NOCOPYBITS
       | SWP_ASYNCWINDOWPOS
       | SWP_SHOWWINDOW
       | SWP_NOMOVE
@@ -566,9 +601,13 @@ impl NativeWindow {
     let handle = self.handle;
     task::spawn(async move {
       tokio::time::sleep(Duration::from_millis(10)).await;
-      let _ = unsafe {
-        SetWindowPos(HWND(handle), z_order_hwnd, 0, 0, 0, 0, flags)
-      };
+      // Re-check at fire time: the initial call has usually landed by now,
+      // making this retry a no-op that would otherwise repaint the window.
+      if !Self::is_z_order_correct(handle, z_order_hwnd) {
+        let _ = unsafe {
+          SetWindowPos(HWND(handle), z_order_hwnd, 0, 0, 0, 0, flags)
+        };
+      }
     });
 
     Ok(())
@@ -719,7 +758,7 @@ impl NativeWindow {
   /// be present even if the window isn't actually visible. The
   /// `DWMWA_CLOAKED` attribute is used to check whether these apps are
   /// visible.
-  fn is_cloaked(&self) -> crate::Result<bool> {
+  pub(crate) fn is_cloaked(&self) -> crate::Result<bool> {
     let mut cloaked = 0u32;
 
     unsafe {

@@ -1,7 +1,10 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{try_warn, WindowRuleEvent, WindowState, WmEvent};
-use wm_platform::{NativeWindow, RectDelta};
+use wm_platform::NativeWindow;
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
+use wm_platform::RectDelta;
 
 use crate::{
   commands::{
@@ -28,6 +31,14 @@ pub fn manage_window(
   else {
     return Ok(());
   };
+
+  // Cloak as early as possible to minimise the visible flash before the
+  // window is repositioned and animated. Non-tiling windows are uncloaked
+  // by `platform_sync` for their target position; tiling windows are
+  // uncloaked by the slide-in animation. Uncloaked immediately below if
+  // window rules decide to ignore the window.
+  #[cfg(target_os = "windows")]
+  let _ = native_window.set_cloaked(true);
 
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
@@ -79,6 +90,11 @@ pub fn manage_window(
         window.into()
       },
     );
+  } else {
+    // Window was detached by an `ignore` rule — undo the early cloak so it
+    // continues to display normally without GlazeWM managing it.
+    #[cfg(target_os = "windows")]
+    let _ = window.native().set_cloaked(false);
   }
 
   Ok(())
@@ -313,10 +329,15 @@ fn window_state_to_create(
 /// Rules:
 /// - For non-tiling windows: Always append to the workspace.
 /// - For tiling windows:
-///   1. Try to insert after the focused tiling window if one exists.
+///   1. Try to insert after the focused tiling window (or its parent stack)
+///      if one exists.
 ///   2. If a non-tiling window is focused, try to insert after the first
 ///      tiling window found.
 ///   3. If no tiling windows exist, append to the workspace.
+///
+/// New windows are never inserted into an existing `StackContainer`
+/// automatically. Stacking is always an explicit user action via
+/// `stack-insert` or `stack-absorb-neighbor`.
 ///
 /// Returns tuple of (parent container, insertion index).
 fn insertion_target(

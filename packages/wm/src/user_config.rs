@@ -378,3 +378,70 @@ impl UserConfig {
     })
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use wm_common::{ParsedConfig, WindowTransitionStyle, WorkspaceSwitchStyle};
+
+  use super::SAMPLE_CONFIG;
+
+  /// The bundled sample config (which uses the `type` key for animation
+  /// transition types) must always parse.
+  #[test]
+  fn sample_config_parses() {
+    let config: ParsedConfig = serde_yaml::from_str(SAMPLE_CONFIG)
+      .expect("sample config should parse");
+
+    assert_eq!(
+      config.animations.window_open.style,
+      WindowTransitionStyle::SlideRight
+    );
+    assert_eq!(
+      config.animations.workspace_switch.style,
+      WorkspaceSwitchStyle::Slide
+    );
+  }
+
+  /// Configs written before the `style` -> `type` key rename must keep
+  /// parsing via the legacy aliases (including the older `direction` alias
+  /// on `window_open`).
+  #[test]
+  fn legacy_style_keys_parse() {
+    let yaml = r"
+animations:
+  window_open:
+    style: 'zoom'
+  window_close:
+    style: 'slide_left'
+  workspace_switch:
+    style: 'fade'
+";
+    let config: ParsedConfig =
+      serde_yaml::from_str(yaml).expect("legacy config should parse");
+
+    assert_eq!(
+      config.animations.window_open.style,
+      WindowTransitionStyle::Zoom
+    );
+    assert_eq!(
+      config.animations.window_close.style,
+      WindowTransitionStyle::SlideLeft
+    );
+    assert_eq!(
+      config.animations.workspace_switch.style,
+      WorkspaceSwitchStyle::Fade
+    );
+
+    let yaml_direction = r"
+animations:
+  window_open:
+    direction: 'slide_top'
+";
+    let config: ParsedConfig = serde_yaml::from_str(yaml_direction)
+      .expect("direction alias should parse");
+    assert_eq!(
+      config.animations.window_open.style,
+      WindowTransitionStyle::SlideTop
+    );
+  }
+}

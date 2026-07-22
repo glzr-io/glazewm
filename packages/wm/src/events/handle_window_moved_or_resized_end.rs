@@ -107,6 +107,13 @@ pub fn handle_window_moved_or_resized_end(
         )?;
         window.set_active_drag(None);
       } else {
+        // Seed `window_target_positions` with the current drag position so
+        // the snap-back animation starts from where the window actually is,
+        // not its stale pre-drag tiling position.
+        state
+          .window_target_positions
+          .insert(window.id(), window.native_properties().frame);
+
         // Window is a temporary floating window that should be
         // reverted back to tiling.
         let window = drop_as_tiling_window(window, state, config)?;
