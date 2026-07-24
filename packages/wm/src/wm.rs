@@ -22,7 +22,8 @@ use crate::{
     },
     general::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
-      platform_sync, reload_config, shell_exec, toggle_pause,
+      platform_sync, reload_config, set_tray_icon_mode, shell_exec,
+      toggle_pause, toggle_tray_icon_mode,
     },
     monitor::focus_monitor,
     window::{
@@ -63,7 +64,12 @@ impl WindowManager {
     let (event_tx, event_rx) = mpsc::unbounded_channel();
     let (exit_tx, exit_rx) = mpsc::unbounded_channel();
 
-    let mut state = WmState::new(dispatcher, event_tx, exit_tx);
+    let mut state = WmState::new(
+      dispatcher,
+      event_tx,
+      exit_tx,
+      config.value.general.tray_icon_default_mode,
+    );
     state.populate(config)?;
 
     Ok(Self {
@@ -772,6 +778,14 @@ impl WindowManager {
         Ok(())
       }
       InvokeCommand::WmReloadConfig => reload_config(state, config),
+      InvokeCommand::WmSetTrayIconMode { mode } => {
+        set_tray_icon_mode(*mode, state);
+        Ok(())
+      }
+      InvokeCommand::WmToggleTrayIconMode => {
+        toggle_tray_icon_mode(state);
+        Ok(())
+      }
       InvokeCommand::WmTogglePause => {
         toggle_pause(state);
         Ok(())

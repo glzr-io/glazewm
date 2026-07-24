@@ -20,7 +20,10 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
-use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
+use wm_common::{
+  AppCommand, InvokeCommand, TilingDirection, Verbosity, WmEvent,
+  WorkspaceConfig,
+};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
@@ -30,7 +33,10 @@ use wm_platform::{
 };
 
 use crate::{
-  ipc_server::IpcServer, sys_tray::SystemTray, user_config::UserConfig,
+  ipc_server::IpcServer,
+  sys_tray::SystemTray,
+  traits::{CommonGetters, TilingDirectionGetters},
+  user_config::UserConfig,
   wm::WindowManager,
 };
 
@@ -127,6 +133,7 @@ async fn start_wm(
   let mut tray = SystemTray::new(&config.path, dispatcher.clone())?;
 
   let mut wm = WindowManager::new(&mut config, dispatcher.clone())?;
+  sync_tray_icon(&mut tray, &wm, &config)?;
 
   let mut ipc_server = IpcServer::start().await?;
 
@@ -178,6 +185,13 @@ async fn start_wm(
     tracing::error!("{:?}", err);
     dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
   }
+  refresh_input_listeners(
+    &mut mouse_listener,
+    &mut keybinding_listener,
+    &wm,
+    &config,
+  )?;
+  sync_tray_icon(&mut tray, &wm, &config)?;
 
   // Create an interval for periodically cleaning up invalid windows.
   let mut cleanup_interval = tokio::time::interval(Duration::from_secs(5));
@@ -243,32 +257,33 @@ async fn start_wm(
       Some(wm_event) = wm.event_rx.recv() => {
         tracing::debug!("Received WM event: {:?}", wm_event);
 
-        // Disable mouse listener when the WM is paused.
-        if let WmEvent::PauseChanged { is_paused } = wm_event {
-          let _ = mouse_listener.enable(!is_paused);
+        if matches!(
+          &wm_event,
+          WmEvent::PauseChanged { .. }
+            | WmEvent::BindingModesChanged { .. }
+            | WmEvent::UserConfigChanged { .. }
+        ) {
+          refresh_input_listeners(
+            &mut mouse_listener,
+            &mut keybinding_listener,
+            &wm,
+            &config,
+          )?;
         }
 
-        // Update keybinding and mouse listeners on config changes.
         if matches!(
-          wm_event,
-          WmEvent::UserConfigChanged { .. }
-            | WmEvent::BindingModesChanged { .. }
-            | WmEvent::PauseChanged { .. }
+          &wm_event,
+          WmEvent::PauseChanged { .. }
+            | WmEvent::FocusChanged { .. }
+            | WmEvent::FocusedContainerMoved { .. }
+            | WmEvent::TilingDirectionChanged { .. }
+            | WmEvent::WorkspaceActivated { .. }
+            | WmEvent::WorkspaceDeactivated { .. }
+            | WmEvent::WorkspaceUpdated { .. }
+            | WmEvent::TrayIconModeChanged { .. }
+            | WmEvent::UserConfigChanged { .. }
         ) {
-          keybinding_listener.update(
-            &config
-              .active_keybinding_configs(&wm.state.binding_modes, false)
-              .flat_map(|kb| kb.bindings)
-              .collect::<Vec<_>>(),
-          );
-
-          mouse_listener.set_enabled_events(
-            if config.value.general.focus_follows_cursor {
-              &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
-            } else {
-              &[MouseEventKind::LeftButtonUp]
-            },
-          )?;
+          sync_tray_icon(&mut tray, &wm, &config)?;
         }
 
         if let Err(err) = ipc_server.process_event(wm_event) {
@@ -296,6 +311,118 @@ async fn start_wm(
   wm.cleanup(&mut config, &mut ipc_server);
 
   Ok(())
+}
+
+/// Synchronizes input listeners with the current WM state and config.
+fn refresh_input_listeners(
+  mouse_listener: &mut MouseListener,
+  keybinding_listener: &mut KeybindingListener,
+  wm: &WindowManager,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  let _ = mouse_listener.enable(!wm.state.is_paused);
+  mouse_listener.set_enabled_events(
+    if config.value.general.focus_follows_cursor {
+      &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
+    } else {
+      &[MouseEventKind::LeftButtonUp]
+    },
+  )?;
+
+  keybinding_listener.update(
+    &config
+      .active_keybinding_configs(
+        &wm.state.binding_modes,
+        wm.state.is_paused,
+      )
+      .flat_map(|kb| kb.bindings)
+      .collect::<Vec<_>>(),
+  );
+  keybinding_listener.enable(true);
+
+  Ok(())
+}
+
+/// Synchronizes the tray icon with the current WM state.
+fn sync_tray_icon(
+  tray: &mut SystemTray,
+  wm: &WindowManager,
+  config: &UserConfig,
+) -> anyhow::Result<()> {
+  tray.sync_status(
+    wm.state.tray_icon_mode,
+    config.value.general.tray_icon_state,
+    wm.state.is_paused,
+    current_tiling_direction(wm).as_ref(),
+    current_workspace_index(wm, config),
+  )
+}
+
+/// Gets the tiling direction for the currently focused direction
+/// container.
+fn current_tiling_direction(
+  wm: &WindowManager,
+) -> Option<TilingDirection> {
+  wm.state
+    .focused_container()
+    .and_then(|focused| focused.direction_container())
+    .map(|direction_container| direction_container.tiling_direction())
+}
+
+/// Gets the 1-based config index of the currently focused workspace.
+fn current_workspace_index(
+  wm: &WindowManager,
+  config: &UserConfig,
+) -> Option<usize> {
+  wm.state
+    .focused_container()
+    .and_then(|focused| focused.workspace())
+    .and_then(|workspace| {
+      workspace_display_index(
+        &workspace.config().name,
+        &config.value.workspaces,
+      )
+    })
+}
+
+/// Gets the 1-based display index of a workspace from config order.
+fn workspace_display_index(
+  workspace_name: &str,
+  workspace_configs: &[WorkspaceConfig],
+) -> Option<usize> {
+  workspace_configs
+    .iter()
+    .position(|workspace| workspace.name == workspace_name)
+    .map(|index| index + 1)
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_common::WorkspaceConfig;
+
+  use super::workspace_display_index;
+
+  #[test]
+  fn workspace_display_index_uses_config_order() {
+    let workspaces = vec![
+      WorkspaceConfig {
+        name: "2".to_string(),
+        display_name: None,
+        bind_to_monitor: None,
+        keep_alive: false,
+      },
+      WorkspaceConfig {
+        name: "1".to_string(),
+        display_name: None,
+        bind_to_monitor: None,
+        keep_alive: false,
+      },
+    ];
+
+    assert_eq!(workspace_display_index("2", &workspaces), Some(1));
+    assert_eq!(workspace_display_index("1", &workspaces), Some(2));
+    assert_eq!(workspace_display_index("3", &workspaces), None);
+  }
 }
 
 /// Initialize logging with the specified verbosity level.

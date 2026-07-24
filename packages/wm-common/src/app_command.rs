@@ -6,7 +6,7 @@ use tracing::Level;
 use uuid::Uuid;
 use wm_platform::{Delta, Direction, LengthValue, OpacityValue};
 
-use crate::TilingDirection;
+use crate::{TilingDirection, TrayIconMode};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -151,6 +151,7 @@ pub enum SubscribableEvent {
   WorkspaceDeactivated,
   WorkspaceUpdated,
   PauseChanged,
+  TrayIconModeChanged,
 }
 
 #[derive(Clone, Debug, Parser, PartialEq, Serialize)]
@@ -259,6 +260,11 @@ pub enum InvokeCommand {
   WmExit,
   WmRedraw,
   WmReloadConfig,
+  WmSetTrayIconMode {
+    #[clap(long)]
+    mode: TrayIconMode,
+  },
+  WmToggleTrayIconMode,
   WmTogglePause,
 }
 

@@ -378,3 +378,75 @@ impl UserConfig {
     })
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use wm_common::{ParsedConfig, TrayIconMode};
+
+  use super::SAMPLE_CONFIG;
+
+  /// Parses a minimal user config containing the provided general fields.
+  fn parse_general(
+    general_fields: &str,
+  ) -> Result<ParsedConfig, serde_yaml::Error> {
+    serde_yaml::from_str(&format!("general:\n{general_fields}"))
+  }
+
+  #[test]
+  fn tray_icon_default_mode_defaults_to_status() {
+    let config = parse_general("  tray_icon_state: true\n")
+      .expect("Failed to parse config.");
+
+    assert!(config.general.tray_icon_state);
+    assert_eq!(
+      config.general.tray_icon_default_mode,
+      TrayIconMode::Status
+    );
+  }
+
+  #[test]
+  fn tray_icon_default_mode_accepts_status() {
+    let config = parse_general(
+      "  tray_icon_state: true\n  tray_icon_default_mode: status\n",
+    )
+    .expect("Failed to parse config.");
+
+    assert_eq!(
+      config.general.tray_icon_default_mode,
+      TrayIconMode::Status
+    );
+  }
+
+  #[test]
+  fn tray_icon_default_mode_accepts_workspace() {
+    let config = parse_general(
+      "  tray_icon_state: true\n  tray_icon_default_mode: workspace\n",
+    )
+    .expect("Failed to parse config.");
+
+    assert_eq!(
+      config.general.tray_icon_default_mode,
+      TrayIconMode::Workspace
+    );
+  }
+
+  #[test]
+  fn tray_icon_default_mode_rejects_invalid_value() {
+    let config = parse_general(
+      "  tray_icon_state: true\n  tray_icon_default_mode: invalid\n",
+    );
+
+    assert!(config.is_err());
+  }
+
+  #[test]
+  fn sample_config_uses_status_tray_icon_default_mode() {
+    let config: ParsedConfig = serde_yaml::from_str(SAMPLE_CONFIG)
+      .expect("Failed to parse config.");
+
+    assert_eq!(
+      config.general.tray_icon_default_mode,
+      TrayIconMode::Status
+    );
+  }
+}

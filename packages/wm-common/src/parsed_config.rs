@@ -4,7 +4,7 @@ use wm_platform::{
   RectDelta,
 };
 
-use crate::app_command::InvokeCommand;
+use crate::{app_command::InvokeCommand, tray_icon_mode::TrayIconMode};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
@@ -96,6 +96,13 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Whether the tray icon should reflect the current WM state.
+  #[serde(alias = "tray-icon-state")]
+  pub tray_icon_state: bool,
+
+  /// Display mode to use for the tray icon on startup and config reload.
+  pub tray_icon_default_mode: TrayIconMode,
 }
 
 impl Default for GeneralConfig {
@@ -118,6 +125,8 @@ impl Default for GeneralConfig {
         }
       },
       show_all_in_taskbar: false,
+      tray_icon_state: false,
+      tray_icon_default_mode: TrayIconMode::default(),
     }
   }
 }

@@ -64,6 +64,8 @@ pub fn reload_config(
 
   // Clear active binding modes.
   state.binding_modes = Vec::new();
+  let _ =
+    state.set_tray_icon_mode(config.value.general.tray_icon_default_mode);
 
   // Redraw full container tree.
   state
