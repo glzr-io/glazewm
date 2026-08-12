@@ -13,6 +13,7 @@ use objc2_core_graphics::{
 };
 use tokio::sync::mpsc;
 
+use super::event_tap::EventTapHandle;
 use crate::{
   mouse_listener::MouseEventKind,
   platform_event::{MouseButton, MouseEvent, PressedButtons},
@@ -22,6 +23,9 @@ use crate::{
 /// Data shared with the `CGEventTap` callback.
 struct CallbackData {
   event_tx: mpsc::UnboundedSender<MouseEvent>,
+
+  /// Handle used to re-enable the event tap from its callback.
+  event_tap: EventTapHandle,
 
   /// Pressed button state tracked from events.
   pressed_buttons: PressedButtons,
@@ -34,6 +38,7 @@ impl CallbackData {
   fn new(event_tx: mpsc::UnboundedSender<MouseEvent>) -> Self {
     Self {
       event_tx,
+      event_tap: EventTapHandle::default(),
       pressed_buttons: PressedButtons::default(),
       last_move_emission: None,
     }
@@ -172,6 +177,12 @@ impl MouseListener {
       })
     }?;
 
+    // Make the event tap available to its callback before registering the
+    // run loop source, which is when callbacks can start being delivered.
+    let callback_data =
+      unsafe { &mut *(callback_data_ptr as *mut CallbackData) };
+    callback_data.event_tap.set(&tap_port, dispatcher);
+
     let loop_source =
       CFMachPort::new_run_loop_source(None, Some(&tap_port), 0)
         .ok_or_else(|| {
@@ -237,6 +248,10 @@ impl MouseListener {
     }
 
     let data = unsafe { &mut *user_info.cast::<CallbackData>() };
+
+    if data.event_tap.reenable_if_disabled(cg_event_type) {
+      return unsafe { cg_event.as_mut() };
+    }
 
     // Map a `CGEventType` to a `MouseEventKind`.
     let event_kind = match cg_event_type {
