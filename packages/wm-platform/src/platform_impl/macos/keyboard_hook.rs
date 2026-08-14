@@ -8,6 +8,7 @@ use objc2_core_graphics::{
   CGEventTapOptions, CGEventTapPlacement, CGEventTapProxy, CGEventType,
 };
 
+use super::event_tap::EventTapHandle;
 use crate::{Dispatcher, Error, Key, KeyCode, ThreadBound};
 
 /// A key event received from the keyboard hook.
@@ -62,6 +63,7 @@ impl KeyEvent {
 /// Data shared with the `CGEventTap` callback.
 struct CallbackData {
   callback: Box<dyn Fn(KeyEvent) -> bool + Send + Sync + 'static>,
+  event_tap: EventTapHandle,
 }
 
 /// A system-wide low-level keyboard hook.
@@ -89,6 +91,7 @@ impl KeyboardHook {
     let callback_ptr = {
       let data = Box::new(CallbackData {
         callback: Box::new(callback),
+        event_tap: EventTapHandle::default(),
       });
       Box::into_raw(data) as usize
     };
@@ -151,6 +154,12 @@ impl KeyboardHook {
       })
     }?;
 
+    // Make the event tap available to its callback before registering the
+    // run loop source, which is when callbacks can start being delivered.
+    let callback_data =
+      unsafe { &mut *(callback_ptr as *mut CallbackData) };
+    callback_data.event_tap.set(&tap_port, dispatcher);
+
     let loop_source =
       CFMachPort::new_run_loop_source(None, Some(&tap_port), 0)
         .ok_or_else(|| {
@@ -183,6 +192,12 @@ impl KeyboardHook {
       return unsafe { event.as_mut() };
     }
 
+    let data = unsafe { &*(user_info as *const CallbackData) };
+
+    if data.event_tap.reenable_if_disabled(event_type) {
+      return unsafe { event.as_mut() };
+    }
+
     // Extract the key code of the pressed/released key.
     let key_code = KeyCode(unsafe {
       CGEvent::integer_value_field(
@@ -204,8 +219,6 @@ impl KeyboardHook {
       event_flags,
     };
 
-    // Get callback from user data and invoke it.
-    let data = unsafe { &*(user_info as *const CallbackData) };
     let should_intercept = (data.callback)(key_event);
 
     if should_intercept {

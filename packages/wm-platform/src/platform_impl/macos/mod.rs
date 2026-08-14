@@ -5,6 +5,7 @@ mod ax_value;
 mod display;
 mod display_listener;
 mod event_loop;
+mod event_tap;
 pub(crate) mod ffi;
 mod keyboard_hook;
 mod mouse_listener;
