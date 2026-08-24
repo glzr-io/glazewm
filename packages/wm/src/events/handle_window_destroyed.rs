@@ -1,5 +1,6 @@
 use anyhow::Context;
 use tracing::info;
+use wm_common::TilingStrategy;
 use wm_platform::WindowId;
 
 use crate::{
@@ -11,6 +12,7 @@ use crate::{
 pub fn handle_window_destroyed(
   native_window_id: WindowId,
   state: &mut WmState,
+  tiling_strategy: &TilingStrategy,
 ) -> anyhow::Result<()> {
   let found_window = state
     .windows()
@@ -22,7 +24,7 @@ pub fn handle_window_destroyed(
     let workspace = window.workspace().context("No workspace.")?;
 
     info!("Window closed: {window}");
-    unmanage_window(window, state)?;
+    unmanage_window(window, state, tiling_strategy)?;
 
     // Destroy parent workspace if window was killed while its workspace
     // was not displayed (e.g. via task manager).

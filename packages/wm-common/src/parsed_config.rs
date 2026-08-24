@@ -96,6 +96,21 @@ pub struct GeneralConfig {
 
   /// Affects which windows get shown in the native Windows taskbar.
   pub show_all_in_taskbar: bool,
+
+  /// Whether to extract and include window icons in workspace data.
+  /// When enabled, window icons will be extracted and included as base64
+  /// data URLs in IPC responses. This is useful for status bars that want
+  /// to display window icons.
+  pub window_icons_enabled: bool,
+
+  /// How tiling windows should be sized when added to a workspace.
+  pub tiling_strategy: TilingStrategy,
+
+  /// Whether to automatically set the tiling direction based on the
+  /// dimensions of the parent container. When enabled, new windows will
+  /// split horizontally if the space is wider than tall, and vertically
+  /// if it is taller than wide.
+  pub auto_tiling_direction: bool,
 }
 
 impl Default for GeneralConfig {
@@ -118,6 +133,9 @@ impl Default for GeneralConfig {
         }
       },
       show_all_in_taskbar: false,
+      window_icons_enabled: false,
+      tiling_strategy: TilingStrategy::default(),
+      auto_tiling_direction: true,
     }
   }
 }
@@ -147,6 +165,18 @@ pub enum HideMethod {
   #[default]
   Cloak,
   PlaceInCorner,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TilingStrategy {
+  /// The first window (master) takes 50% of the space, and the
+  /// remaining windows split the other 50% equally.
+  #[default]
+  MasterStack,
+
+  /// All windows share the space equally.
+  Equal,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

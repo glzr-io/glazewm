@@ -10,6 +10,25 @@ use objc2_core_graphics::{
 
 use crate::{Dispatcher, Error, Key, KeyCode, ThreadBound};
 
+/// Disguises a modifier key release to suppress the system menu it would
+/// otherwise trigger, then re-injects the release.
+///
+/// This is a no-op on macOS, where tapping a modifier key does not open a
+/// system menu. It exists to mirror the Windows API, where a lone `Win`
+/// tap would otherwise open the Start menu.
+///
+/// Returns whether the release was disguised and re-injected (always
+/// `false` on macOS, so the caller does not swallow the original event).
+///
+/// # Platform-specific
+///
+/// - **Windows**: Injects a disguise key followed by the modifier release.
+/// - **macOS**: No-op.
+#[allow(clippy::must_use_candidate)]
+pub fn disguise_modifier_release(_key: Key) -> bool {
+  false
+}
+
 /// A key event received from the keyboard hook.
 #[derive(Clone, Debug)]
 pub struct KeyEvent {
@@ -22,6 +41,11 @@ pub struct KeyEvent {
 
   /// Whether the event is for a key press or release.
   pub is_keypress: bool,
+
+  /// Whether the event was injected by this application (e.g. a disguise
+  /// key). Always `false` on macOS.
+  #[allow(dead_code)]
+  pub is_injected: bool,
 
   /// Modifier key flags at the time of the event.
   event_flags: CGEventFlags,
@@ -201,6 +225,7 @@ impl KeyboardHook {
       key,
       key_code,
       is_keypress: event_type == CGEventType::KeyDown,
+      is_injected: false,
       event_flags,
     };
 

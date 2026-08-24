@@ -1,5 +1,5 @@
 use tracing::info;
-use wm_common::{DisplayState, HideMethod};
+use wm_common::{DisplayState, HideMethod, TilingStrategy};
 use wm_platform::NativeWindow;
 
 use crate::{
@@ -11,6 +11,7 @@ pub fn handle_window_hidden(
   native_window: &NativeWindow,
   state: &mut WmState,
   config: &UserConfig,
+  tiling_strategy: &TilingStrategy,
 ) -> anyhow::Result<()> {
   let found_window = state.window_from_native(native_window);
 
@@ -32,7 +33,7 @@ pub fn handle_window_hidden(
       || window.display_state() == DisplayState::Shown)
       && !window.native().is_visible().unwrap_or(false)
     {
-      unmanage_window(window, state)?;
+      unmanage_window(window, state, tiling_strategy)?;
     }
   }
 

@@ -88,7 +88,7 @@ function BuildExes() {
     if (($sourcePaths | Where-Object { !(Test-Path $_) }).Count -gt 0) {
       Write-Output "Build artifact not found for target '$target'. Building now..."
 
-      cargo build --locked --release --target $target --features ui_access
+      cargo build --locked --release --target $target --workspace --features ui_access
       ExitOnError
 
       Write-Output "Build completed successfully for target '$target'."

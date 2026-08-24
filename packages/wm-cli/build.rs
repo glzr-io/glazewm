@@ -12,6 +12,8 @@ fn main() {
   res.set("OriginalFilename", "glazewm.exe");
   res.set("ProductName", "GlazeWM CLI");
   res.set("FileDescription", "GlazeWM CLI");
+  res.set("CompanyName", "Glzr Software Pte. Ltd.");
+  res.set("LegalCopyright", "Copyright © Glzr Software Pte. Ltd.");
 
   let version_parts = env!("VERSION_NUMBER")
     .split('.')

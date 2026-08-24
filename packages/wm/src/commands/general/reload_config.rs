@@ -37,6 +37,11 @@ pub fn reload_config(
 
   update_container_gaps(state, config);
 
+  // Update window icons setting on all workspaces.
+  for workspace in state.workspaces() {
+    workspace.set_window_icons_enabled(config.value.general.window_icons_enabled);
+  }
+
   #[cfg(target_os = "windows")]
   update_window_effects(&old_config, state, config)?;
 

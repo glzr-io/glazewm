@@ -5,8 +5,8 @@
 
 use bon::bon;
 use wm_common::{
-  FloatingStateConfig, GapsConfig, TilingDirection, WindowState,
-  WorkspaceConfig,
+  FloatingStateConfig, GapsConfig, TilingDirection, TilingStrategy,
+  WindowState, WorkspaceConfig,
 };
 use wm_platform::{Display, NativeWindow, Rect, RectDelta};
 
@@ -72,8 +72,13 @@ impl Monitor {
     let monitor = Self::new(native, properties);
 
     for workspace in workspaces {
-      attach_container(&workspace.into(), &monitor.clone().into(), None)
-        .unwrap();
+      attach_container(
+        &workspace.into(),
+        &monitor.clone().into(),
+        None,
+        &TilingStrategy::default(),
+      )
+      .unwrap();
     }
 
     monitor
@@ -180,8 +185,13 @@ impl SplitContainer {
     let split = Self::new(tiling_direction, gaps_config);
 
     for child in tiling_containers {
-      attach_container(&child.into(), &split.clone().into(), None)
-        .unwrap();
+      attach_container(
+        &child.into(),
+        &split.clone().into(),
+        None,
+        &TilingStrategy::default(),
+      )
+      .unwrap();
     }
 
     split
@@ -235,6 +245,7 @@ impl Workspace {
     #[builder(default = GapsConfig::default())] gaps_config: GapsConfig,
     #[builder(default = vec![])] tiling_containers: Vec<TilingContainer>,
     #[builder(default = vec![])] non_tiling_windows: Vec<NonTilingWindow>,
+    #[builder(default = false)] window_icons_enabled: bool,
   ) -> Self {
     let config = WorkspaceConfig {
       name,
@@ -243,16 +254,27 @@ impl Workspace {
       keep_alive: false,
     };
 
-    let workspace = Self::new(config, gaps_config, tiling_direction);
+    let workspace =
+      Self::new(config, gaps_config, tiling_direction, window_icons_enabled);
 
     for child in tiling_containers {
-      attach_container(&child.into(), &workspace.clone().into(), None)
-        .unwrap();
+      attach_container(
+        &child.into(),
+        &workspace.clone().into(),
+        None,
+        &TilingStrategy::default(),
+      )
+      .unwrap();
     }
 
     for child in non_tiling_windows {
-      attach_container(&child.into(), &workspace.clone().into(), None)
-        .unwrap();
+      attach_container(
+        &child.into(),
+        &workspace.clone().into(),
+        None,
+        &TilingStrategy::default(),
+      )
+      .unwrap();
     }
 
     workspace

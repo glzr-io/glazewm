@@ -4,8 +4,10 @@ use windows::Win32::{
   Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM},
   UI::{
     Input::KeyboardAndMouse::{
-      GetKeyState, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL,
-      VK_RMENU, VK_RSHIFT, VK_RWIN,
+      GetKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
+      KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_LCONTROL,
+      VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT,
+      VK_RWIN,
     },
     WindowsAndMessaging::{
       CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
@@ -15,6 +17,80 @@ use windows::Win32::{
 };
 
 use crate::{Dispatcher, Key, KeyCode};
+
+/// Marker value stored in `dwExtraInfo` to identify keyboard input that
+/// this application injected itself (e.g. disguise keys). The keyboard
+/// hook uses this to ignore its own synthetic events and avoid recursion.
+const SELF_INJECTED_MARKER: usize = 0x474C_5A00; // "GLZ\0".
+
+/// Builds a keyboard `INPUT` for the given virtual key, marked as
+/// self-injected.
+fn key_input(key: VIRTUAL_KEY, is_keyup: bool) -> INPUT {
+  INPUT {
+    r#type: INPUT_KEYBOARD,
+    Anonymous: INPUT_0 {
+      ki: KEYBDINPUT {
+        wVk: key,
+        wScan: 0,
+        dwFlags: if is_keyup {
+          KEYEVENTF_KEYUP
+        } else {
+          KEYBD_EVENT_FLAGS(0)
+        },
+        time: 0,
+        dwExtraInfo: SELF_INJECTED_MARKER,
+      },
+    },
+  }
+}
+
+/// Disguises a modifier key release to suppress the Windows Start menu,
+/// then re-injects the release.
+///
+/// The Start menu opens when the `Win` key is pressed and released without
+/// any intervening key. To suppress this, the caller swallows the real
+/// `Win` release and calls this function, which injects a disguise key
+/// (`Ctrl`) followed by a synthetic release of the modifier. Because a key
+/// is seen between the `Win` press and release, Windows does not open the
+/// Start menu. Re-injecting the release ensures the modifier does not
+/// remain stuck down.
+///
+/// `key` is the modifier key to release (e.g. `Key::Win`).
+///
+/// Returns whether the events were successfully injected. If `false`, the
+/// caller must *not* swallow the real release (otherwise the key would be
+/// stuck down).
+///
+/// # Platform-specific
+///
+/// - **Windows**: Injects `Ctrl` (down + up) then the modifier release.
+/// - **macOS**: No-op (returns `false`).
+#[must_use]
+pub fn disguise_modifier_release(key: Key) -> bool {
+  // Resolve the exact virtual key to release. Using the originally pressed
+  // key preserves the correct side (e.g. left vs right `Win`).
+  let Ok(key_code) = KeyCode::try_from(key) else {
+    return false;
+  };
+
+  let inputs = [
+    // Disguise key. A lone `Ctrl` tap is inert in applications but counts
+    // as an intervening key, suppressing the Start menu.
+    key_input(VK_LCONTROL, false),
+    key_input(VK_LCONTROL, true),
+    // Re-injected release of the original modifier key.
+    key_input(VIRTUAL_KEY(key_code.0), true),
+  ];
+
+  // SAFETY: `inputs` is a valid, correctly-sized array of `INPUT`
+  // structures that outlives the call.
+  let sent = unsafe {
+    #[allow(clippy::cast_possible_truncation)]
+    SendInput(&inputs, std::mem::size_of::<INPUT>() as i32)
+  };
+
+  sent as usize == inputs.len()
+}
 
 /// Callback stored in [`HOOK`] for intercepting keyboard events.
 type HookCallback = Box<dyn Fn(KeyEvent) -> bool>;
@@ -39,6 +115,10 @@ pub struct KeyEvent {
 
   /// Whether the event is for a key press or release.
   pub is_keypress: bool,
+
+  /// Whether the event was injected by this application (identified via a
+  /// marker in `dwExtraInfo`). Used to ignore our own synthetic events.
+  pub is_injected: bool,
 }
 
 impl KeyEvent {
@@ -167,6 +247,8 @@ impl KeyboardHook {
     let is_keypress =
       wparam.0 as u32 == WM_KEYDOWN || wparam.0 as u32 == WM_SYSKEYDOWN;
 
+    let is_injected = input.dwExtraInfo == SELF_INJECTED_MARKER;
+
     let Ok(key) = Key::try_from(key_code) else {
       return unsafe { CallNextHookEx(None, code, wparam, lparam) };
     };
@@ -175,6 +257,7 @@ impl KeyboardHook {
       key,
       key_code,
       is_keypress,
+      is_injected,
     };
 
     let should_intercept = HOOK.with(|state| {

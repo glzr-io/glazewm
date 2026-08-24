@@ -1,6 +1,6 @@
 use anyhow::Context;
 use tracing::info;
-use wm_common::WmEvent;
+use wm_common::{TilingStrategy, WmEvent};
 
 use crate::{
   commands::{
@@ -49,7 +49,7 @@ pub fn remove_monitor(
     });
   }
 
-  detach_container(monitor.clone().into())?;
+  detach_container(monitor.clone().into(), &TilingStrategy::Equal)?;
 
   state.emit_event(WmEvent::MonitorRemoved {
     removed_id: monitor.id(),

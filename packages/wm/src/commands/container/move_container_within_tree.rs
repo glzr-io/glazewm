@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_common::{VecDequeExt, WmEvent};
+use wm_common::{TilingStrategy, VecDequeExt, WmEvent};
 
 use super::{
   attach_container, detach_container, flatten_child_split_containers,
@@ -94,11 +94,12 @@ pub fn move_container_within_tree(
   let is_subtree_focused =
     original_focus_index < target_parent_ancestor.focus_index();
 
-  detach_container(container_to_move.clone())?;
+  detach_container(container_to_move.clone(), &TilingStrategy::Equal)?;
   attach_container(
     &container_to_move.clone(),
     &target_parent.clone(),
     Some(target_index),
+    &TilingStrategy::Equal,
   )?;
 
   // Set `container_to_move` as focused descendant within target subtree if
@@ -152,12 +153,13 @@ fn move_to_lowest_common_ancestor(
     .map(|ancestor| ancestor.focus_index())
     .context("Failed to get focus index of container's ancestor.")?;
 
-  detach_container(container_to_move.clone())?;
+  detach_container(container_to_move.clone(), &TilingStrategy::Equal)?;
 
   attach_container(
     &container_to_move.clone(),
     &lowest_common_ancestor.clone(),
     Some(target_index),
+    &TilingStrategy::Equal,
   )?;
 
   lowest_common_ancestor

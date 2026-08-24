@@ -1,5 +1,5 @@
 use tracing::info;
-use wm_common::WmEvent;
+use wm_common::{TilingStrategy, WmEvent};
 
 use crate::{
   commands::container::detach_container, models::Workspace,
@@ -15,7 +15,7 @@ pub fn deactivate_workspace(
 ) -> anyhow::Result<()> {
   info!("Deactivating workspace: {workspace}");
 
-  detach_container(workspace.clone().into())?;
+  detach_container(workspace.clone().into(), &TilingStrategy::Equal)?;
 
   state.emit_event(WmEvent::WorkspaceDeactivated {
     deactivated_id: workspace.id(),

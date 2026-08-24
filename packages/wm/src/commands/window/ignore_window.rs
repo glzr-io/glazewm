@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_common::WindowState;
+use wm_common::{TilingStrategy, WindowState};
 
 use crate::{
   commands::container::{
@@ -14,12 +14,13 @@ use crate::{
 pub fn ignore_window(
   window: WindowContainer,
   state: &mut WmState,
+  tiling_strategy: &TilingStrategy,
 ) -> anyhow::Result<()> {
   // Create iterator of parent, grandparent, and great-grandparent.
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
   state.ignored_windows.push(window.native().clone());
-  detach_container(window.clone().into())?;
+  detach_container(window.clone().into(), tiling_strategy)?;
 
   // After detaching the container, flatten any redundant split containers.
   // For example, in the layout V[1 H[2]] where container 1 is detached to

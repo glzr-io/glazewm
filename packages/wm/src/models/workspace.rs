@@ -8,8 +8,11 @@ use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
   ContainerDto, GapsConfig, TilingDirection, WorkspaceConfig, WorkspaceDto,
+  WorkspaceWindowDto,
 };
 use wm_platform::{Rect, RectDelta};
+#[cfg(target_os = "windows")]
+use wm_platform::NativeWindowWindowsExt;
 
 use crate::{
   impl_common_getters, impl_container_debug,
@@ -17,7 +20,9 @@ use crate::{
   models::{
     Container, DirectionContainer, TilingContainer, WindowContainer,
   },
-  traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
+  },
 };
 
 #[derive(Clone)]
@@ -32,6 +37,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  window_icons_enabled: bool,
 }
 
 impl Workspace {
@@ -39,6 +45,7 @@ impl Workspace {
     config: WorkspaceConfig,
     gaps_config: GapsConfig,
     tiling_direction: TilingDirection,
+    window_icons_enabled: bool,
   ) -> Self {
     let workspace = WorkspaceInner {
       id: Uuid::new_v4(),
@@ -48,6 +55,7 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      window_icons_enabled,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -73,6 +81,10 @@ impl Workspace {
 
   pub fn set_gaps_config(&self, gaps_config: GapsConfig) {
     self.0.borrow_mut().gaps_config = gaps_config;
+  }
+
+  pub fn set_window_icons_enabled(&self, enabled: bool) {
+    self.0.borrow_mut().window_icons_enabled = enabled;
   }
 
   /// Effective outer gaps for this workspace.
@@ -150,6 +162,8 @@ impl Workspace {
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
+    let include_window_icons = self.0.borrow().window_icons_enabled;
+
     let rect = self.to_rect()?;
     let config = self.config();
 
@@ -158,6 +172,33 @@ impl Workspace {
       .iter()
       .map(CommonGetters::to_dto)
       .try_collect()?;
+
+    // Collect all windows in this workspace if window_icons are enabled.
+    let windows = if include_window_icons {
+      self
+        .descendants()
+        .filter_map(|container| container.as_window_container().ok())
+        .filter_map(|window| {
+          let native = window.native();
+          match (native.process_name(), native.title()) {
+            (Ok(process_name), Ok(title)) => {
+              #[cfg(target_os = "windows")]
+              let icon = native.icon_as_data_url();
+              #[cfg(not(target_os = "windows"))]
+              let icon = None;
+              Some(WorkspaceWindowDto {
+                process_name,
+                title,
+                icon,
+              })
+            }
+            _ => None,
+          }
+        })
+        .collect()
+    } else {
+      vec![]
+    };
 
     Ok(ContainerDto::Workspace(WorkspaceDto {
       id: self.id(),
@@ -173,6 +214,7 @@ impl Workspace {
       x: rect.x(),
       y: rect.y(),
       tiling_direction: self.tiling_direction(),
+      windows,
     }))
   }
 }

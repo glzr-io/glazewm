@@ -323,6 +323,13 @@ pub trait NativeWindowWindowsExt {
     &self,
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()>;
+
+  /// Extracts the window icon as a base64-encoded raw bitmap data URL.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn icon_as_data_url(&self) -> Option<String>;
 }
 
 #[cfg(target_os = "windows")]
@@ -427,6 +434,182 @@ impl NativeWindowWindowsExt for NativeWindow {
     opacity_delta: &Delta<OpacityValue>,
   ) -> crate::Result<()> {
     self.inner.adjust_transparency(opacity_delta)
+  }
+
+  fn icon_as_data_url(&self) -> Option<String> {
+    use base64::{engine::general_purpose, Engine as _};
+    use windows::Win32::{
+      Graphics::Gdi::{
+        CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits,
+        ReleaseDC, SelectObject, BITMAP, BITMAPINFO, BITMAPINFOHEADER,
+        BI_RGB, DIB_RGB_COLORS,
+      },
+      UI::{
+        Shell::ExtractIconW,
+        WindowsAndMessaging::{DestroyIcon, GetIconInfo, ICONINFO},
+      },
+    };
+
+    let hwnd = self.hwnd();
+
+    // Get the process name to find the executable path
+    let exe_path = {
+      use windows::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+      };
+      use windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId;
+      use windows::core::PWSTR;
+      use windows::Win32::Foundation::CloseHandle;
+
+      let mut process_id = 0u32;
+      unsafe {
+        GetWindowThreadProcessId(hwnd, Some(&raw mut process_id));
+      }
+
+      let process_handle = unsafe {
+        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process_id)
+      }.ok()?;
+
+      let mut buffer = [0u16; 512];
+      let mut length = buffer.len() as u32;
+      let result = unsafe {
+        QueryFullProcessImageNameW(
+          process_handle,
+          PROCESS_NAME_WIN32,
+          PWSTR(buffer.as_mut_ptr()),
+          &raw mut length,
+        )
+      };
+
+      let _ = unsafe { CloseHandle(process_handle) };
+      result.ok()?;
+
+      String::from_utf16_lossy(&buffer[..length as usize])
+    };
+
+    // Convert to wide string for Windows API
+    let wide_path: Vec<u16> =
+      exe_path.encode_utf16().chain(std::iter::once(0)).collect();
+
+    // Extract the first icon from the executable
+    let icon_handle = unsafe {
+      ExtractIconW(
+        None,
+        windows::core::PCWSTR(wide_path.as_ptr()),
+        0,
+      )
+    };
+
+    if icon_handle.0 <= 1 {
+      return None;
+    }
+
+    let mut icon_info = ICONINFO::default();
+    if unsafe {
+      GetIconInfo(icon_handle, std::ptr::from_mut(&mut icon_info))
+    }
+    .is_err()
+    {
+      let _ = unsafe { DestroyIcon(icon_handle) };
+      return None;
+    }
+
+    let hdc_screen = unsafe { GetDC(hwnd) };
+    let hdc = unsafe { CreateCompatibleDC(hdc_screen) };
+
+    let mut bmp: BITMAP = unsafe { std::mem::zeroed() };
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    let get_object_result = unsafe {
+      windows::Win32::Graphics::Gdi::GetObjectW(
+        icon_info.hbmColor,
+        std::mem::size_of::<BITMAP>() as i32,
+        Some(std::ptr::from_mut(&mut bmp).cast()),
+      )
+    };
+
+    if get_object_result == 0 {
+      unsafe {
+        let _ = DeleteDC(hdc);
+        let _ = ReleaseDC(hwnd, hdc_screen);
+        let _ = DeleteObject(icon_info.hbmColor);
+        let _ = DeleteObject(icon_info.hbmMask);
+        let _ = DestroyIcon(icon_handle);
+      }
+      return None;
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    let bi = BITMAPINFOHEADER {
+      biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+      biWidth: bmp.bmWidth,
+      biHeight: -bmp.bmHeight.abs(),
+      biPlanes: 1,
+      biBitCount: 32,
+      biCompression: BI_RGB.0,
+      ..Default::default()
+    };
+
+    #[allow(clippy::cast_sign_loss)]
+    let bitmap_size = (bmp.bmWidth * bmp.bmHeight * 4) as usize;
+    let mut bitmap_data = vec![0u8; bitmap_size];
+
+    let old_bmp = unsafe { SelectObject(hdc, icon_info.hbmColor) };
+    let result = unsafe {
+      GetDIBits(
+        hdc,
+        icon_info.hbmColor,
+        0,
+        bmp.bmHeight.unsigned_abs(),
+        Some(bitmap_data.as_mut_ptr().cast()),
+        std::ptr::from_mut(&mut BITMAPINFO {
+          bmiHeader: bi,
+          ..Default::default()
+        }),
+        DIB_RGB_COLORS,
+      )
+    };
+
+    unsafe {
+      SelectObject(hdc, old_bmp);
+      let _ = DeleteDC(hdc);
+      let _ = ReleaseDC(hwnd, hdc_screen);
+      let _ = DeleteObject(icon_info.hbmColor);
+      let _ = DeleteObject(icon_info.hbmMask);
+      let _ = DestroyIcon(icon_handle);
+    }
+
+    if result == 0 {
+      return None;
+    }
+
+    // Convert BGRA bitmap data to RGBA grayscale
+    for i in (0..bitmap_data.len()).step_by(4) {
+      let b = bitmap_data[i];
+      let g = bitmap_data[i + 1];
+      let r = bitmap_data[i + 2];
+      let a = bitmap_data[i + 3];
+
+      #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss
+      )]
+      let gray = (0.299 * f32::from(r)
+        + 0.587 * f32::from(g)
+        + 0.114 * f32::from(b)) as u8;
+
+      bitmap_data[i] = gray;
+      bitmap_data[i + 1] = gray;
+      bitmap_data[i + 2] = gray;
+      bitmap_data[i + 3] = a;
+    }
+
+    let base64_data = general_purpose::STANDARD.encode(&bitmap_data);
+
+    Some(format!(
+      "data:image/raw;base64,{}|{}x{}",
+      base64_data, bmp.bmWidth, bmp.bmHeight
+    ))
   }
 }
 

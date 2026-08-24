@@ -16,6 +16,8 @@ fn main() {
   res.set("OriginalFilename", "glazewm-watcher.exe");
   res.set("ProductName", "GlazeWM Watcher");
   res.set("FileDescription", "GlazeWM Watcher");
+  res.set("CompanyName", "Glzr Software Pte. Ltd.");
+  res.set("LegalCopyright", "Copyright © Glzr Software Pte. Ltd.");
 
   let version_parts = env!("VERSION_NUMBER")
     .split('.')

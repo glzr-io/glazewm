@@ -4,7 +4,9 @@ use anyhow::Context;
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
-use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
+use wm_common::{
+  BindingModeConfig, HideCorner, TilingStrategy, WindowState, WmEvent,
+};
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
@@ -671,7 +673,7 @@ impl WmState {
 
     for window in invalid_windows {
       tracing::info!("Removing invalid window: {}", window);
-      unmanage_window(window, self)?;
+      unmanage_window(window, self, &TilingStrategy::Equal)?;
     }
 
     // Prune ignored windows that are no longer valid.
