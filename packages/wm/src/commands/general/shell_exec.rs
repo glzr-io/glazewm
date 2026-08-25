@@ -116,7 +116,7 @@ fn parse_command(
   if expanded_command.starts_with('"') {
     // Find the closing double quote.
     let (closing_index, _) =
-      expanded_command.match_indices('"').nth(2).ok_or_else(|| {
+      expanded_command.match_indices('"').nth(1).ok_or_else(|| {
         anyhow::anyhow!(
           "Shell exec failed for '{command}': command doesn't have an ending `\"`."
         )
