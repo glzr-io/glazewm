@@ -112,6 +112,11 @@ window_behavior:
       # Whether to show floating windows as always on top.
       shown_on_top: false
 
+      # Whether unfocused floating windows keep their current z-order when
+      # focus changes. When false (default), all floating windows on the
+      # workspace are re-stacked by focus order.
+      keep_z_order: false
+
     fullscreen:
       # Maximize the window if possible. If the window doesn't have a
       # maximize button, then it'll be fullscreen'ed normally instead.

@@ -198,6 +198,10 @@ pub struct FloatingStateConfig {
 
   /// Whether to show floating windows as always on top.
   pub shown_on_top: bool,
+
+  /// Whether unfocused floating windows keep their current z-order when
+  /// focus changes.
+  pub keep_z_order: bool,
 }
 
 impl Default for FloatingStateConfig {
@@ -205,6 +209,7 @@ impl Default for FloatingStateConfig {
     FloatingStateConfig {
       centered: true,
       shown_on_top: false,
+      keep_z_order: false,
     }
   }
 }

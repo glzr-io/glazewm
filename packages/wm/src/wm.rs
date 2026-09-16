@@ -503,6 +503,7 @@ impl WindowManager {
               centered,
               shown_on_top: shown_on_top
                 .unwrap_or(floating_defaults.shown_on_top),
+              keep_z_order: floating_defaults.keep_z_order,
             }),
             state,
             config,
@@ -654,6 +655,7 @@ impl WindowManager {
             centered,
             shown_on_top: shown_on_top
               .unwrap_or(floating_defaults.shown_on_top),
+            keep_z_order: floating_defaults.keep_z_order,
           });
 
           let window = update_window_state(

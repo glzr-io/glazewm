@@ -157,7 +157,16 @@ fn windows_to_bring_to_front(
               WindowState::Floating(_) | WindowState::Tiling
             );
 
+            // Unfocused floating windows are left at their current
+            // z-order if `keep_z_order` is enabled.
+            let keeps_z_order = matches!(
+              window.state(),
+              WindowState::Floating(config) if config.keep_z_order
+            ) && window.id()
+              != focused_descendant.id();
+
             is_floating_or_tiling
+              && !keeps_z_order
               && window.state().is_same_state(&focused_descendant.state())
           })
           .collect(),
