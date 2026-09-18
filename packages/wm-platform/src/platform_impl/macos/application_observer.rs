@@ -302,15 +302,27 @@ impl ApplicationObserver {
     }
 
     let is_new_window = found_window.is_none();
-    let window = found_window.unwrap_or_else(|| {
-      let window_id = WindowId::from_window_element(&ax_element);
+    let window = if let Some(window) = found_window {
+      window
+    } else {
+      let window_id = match WindowId::from_window_element(&ax_element) {
+        Ok(window_id) => window_id,
+        Err(err) => {
+          tracing::debug!(
+            "Skipping window event for PID {}: {}",
+            context.application.pid,
+            err,
+          );
+          return;
+        }
+      };
       let ax_element = ThreadBound::new(
         ax_element,
         context.application.dispatcher.clone(),
       );
       NativeWindow::new(window_id, ax_element, context.application.clone())
         .into()
-    });
+    };
 
     if is_new_window {
       context.app_windows.lock().unwrap().push(window.clone());

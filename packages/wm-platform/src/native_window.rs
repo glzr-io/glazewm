@@ -1,5 +1,5 @@
 #[cfg(target_os = "macos")]
-use objc2_application_services::AXUIElement;
+use objc2_application_services::{AXError, AXUIElement};
 #[cfg(target_os = "macos")]
 use objc2_core_foundation::{CFBoolean, CFRetained, CFString};
 #[cfg(target_os = "windows")]
@@ -32,17 +32,51 @@ pub struct WindowId(
 
 impl WindowId {
   #[cfg(target_os = "macos")]
-  pub(crate) fn from_window_element(el: &CFRetained<AXUIElement>) -> Self {
+  pub(crate) fn from_window_element(
+    el: &CFRetained<AXUIElement>,
+  ) -> crate::Result<Self> {
     let mut window_id = 0;
 
-    unsafe {
+    let result = unsafe {
       platform_impl::ffi::_AXUIElementGetWindow(
         CFRetained::as_ptr(el),
         &raw mut window_id,
       )
     };
 
-    Self(window_id)
+    Self::from_ax_result(result, window_id)
+  }
+
+  #[cfg(target_os = "macos")]
+  fn from_ax_result(
+    result: AXError,
+    window_id: u32,
+  ) -> crate::Result<Self> {
+    if result != AXError::Success {
+      return Err(crate::Error::Accessibility(
+        "_AXUIElementGetWindow".to_string(),
+        result.0,
+      ));
+    }
+
+    Ok(Self(window_id))
+  }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn window_id_lookup_error_is_propagated() {
+    let result = WindowId::from_ax_result(AXError::InvalidUIElement, 42);
+
+    assert!(matches!(
+      result,
+      Err(crate::Error::Accessibility(attribute, code))
+        if attribute == "_AXUIElementGetWindow"
+          && code == AXError::InvalidUIElement.0
+    ));
   }
 }
 

@@ -54,11 +54,13 @@ impl Application {
       let focused_window =
         el.get_attribute::<AXUIElement>("AXFocusedWindow");
 
-      focused_window.map(|window_el| {
-        let window_id = WindowId::from_window_element(&window_el);
+      focused_window.and_then(|window_el| {
+        let window_id = WindowId::from_window_element(&window_el)?;
         let window_el =
           ThreadBound::new(window_el, self.dispatcher.clone());
-        Some(NativeWindow::new(window_id, window_el, self.clone()).into())
+        Ok(Some(
+          NativeWindow::new(window_id, window_el, self.clone()).into(),
+        ))
       })
     })?
   }
@@ -70,11 +72,24 @@ impl Application {
       windows.map(|windows| {
         windows
           .iter()
-          .map(|window_el| {
-            let window_id = WindowId::from_window_element(&window_el);
+          .filter_map(|window_el| {
+            let window_id = match WindowId::from_window_element(&window_el)
+            {
+              Ok(window_id) => window_id,
+              Err(err) => {
+                tracing::debug!(
+                  "Skipping window for PID {}: {}",
+                  self.pid,
+                  err,
+                );
+                return None;
+              }
+            };
             let window_el =
               ThreadBound::new(window_el, self.dispatcher.clone());
-            NativeWindow::new(window_id, window_el, self.clone()).into()
+            Some(
+              NativeWindow::new(window_id, window_el, self.clone()).into(),
+            )
           })
           .collect()
       })
