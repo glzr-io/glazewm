@@ -296,6 +296,90 @@ impl ApplicationObserver {
             err
           );
         }
+
+        // Re-enumerate the application's windows after a short delay
+        // to catch replacements whose `AXWindowCreated` notification
+        // was missed (e.g. Spotify rapidly destroys and recreates its
+        // window on launch).
+        //
+        // The re-enumeration is dispatched back to the event loop
+        // thread so that AX notifications can be registered for any
+        // newly discovered windows.
+
+        // SAFETY: The `ApplicationEventContext` is heap-allocated via
+        // `Box::into_raw` and lives for the lifetime of the
+        // `ApplicationObserver`. Passing the address as `usize` keeps
+        // the closure `Send`.
+        let context_addr =
+          std::ptr::from_ref::<ApplicationEventContext>(context) as usize;
+        let dispatcher = context.application.dispatcher.clone();
+        let pid = context.application.pid;
+
+        std::thread::spawn(move || {
+          std::thread::sleep(std::time::Duration::from_millis(500));
+
+          let result = dispatcher.dispatch_sync(move || {
+            // SAFETY: See comment above — pointer is stable and the
+            // closure runs on the event loop thread.
+            let context = unsafe {
+              &*(context_addr as *const ApplicationEventContext)
+            };
+
+            let current_windows = match context.application.windows() {
+              Ok(w) => w,
+              Err(err) => {
+                tracing::debug!(
+                  "Re-enumeration failed for PID {}: {}",
+                  pid,
+                  err,
+                );
+                return;
+              }
+            };
+
+            let mut tracked = context.app_windows.lock().unwrap();
+
+            for new_window in current_windows {
+              if tracked.iter().any(|w| w.id() == new_window.id()) {
+                continue;
+              }
+
+              tracing::info!(
+                "Re-discovered window {} for PID {} after destroy.",
+                new_window.id().0,
+                pid,
+              );
+
+              tracked.push(new_window.clone());
+
+              if let Err(err) = Self::register_window_notifications(
+                &new_window,
+                &context.observer,
+                context_addr as *mut ApplicationEventContext,
+              ) {
+                tracing::warn!(
+                  "Failed to register notifications for \
+                   re-discovered window {}: {}",
+                  new_window.id().0,
+                  err,
+                );
+              }
+
+              let _ = context.events_tx.send(WindowEvent::Shown {
+                window: new_window,
+                notification: crate::WindowEventNotification(None),
+              });
+            }
+          });
+
+          if let Err(err) = result {
+            tracing::debug!(
+              "Failed to dispatch re-enumeration for PID {}: {}",
+              pid,
+              err,
+            );
+          }
+        });
       }
 
       return;

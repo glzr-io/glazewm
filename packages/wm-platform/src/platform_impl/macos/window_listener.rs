@@ -172,19 +172,38 @@ impl WindowListener {
         NotificationEvent::WorkspaceDidActivateApplication(
           running_app,
         ) => {
-          let Ok(Ok(Some(focused_window))) =
-            dispatcher.dispatch_sync(|| {
-              let app = Application::new(running_app, dispatcher.clone());
-              app.focused_window()
-            })
-          else {
-            continue;
-          };
+          let pid = running_app.processIdentifier();
 
-          let _ = events_tx.send(WindowEvent::Focused {
-            window: focused_window,
-            notification: crate::WindowEventNotification(None),
-          });
+          // Create an observer if one doesn't exist yet. This handles
+          // apps that create their window before
+          // `WorkspaceDidLaunchApplication` is processed.
+          if let std::collections::hash_map::Entry::Vacant(entry) =
+            app_observers.entry(pid)
+          {
+            let events_tx = events_tx.clone();
+
+            if let Ok(Ok(app_observer)) = dispatcher.dispatch_sync(|| {
+              let app = Application::new(running_app, dispatcher.clone());
+              ApplicationObserver::new(&app, events_tx.clone(), false)
+            }) {
+              entry.insert(app_observer);
+            }
+          } else {
+            let Ok(Ok(Some(focused_window))) =
+              dispatcher.dispatch_sync(|| {
+                let app =
+                  Application::new(running_app, dispatcher.clone());
+                app.focused_window()
+              })
+            else {
+              continue;
+            };
+
+            let _ = events_tx.send(WindowEvent::Focused {
+              window: focused_window,
+              notification: crate::WindowEventNotification(None),
+            });
+          }
         }
         NotificationEvent::WorkspaceDidHideApplication(running_app) => {
           if let Some(app_observer) =

@@ -92,6 +92,10 @@ fn check_is_manageable(
   native_window: &NativeWindow,
 ) -> anyhow::Result<Option<NativeWindowProperties>> {
   if !native_window.is_visible()? {
+    tracing::debug!(
+      "Window {} not manageable: not visible.",
+      native_window.id().0,
+    );
     return Ok(None);
   }
 
@@ -99,10 +103,18 @@ fn check_is_manageable(
   {
     use wm_platform::NativeWindowExtMacOs;
 
-    let is_standard_window = native_window.role()? == "AXWindow"
-      && native_window.subrole()? == "AXStandardWindow";
+    let role = native_window.role()?;
+    let subrole = native_window.subrole()?;
+    let is_standard_window =
+      role == "AXWindow" && subrole == "AXStandardWindow";
 
     if !is_standard_window {
+      tracing::debug!(
+        "Window {} not manageable: role={}, subrole={}.",
+        native_window.id().0,
+        role,
+        subrole,
+      );
       return Ok(None);
     }
   }
