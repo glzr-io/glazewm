@@ -167,6 +167,37 @@ impl NativeWindow {
     )
   }
 
+  /// Whether this window is a root window (not a background tab).
+  ///
+  /// Native macOS tabs share the same physical window frame, but each
+  /// tab is a separate `AXUIElement`. A background tab's `AXParent`
+  /// points to another `AXWindow` (the active tab), whereas a root
+  /// window's `AXParent` points to the `AXApplication`.
+  pub(crate) fn is_root_window(&self) -> crate::Result<bool> {
+    self.element.with(|el| {
+      let parent = el.get_attribute::<AXUIElement>("AXParent")?;
+      let parent_role = parent.get_attribute::<CFString>("AXRole")?;
+
+      Ok(parent_role.to_string() != "AXWindow")
+    })?
+  }
+
+  /// Gets the process ID of the application that owns this window.
+  pub(crate) fn process_id(&self) -> platform_impl::ProcessId {
+    self.application.pid
+  }
+
+  /// Re-queries the current `CGWindowID` from the underlying
+  /// `AXUIElement`.
+  ///
+  /// For native macOS tab groups, the `CGWindowID` changes on tab
+  /// switch even though the `AXUIElement` stays the same.
+  pub(crate) fn current_window_id(&self) -> crate::Result<WindowId> {
+    self
+      .element
+      .with(|el| Ok(WindowId::from_window_element(el)))?
+  }
+
   /// Implements [`NativeWindow::set_frame`].
   pub(crate) fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
     // TODO: Consider adding a separate `set_frame_async` method which

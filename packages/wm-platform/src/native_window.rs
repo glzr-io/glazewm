@@ -98,6 +98,18 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
+
+  /// Whether this window is a root window (not a background tab).
+  ///
+  /// Background tabs in native macOS tab groups have an `AXWindow`
+  /// parent instead of an `AXApplication` parent.
+  fn is_root_window(&self) -> crate::Result<bool>;
+
+  /// Gets the process ID of the owning application.
+  fn process_id(&self) -> i32;
+
+  /// Re-queries the current `CGWindowID` from the `AXUIElement`.
+  fn current_window_id(&self) -> crate::Result<WindowId>;
 }
 
 #[cfg(target_os = "macos")]
@@ -136,6 +148,18 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
+  }
+
+  fn is_root_window(&self) -> crate::Result<bool> {
+    self.inner.is_root_window()
+  }
+
+  fn process_id(&self) -> i32 {
+    self.inner.process_id()
+  }
+
+  fn current_window_id(&self) -> crate::Result<WindowId> {
+    self.inner.current_window_id()
   }
 }
 
