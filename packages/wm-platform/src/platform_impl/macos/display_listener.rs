@@ -85,6 +85,22 @@ impl DisplayListener {
       // take 1-2 seconds to be reported as online.
       const WAKE_COALESCE_DURATION: Duration = Duration::from_secs(5);
 
+      // Delay before re-capturing display properties to let macOS
+      // settle (e.g. menu bar auto-hide re-engaging after a display
+      // reconfiguration).
+      const SETTLED_RECAPTURE_DELAY: Duration = Duration::from_millis(500);
+
+      // Fire an initial event so that display properties are
+      // re-captured shortly after startup, correcting any transient
+      // `NSScreen.visibleFrame` values captured during launch.
+      {
+        let tx = event_tx.clone();
+        std::thread::spawn(move || {
+          std::thread::sleep(SETTLED_RECAPTURE_DELAY);
+          let _ = tx.send(());
+        });
+      }
+
       let mut is_asleep = false;
       let mut wake_time: Option<Instant> = None;
 
@@ -134,6 +150,17 @@ impl DisplayListener {
               );
               break;
             }
+
+            // Schedule a follow-up event to correct transient
+            // `NSScreen.visibleFrame` values. With menu bar auto-hide,
+            // macOS may briefly show the menu bar during display
+            // reconfiguration and does not fire another notification
+            // once it re-hides (~300-500ms later).
+            let tx = event_tx.clone();
+            std::thread::spawn(move || {
+              std::thread::sleep(SETTLED_RECAPTURE_DELAY);
+              let _ = tx.send(());
+            });
           }
           _ => {}
         }
