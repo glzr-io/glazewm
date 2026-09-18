@@ -34,13 +34,19 @@ pub fn remove_monitor(
     });
 
   for workspace in workspaces_to_move {
-    // Move workspace to target monitor.
     move_container_within_tree(
       &workspace.clone().into(),
       &target_monitor.clone().into(),
       target_monitor.child_count(),
       state,
     )?;
+
+    // Update the workspace's gap config to match the target monitor.
+    let target_gaps = config.value.gaps.for_monitor(
+      target_monitor.index(),
+      &target_monitor.native_properties().device_name,
+    );
+    workspace.set_gaps_config(target_gaps);
 
     sort_workspaces(&target_monitor, config)?;
 
