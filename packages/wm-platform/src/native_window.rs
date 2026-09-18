@@ -98,6 +98,13 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
+
+  /// Gets the Core Graphics window layer.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on macOS.
+  fn layer(&self) -> crate::Result<i32>;
 }
 
 #[cfg(target_os = "macos")]
@@ -136,6 +143,10 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
+  }
+
+  fn layer(&self) -> crate::Result<i32> {
+    self.inner.layer()
   }
 }
 

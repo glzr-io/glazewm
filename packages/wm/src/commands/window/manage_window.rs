@@ -99,6 +99,16 @@ fn check_is_manageable(
   {
     use wm_platform::NativeWindowExtMacOs;
 
+    let layer = native_window.layer()?;
+    if !is_normal_window_layer(layer) {
+      tracing::debug!(
+        "Window {} not manageable: Core Graphics layer {}.",
+        native_window.id().0,
+        layer,
+      );
+      return Ok(None);
+    }
+
     let is_standard_window = native_window.role()? == "AXWindow"
       && native_window.subrole()? == "AXStandardWindow";
 
@@ -148,6 +158,23 @@ fn check_is_manageable(
   }
 
   Ok(Some(native_properties))
+}
+
+#[cfg(target_os = "macos")]
+fn is_normal_window_layer(layer: i32) -> bool {
+  layer == 0
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn only_normal_window_layer_is_manageable() {
+    assert!(is_normal_window_layer(0));
+    assert!(!is_normal_window_layer(3));
+    assert!(!is_normal_window_layer(1000));
+  }
 }
 
 fn create_window(
