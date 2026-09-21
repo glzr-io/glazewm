@@ -8,8 +8,8 @@ use tokio_tungstenite::{
 };
 use uuid::Uuid;
 use wm_common::{
-  ClientResponseMessage, EventSubscriptionMessage, ServerMessage,
-  DEFAULT_IPC_PORT,
+  read_ipc_port, ClientResponseMessage, EventSubscriptionMessage,
+  ServerMessage,
 };
 
 pub struct IpcClient {
@@ -18,7 +18,7 @@ pub struct IpcClient {
 
 impl IpcClient {
   pub async fn connect() -> anyhow::Result<Self> {
-    let server_addr = format!("ws://127.0.0.1:{DEFAULT_IPC_PORT}");
+    let server_addr = format!("ws://127.0.0.1:{}", read_ipc_port());
 
     let (stream, _) = connect_async(server_addr)
       .await

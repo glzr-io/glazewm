@@ -1,4 +1,4 @@
-use std::{iter, net::SocketAddr};
+use std::{env, iter, net::SocketAddr};
 
 use anyhow::{bail, Context};
 use clap::Parser;
@@ -12,11 +12,12 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{info, warn};
 use uuid::Uuid;
 use wm_common::{
-  AppCommand, AppMetadataData, BindingModesData, ClientResponseData,
-  ClientResponseMessage, CommandData, EventSubscribeData,
-  EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand,
-  ServerMessage, SubscribableEvent, TilingDirectionData, WindowsData,
-  WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
+  remove_ipc_port_file, write_ipc_port, AppCommand, AppMetadataData,
+  BindingModesData, ClientResponseData, ClientResponseMessage,
+  CommandData, EventSubscribeData, EventSubscriptionMessage, FocusedData,
+  MonitorsData, QueryCommand, ServerMessage, SubscribableEvent,
+  TilingDirectionData, WindowsData, WmEvent, WorkspacesData,
+  DEFAULT_IPC_PORT,
 };
 
 use crate::{
@@ -44,9 +45,29 @@ impl IpcServer {
     let (event_tx, _event_rx) = broadcast::channel(16);
     let (unsubscribe_tx, _unsubscribe_rx) = broadcast::channel(16);
 
-    let server_addr = format!("127.0.0.1:{DEFAULT_IPC_PORT}");
-    let server = TcpListener::bind(server_addr.clone()).await?;
-    info!("IPC server started on: '{}'.", server_addr);
+    // The usual port is kept whenever it's free, so that clients written
+    // against it carry on working. It is machine-wide though, so a second
+    // logged-in user takes whatever port the OS hands out instead of
+    // failing to start. Either way the port lands in the port file, which
+    // is where clients look.
+    let server =
+      match TcpListener::bind(("127.0.0.1", DEFAULT_IPC_PORT)).await {
+        Ok(server) => server,
+        Err(_) => TcpListener::bind("127.0.0.1:0").await?,
+      };
+
+    let port = server.local_addr()?.port();
+
+    write_ipc_port(port)?;
+
+    // Programs started from `startup_commands` inherit this, which is how
+    // a bar reaches the right instance without having to work out the
+    // session ID and read the port file itself. `ShellExecuteExW`
+    // hands the child our own environment, so there is nothing
+    // per-process to set up.
+    env::set_var("GLAZEWM_IPC_PORT", port.to_string());
+
+    info!("IPC server started on: '127.0.0.1:{port}'.");
 
     let task = task::spawn(async move {
       while let Ok((stream, addr)) = server.accept().await {
@@ -400,6 +421,7 @@ impl IpcServer {
   pub fn stop(&self) {
     info!("Shutting down IPC server.");
     self.abort_handle.abort();
+    remove_ipc_port_file();
   }
 }
 

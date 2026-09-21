@@ -13,8 +13,12 @@ use windows::{
 };
 
 /// Arbitrary GUID to uniquely identify the application.
-const APP_GUID: PCWSTR =
-  w!("Global\\325d0ed7-7f60-4925-8d1b-aa287b26b218");
+///
+/// Lives in the `Local\` namespace, which is per-session, so that each
+/// logged-in user gets their own instance. With `Global\`, the mutex is
+/// owned by whoever started first and every other session fails to open
+/// it with `ERROR_ACCESS_DENIED`.
+const APP_GUID: PCWSTR = w!("Local\\325d0ed7-7f60-4925-8d1b-aa287b26b218");
 
 /// Platform-specific implementation of [`SingleInstance`].
 pub struct SingleInstance {
