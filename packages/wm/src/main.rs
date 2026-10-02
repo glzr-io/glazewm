@@ -257,7 +257,10 @@ async fn start_wm(
         ) {
           keybinding_listener.update(
             &config
-              .active_keybinding_configs(&wm.state.binding_modes, false)
+              .active_keybinding_configs(
+                &wm.state.binding_modes,
+                wm.state.is_paused,
+              )
               .flat_map(|kb| kb.bindings)
               .collect::<Vec<_>>(),
           );
