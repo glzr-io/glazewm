@@ -70,29 +70,6 @@
         Height="20"
         FontId="3"
       >#(loc.CustomInstallGlazeWMHint)</Hypertext>
-      <Checkbox
-        Name="Custom_InstallZebar"
-        X="185"
-        Y="250"
-        Width="-11"
-        Height="17"
-        TabStop="yes"
-        FontId="6"
-      >#(loc.CustomInstallZebar)</Checkbox>
-      <Hypertext
-        X="204"
-        Y="270"
-        Width="-11"
-        Height="20"
-        FontId="3"
-      >#(loc.CustomInstallZebarHint1)</Hypertext>
-      <Label
-        X="204"
-        Y="290"
-        Width="-11"
-        Height="20"
-        FontId="3"
-      >#(loc.CustomInstallZebarHint2)</Label>
       <Button
         Name="OptionsButton"
         X="-171"

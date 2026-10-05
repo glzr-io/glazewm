@@ -4,22 +4,13 @@ pub enum Error {
   Io(#[from] std::io::Error),
 
   #[error(transparent)]
-  #[cfg(target_os = "windows")]
   Windows(#[from] windows::core::Error),
-
-  #[error("Accessibility operation failed for attribute {0} with error code: {1}")]
-  #[cfg(target_os = "macos")]
-  Accessibility(String, i32),
 
   #[error(transparent)]
   Parse(#[from] ParseError),
 
   #[error("Invalid pointer: {0}")]
   InvalidPointer(String),
-
-  #[error("AXValue creation failed: {0}")]
-  #[cfg(target_os = "macos")]
-  AXValueCreation(String),
 
   #[error(transparent)]
   ChannelRecv(#[from] std::sync::mpsc::RecvTimeoutError),

@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 /// # Platform-specific
 ///
 /// - **Windows**: `u16` (Virtual key code from Windows API). See <https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes>
-/// - **macOS**: `i64` (Virtual key code from `CGEvent`). See <https://developer.apple.com/documentation/coregraphics/cgeventfield/keyboardeventkeycode>
 #[derive(
   Debug,
   Copy,
@@ -23,10 +22,7 @@ use serde::{Deserialize, Serialize};
   Serialize,
   Deserialize,
 )]
-pub struct KeyCode(
-  #[cfg(target_os = "windows")] pub(crate) u16,
-  #[cfg(target_os = "macos")] pub(crate) i64,
-);
+pub struct KeyCode(pub(crate) u16);
 
 impl fmt::Display for KeyCode {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -206,49 +202,37 @@ pub enum Key {
 impl Key {
   /// Attempts to parse a key from a literal string (e.g. `a`, `;`, `à`).
   ///
-  /// # Platform-specific
-  ///
-  /// - **macOS**: Not implemented. Returns `KeyParseError::UnknownKey` for
-  ///   all keys.
-  ///
   /// # Errors
   ///
   /// Returns `KeyParseError::UnknownKey` if the key is not found on the
   /// current keyboard layout.
   pub fn try_from_literal(key_str: &str) -> Result<Self, KeyParseError> {
-    #[cfg(target_os = "macos")]
-    {
-      Err(KeyParseError::UnknownKey(key_str.to_string()))
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+      GetKeyboardLayout, VkKeyScanExW,
+    };
+
+    // Check if the key exists on the current keyboard layout.
+    let utf16_key = key_str
+      .encode_utf16()
+      .next()
+      .ok_or_else(|| KeyParseError::UnknownKey(key_str.to_string()))?;
+
+    let layout = unsafe { GetKeyboardLayout(0) };
+    let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
+
+    if vk_code == -1 {
+      return Err(KeyParseError::UnknownKey(key_str.to_string()));
     }
-    #[cfg(target_os = "windows")]
-    {
-      use windows::Win32::UI::Input::KeyboardAndMouse::{
-        GetKeyboardLayout, VkKeyScanExW,
-      };
 
-      // Check if the key exists on the current keyboard layout.
-      let utf16_key = key_str
-        .encode_utf16()
-        .next()
-        .ok_or_else(|| KeyParseError::UnknownKey(key_str.to_string()))?;
+    // The low-order byte contains the virtual-key code and the high-
+    // order byte contains the shift state.
+    let [high_order, low_order] = vk_code.to_be_bytes();
 
-      let layout = unsafe { GetKeyboardLayout(0) };
-      let vk_code = unsafe { VkKeyScanExW(utf16_key, layout) };
-
-      if vk_code == -1 {
-        return Err(KeyParseError::UnknownKey(key_str.to_string()));
-      }
-
-      // The low-order byte contains the virtual-key code and the high-
-      // order byte contains the shift state.
-      let [high_order, low_order] = vk_code.to_be_bytes();
-
-      // Key is valid if it doesn't require shift or alt to be pressed.
-      match high_order {
-        0 => Key::try_from(KeyCode(u16::from(low_order)))
-          .map_err(|_| KeyParseError::UnknownKey(key_str.to_string())),
-        _ => Err(KeyParseError::UnknownKey(key_str.to_string())),
-      }
+    // Key is valid if it doesn't require shift or alt to be pressed.
+    match high_order {
+      0 => Key::try_from(KeyCode(u16::from(low_order)))
+        .map_err(|_| KeyParseError::UnknownKey(key_str.to_string())),
+      _ => Err(KeyParseError::UnknownKey(key_str.to_string())),
     }
   }
 }

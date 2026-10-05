@@ -17,6 +17,12 @@ pub fn move_workspace_in_direction(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Block cross-monitor workspace moves when multi-monitor workspaces are
+  // disabled, otherwise a workspace could escape the primary monitor.
+  if !config.value.general.multi_monitor_workspaces {
+    return Ok(());
+  }
+
   let origin_monitor = workspace.monitor().context("No monitor.")?;
   let target_monitor =
     state.monitor_in_direction(&origin_monitor, direction)?;

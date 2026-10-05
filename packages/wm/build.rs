@@ -62,7 +62,7 @@ fn main() {
   res.set("ProductName", "GlazeWM");
   res.set("FileDescription", "GlazeWM");
 
-  let version_parts = env!("VERSION_NUMBER")
+  let version_parts = version_number()
     .split('.')
     .take(3)
     .map(|part| part.parse().unwrap_or(0))
@@ -83,4 +83,18 @@ fn main() {
   res.set_version_info(VersionInfo::PRODUCTVERSION, version_u64);
 
   res.compile().unwrap();
+}
+
+/// Reads the version number to stamp into the binary.
+///
+/// Read from the environment at build-script runtime rather than with
+/// `env!`, since cargo doesn't track `env!` for rebuilds. The value is
+/// re-exported with `cargo:rustc-env` so that the crate itself is also
+/// rebuilt when the version changes.
+fn version_number() -> String {
+  let version = std::env::var("VERSION_NUMBER")
+    .unwrap_or_else(|_| "0.0.0".to_string());
+
+  println!("cargo:rustc-env=VERSION_NUMBER={version}");
+  version
 }

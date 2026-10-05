@@ -7,7 +7,10 @@ use wm_platform::{LengthValue, Point, Rect};
 use crate::{
   commands::{
     container::{move_container_within_tree, wrap_in_split_container},
-    window::{set_window_size, update_window_state},
+    window::{
+      set_window_size, snap_native_window_to_external_monitor_workspace,
+      unmanage_window, update_window_state,
+    },
   },
   events::update_floating_window_position,
   models::{
@@ -50,11 +53,37 @@ pub fn handle_window_moved_or_resized_end(
         .nearest_monitor(&window.native())
         .context("Failed to get workspace of nearest monitor.")?;
 
-      let should_fullscreen = window.should_fullscreen(
-        &nearest_monitor
-          .displayed_workspace()
-          .context("No workspace.")?,
-      )?;
+      // When multi-monitor workspaces are disabled and the window is
+      // dropped on a monitor with no workspace (i.e. a non-primary
+      // monitor), unmanage it so GlazeWM no longer controls it instead
+      // of snapping it back to the primary monitor.
+      if !config.value.general.multi_monitor_workspaces
+        && nearest_monitor.displayed_workspace().is_none()
+      {
+        window.set_active_drag(None);
+        state.register_native_window_pending_remanage(
+          window.native().clone(),
+          Some(nearest_monitor.id()),
+        );
+        snap_native_window_to_external_monitor_workspace(
+          &window.as_window_container()?,
+          &nearest_monitor,
+          config,
+        );
+        unmanage_window(window.as_window_container()?, state)?;
+        return Ok(());
+      }
+
+      // Fall back to the window's own workspace when the nearest monitor
+      // has no displayed workspace (e.g. when `multi_monitor_workspaces`
+      // is disabled and the cursor is over a non-primary monitor).
+      let nearest_workspace = nearest_monitor
+        .displayed_workspace()
+        .or_else(|| window.workspace())
+        .context("No workspace.")?;
+
+      let should_fullscreen =
+        window.should_fullscreen(&nearest_workspace)?;
 
       if is_maximized || should_fullscreen {
         let fullscreen_state = if let WindowState::Fullscreen(

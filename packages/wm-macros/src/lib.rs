@@ -21,7 +21,7 @@ mod prelude {
 ///   `SubEnumTwo` share variant(s).
 ///
 /// Accepts a defaults block of attributes to be added to every subenum
-/// ```
+/// ```ignore
 /// #[subenum(defaults, {
 ///   /// Subenum of [X]
 ///   #[derive(Clone, Debug)]
@@ -29,7 +29,7 @@ mod prelude {
 /// ```
 ///
 /// And any number of subenum declarations, which are defined as
-/// ```
+/// ```ignore
 /// #[subenum(SubenumName, {
 ///   /// Subset of [X] that can be checked for equality.
 ///   #[derive(PartialEq)] // Will also derive [Clone] and [Debug] from the defaults block

@@ -96,13 +96,8 @@ impl NativeMonitorProperties {
       working_area,
       dpi,
       scale_factor,
-      #[cfg(target_os = "macos")]
-      device_uuid: String::new(),
-      #[cfg(target_os = "windows")]
       handle: 0,
-      #[cfg(target_os = "windows")]
       hardware_id: None,
-      #[cfg(target_os = "windows")]
       device_path: None,
     }
   }
@@ -126,9 +121,7 @@ impl NativeWindowProperties {
       is_minimized,
       is_maximized,
       is_resizable,
-      #[cfg(target_os = "windows")]
       class_name: String::new(),
-      #[cfg(target_os = "windows")]
       shadow_borders: mock_border_delta(),
     }
   }

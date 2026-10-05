@@ -1,13 +1,13 @@
 use anyhow::Context;
 use tracing::{info, warn};
-#[cfg(target_os = "windows")]
-use wm_common::{HideMethod, ParsedConfig};
-use wm_common::{WindowRuleEvent, WmEvent};
-#[cfg(target_os = "windows")]
+use wm_common::{HideMethod, ParsedConfig, WindowRuleEvent, WmEvent};
 use wm_platform::NativeWindowWindowsExt;
 
 use crate::{
-  commands::{window::run_window_rules, workspace::sort_workspaces},
+  commands::{
+    monitor::sync_workspaces_to_monitor_topology,
+    window::run_window_rules, workspace::sort_workspaces,
+  },
   traits::{CommonGetters, TilingSizeGetters, WindowGetters},
   user_config::UserConfig,
   wm::WindowManager,
@@ -21,8 +21,9 @@ pub fn reload_config(
   info!("Config reloaded.");
 
   // Keep reference to old config for comparison.
-  #[cfg(target_os = "windows")]
   let old_config = config.value.clone();
+  let old_multi_monitor_workspaces =
+    config.value.general.multi_monitor_workspaces;
 
   // Re-evaluate user config file and set its values in state.
   config.reload()?;
@@ -37,11 +38,18 @@ pub fn reload_config(
 
   update_container_gaps(state, config);
 
-  #[cfg(target_os = "windows")]
+  if old_multi_monitor_workspaces
+    != config.value.general.multi_monitor_workspaces
+  {
+    sync_workspaces_to_monitor_topology(state, config)?;
+    if config.value.general.multi_monitor_workspaces {
+      state.native_windows_pending_remanage.clear();
+    }
+  }
+
   update_window_effects(&old_config, state, config)?;
 
   // Ensure all windows are shown when hide method is changed.
-  #[cfg(target_os = "windows")]
   if old_config.general.hide_method != config.value.general.hide_method
     && config.value.general.hide_method == HideMethod::Cloak
   {
@@ -52,7 +60,6 @@ pub fn reload_config(
 
   // Ensure all windows are shown in taskbar when `show_all_in_taskbar` is
   // changed.
-  #[cfg(target_os = "windows")]
   if old_config.general.show_all_in_taskbar
     != config.value.general.show_all_in_taskbar
     && config.value.general.show_all_in_taskbar
@@ -155,7 +162,6 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
   }
 }
 
-#[cfg(target_os = "windows")]
 fn update_window_effects(
   old_config: &ParsedConfig,
   state: &mut WmState,

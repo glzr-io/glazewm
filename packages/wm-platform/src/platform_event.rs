@@ -32,13 +32,11 @@ pub enum WindowEvent {
   /// move or resize was initiated via manual interaction with the
   /// window's drag handles.
   ///
-  /// # Platform-specific
-  ///
-  /// - **Windows**: Corresponds to `EVENT_OBJECT_LOCATIONCHANGE`,
-  ///   `EVENT_SYSTEM_MOVESIZESTART`, and `EVENT_SYSTEM_MOVESIZEEND`.
-  /// - **macOS**: Corresponds to `AXWindowMoved` and `AXWindowResized`.
-  ///   The `is_interactive_start` and `is_interactive_end` flags are
-  ///   always `false`.
+  /// Corresponds to `EVENT_OBJECT_LOCATIONCHANGE`,
+  /// `EVENT_SYSTEM_MOVESIZESTART`, and `EVENT_SYSTEM_MOVESIZEEND`.
+  /// `EVENT_OBJECT_LOCATIONCHANGE` alone applies to programmatic moves
+  /// such as Win+Shift+Arrow between monitors (`is_interactive_start` and
+  /// `is_interactive_end` are both `false`).
   MovedOrResized {
     window: NativeWindow,
     is_interactive_start: bool,
@@ -114,10 +112,6 @@ impl WindowEvent {
 ///
 /// Some events are "synthetic" and do not have a corresponding
 /// notification (represented by `None`).
-///
-/// Synthetic events can occur when:
-/// * On macOS, `WindowEvent::Shown` is emitted for new visible windows
-///   even if a different notification is received first.
 #[derive(Clone, Debug)]
 pub struct WindowEventNotification(
   pub Option<WindowEventNotificationInner>,
@@ -167,14 +161,6 @@ pub enum MouseEvent {
   Move {
     position: Point,
     pressed_buttons: PressedButtons,
-    /// Window under cursor.
-    ///
-    /// # Platform-specific
-    ///
-    /// - **macOS**: Sourced from the `CGEvent` field. Unreliable; often
-    ///   `None`, with the real window ID appearing sporadically.
-    /// - **Windows**: Always `None`.
-    window_below_cursor: Option<WindowId>,
   },
 
   /// A mouse button was pressed.

@@ -67,10 +67,7 @@ pub trait WindowGetters: CommonGetters {
   fn total_border_delta(&self) -> anyhow::Result<RectDelta> {
     let border_delta = self.border_delta();
 
-    #[cfg(target_os = "windows")]
     let shadow_border_delta = self.native_properties().shadow_borders;
-    #[cfg(not(target_os = "windows"))]
-    let shadow_border_delta = RectDelta::zero();
 
     // TODO: Allow percentage length values.
     Ok(RectDelta {
@@ -128,8 +125,6 @@ pub trait WindowGetters: CommonGetters {
 
   fn set_display_state(&self, display_state: DisplayState);
 
-  // LINT: `has_pending_dpi_adjustment` is only used on Windows.
-  #[allow(unused)]
   fn has_pending_dpi_adjustment(&self) -> bool;
 
   fn set_has_pending_dpi_adjustment(
@@ -213,8 +208,6 @@ macro_rules! impl_window_getters {
         self.0.borrow_mut().display_state = display_state;
       }
 
-      // LINT: `has_pending_dpi_adjustment` is only used on Windows.
-      #[allow(unused)]
       fn has_pending_dpi_adjustment(&self) -> bool {
         self.0.borrow().has_pending_dpi_adjustment
       }

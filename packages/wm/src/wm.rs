@@ -2,16 +2,13 @@ use anyhow::{bail, Context};
 use tokio::sync::mpsc::{self};
 use tracing::warn;
 use uuid::Uuid;
-#[cfg(target_os = "windows")]
-use wm_common::TitleBarVisibility;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, WindowState,
-  WmEvent,
+  FloatingStateConfig, FullscreenStateConfig, InvokeCommand,
+  TitleBarVisibility, WindowState, WmEvent,
 };
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{
-  Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
+  Dispatcher, LengthValue, NativeWindowWindowsExt, PlatformEvent,
+  RectDelta, WindowEvent,
 };
 
 use crate::{
@@ -26,12 +23,13 @@ use crate::{
     },
     monitor::focus_monitor,
     window::{
-      ignore_window, move_window_in_direction, move_window_to_workspace,
-      resize_window, set_window_position, set_window_size,
-      update_window_state, WindowPositionTarget,
+      ignore_window, manage_foreground_native_window,
+      move_window_in_direction, move_window_to_workspace, resize_window,
+      set_window_position, set_window_size, update_window_state,
+      WindowPositionTarget,
     },
     workspace::{
-      focus_workspace, move_workspace_in_direction,
+      focus_workspace, move_workspace_in_direction, rearrange_workspaces,
       update_workspace_config,
     },
   },
@@ -336,6 +334,9 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
+      InvokeCommand::Manage => {
+        manage_foreground_native_window(state, config)
+      }
       InvokeCommand::Move(args) => {
         match subject_container.as_window_container() {
           Ok(window) => {
@@ -593,25 +594,19 @@ impl WindowManager {
           _ => Ok(()),
         }
       }
-      InvokeCommand::SetTitleBarVisibility {
-        // LINT: `visibility` is only used on Windows.
-        #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
-        visibility,
-      } => match subject_container.as_window_container() {
-        #[cfg(target_os = "windows")]
-        Ok(window) => {
-          _ = window.native().set_title_bar_visibility(
-            *visibility == TitleBarVisibility::Shown,
-          );
-          Ok(())
+      InvokeCommand::SetTitleBarVisibility { visibility } => {
+        match subject_container.as_window_container() {
+          Ok(window) => {
+            _ = window.native().set_title_bar_visibility(
+              *visibility == TitleBarVisibility::Shown,
+            );
+            Ok(())
+          }
+          _ => Ok(()),
         }
-        _ => Ok(()),
-      },
-      // LINT: `args` is only used on Windows.
-      #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+      }
       InvokeCommand::SetTransparency(args) => {
         match subject_container.as_window_container() {
-          #[cfg(target_os = "windows")]
           Ok(window) => {
             if let Some(opacity) = &args.opacity {
               _ = window.native().set_transparency(opacity);
@@ -764,6 +759,9 @@ impl WindowManager {
         enable_binding_mode(name, state, config)
       }
       InvokeCommand::WmExit => state.emit_exit(),
+      InvokeCommand::WmRearrangeWorkspaces => {
+        rearrange_workspaces(state, config)
+      }
       InvokeCommand::WmRedraw => {
         state
           .pending_sync

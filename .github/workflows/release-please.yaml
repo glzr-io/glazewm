@@ -1,0 +1,75 @@
+name: Release please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please
+
+jobs:
+  # Maintains a release PR from conventional commits on `main`. Merging that
+  # PR bumps `version.txt`, updates the changelog, and creates a draft
+  # GitHub release, which the jobs below attach installers to and publish.
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+  package:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/package.yaml
+    secrets: inherit
+    with:
+      version_number: ${{ needs.release-please.outputs.version }}
+
+  publish:
+    needs: [release-please, package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v8
+        with:
+          pattern: package-*
+          merge-multiple: true
+
+      - name: Rename installers
+        env:
+          VERSION: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          mv installer-universal.exe "glazewm-$VERSION.exe"
+          mv installer-arm64.msi "standalone-glazewm-$VERSION-arm64.msi"
+          mv installer-x64.msi "standalone-glazewm-$VERSION-x64.msi"
+
+      # Releases are published immediately rather than as drafts, since
+      # GitHub only creates the git tag once a release is published, and
+      # release-please needs that tag to know where the last release was.
+      # The in-app updater tolerates the short window before the
+      # installers are attached.
+      - name: Attach installers to release
+        env:
+          VERSION: ${{ needs.release-please.outputs.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release upload "$VERSION" \
+            "./glazewm-$VERSION.exe#$VERSION for Windows (standard)" \
+            "./standalone-glazewm-$VERSION-arm64.msi#$VERSION for Windows (standalone, arm64)" \
+            "./standalone-glazewm-$VERSION-x64.msi#$VERSION for Windows (standalone, x64)"
+
+          gh release edit "$VERSION" --latest

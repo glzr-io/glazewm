@@ -28,10 +28,10 @@ general:
     trigger: 'monitor_focus'
 
   # How windows should be hidden when switching workspaces.
-  # - 'cloak': (Windows-only) Recommended option for Windows.
-  # - 'hide': (Windows-only) Legacy option for Windows. Has stability issues with some apps.
+  # - 'cloak': Recommended option.
+  # - 'hide': Legacy option. Has stability issues with some apps.
   # - 'place_in_corner': Artifically hides the window by placing it in the corner of the
-  #   monitor. On macOS, this is always used instead of cloak/hide.
+  #   monitor.
   hide_method: 'cloak'
 
   # Affects which windows get shown in the native Windows taskbar. Has no
@@ -39,6 +39,20 @@ general:
   # - 'true': Show all windows (regardless of workspace).
   # - 'false': Only show windows from the currently shown workspaces.
   show_all_in_taskbar: false
+
+  # Whether workspaces can span multiple monitors.
+  # - 'true': Each monitor manages its own workspaces (default).
+  # - 'false': Only the primary monitor receives workspaces. Windows on
+  #   other monitors are left unmanaged (OS-controlled) and get managed
+  #   automatically once moved onto the primary monitor.
+  multi_monitor_workspaces: true
+
+  # Optional monitor hardware identifier. When unset, the leftmost monitor
+  # (sorted by position) is used. Useful with `multi_monitor_workspaces: false`
+  # to pin workspaces to a specific display (e.g. the laptop panel) regardless
+  # of geometry. Run `glazewm query monitors` and copy `hardwareId` (the
+  # monitor's EDID string).
+  # primary_monitor_hardware_id: 'LEN403A'
 
 gaps:
   # Whether to scale the gaps with the DPI of the monitor.
@@ -241,6 +255,11 @@ keybindings:
   - commands: ['toggle-minimized']
     bindings: ['alt+m']
 
+  # Stop ignoring the OS foreground window and manage it again (focus that
+  # window first; it cannot be WM-focused while ignored).
+  - commands: ['manage']
+    bindings: ['alt+shift+n']
+
   # Close focused window.
   - commands: ['close']
     bindings: ['alt+shift+q']
@@ -248,6 +267,12 @@ keybindings:
   # Kill GlazeWM process safely.
   - commands: ['wm-exit']
     bindings: ['alt+shift+e']
+
+  # Renumber the active workspaces so they run from 1 with no gaps, e.g.
+  # workspaces 2, 3, 5, 6 and 7 become 1, 2, 3, 4 and 5. Windows stay
+  # where they are.
+  - commands: ['wm-rearrange-workspaces']
+    bindings: ['alt+shift+o']
 
   # Re-evaluate configuration file.
   - commands: ['wm-reload-config']

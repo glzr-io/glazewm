@@ -259,7 +259,6 @@ impl MouseListener {
       MouseEventKind::Move => MouseEvent::Move {
         position: Self::cursor_pos()?,
         pressed_buttons: callback_data.pressed,
-        window_below_cursor: None,
       },
     };
 

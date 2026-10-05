@@ -7,6 +7,9 @@ on:
 
 jobs:
   publish:
+    # Only the upstream repository publishes to the `glzr-io.glazewm`
+    # winget package.
+    if: github.repository == 'glzr-io/glazewm'
     runs-on: ubuntu-latest
     steps:
       - uses: vedantmgoyal9/winget-releaser@19e706d4c9121098010096f9c495a70a7518b30f

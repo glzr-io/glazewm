@@ -1,68 +1,22 @@
-#[cfg(target_os = "macos")]
-use objc2::rc::Retained;
-#[cfg(target_os = "macos")]
-use objc2_app_kit::NSScreen;
-#[cfg(target_os = "macos")]
-use objc2_core_graphics::CGDirectDisplayID;
-#[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Gdi::HMONITOR;
 
-#[cfg(target_os = "macos")]
-use crate::ThreadBound;
 use crate::{platform_impl, Rect};
 
 /// Unique identifier for a display.
 ///
-/// Can be obtained with `display.id()`.
-///
-/// # Platform-specific
-///
-/// - **Windows**: `isize` (`HMONITOR`)
-/// - **macOS**: `u32` (`CGDirectDisplayID`)
+/// Can be obtained with `display.id()`. Wraps a Win32 monitor handle
+/// (`HMONITOR`).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DisplayId(
-  #[cfg(target_os = "windows")] pub isize,
-  #[cfg(target_os = "macos")] pub u32,
-);
+pub struct DisplayId(pub isize);
 
 /// Unique identifier for a display device.
 ///
-/// Can be obtained with `display_device.id()`.
-///
-/// # Platform-specific
-///
-/// - **Windows**: Hardware ID string with fallback to adapter name.
-/// - **macOS**: UUID string from `CGDisplayCreateUUIDFromDisplayID`.
+/// Can be obtained with `display_device.id()`. This is a hardware ID
+/// string, with a fallback to the adapter name.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DisplayDeviceId(pub String);
 
-/// macOS-specific extension trait for [`Display`].
-#[cfg(target_os = "macos")]
-pub trait DisplayExtMacOs {
-  /// Gets the Core Graphics display ID.
-  fn cg_display_id(&self) -> CGDirectDisplayID;
-
-  /// Gets the `NSScreen` instance for this display.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>>;
-}
-
-#[cfg(target_os = "macos")]
-impl DisplayExtMacOs for Display {
-  fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.inner.cg_display_id()
-  }
-
-  fn ns_screen(&self) -> &ThreadBound<Retained<NSScreen>> {
-    self.inner.ns_screen()
-  }
-}
-
 /// Windows-specific extensions for [`Display`].
-#[cfg(target_os = "windows")]
 pub trait DisplayExtWindows {
   /// Gets the monitor handle.
   ///
@@ -72,7 +26,6 @@ pub trait DisplayExtWindows {
   fn hmonitor(&self) -> HMONITOR;
 }
 
-#[cfg(target_os = "windows")]
 impl DisplayExtWindows for Display {
   fn hmonitor(&self) -> HMONITOR {
     self.inner.hmonitor()
@@ -81,11 +34,8 @@ impl DisplayExtWindows for Display {
 
 /// Represents a logical display space where windows can be placed.
 ///
-/// # Platform-specific
-///
-/// - **Windows**: This corresponds to a Win32 "display monitor", each with
-///   a monitor handle (`HMONITOR`).
-/// - **macOS**: This corresponds to an `NSScreen`.
+/// This corresponds to a Win32 "display monitor", each with a monitor
+/// handle (`HMONITOR`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Display {
   pub(crate) inner: platform_impl::Display,
@@ -189,26 +139,7 @@ pub enum OutputTechnology {
   Unknown,
 }
 
-/// macOS-specific extension trait for [`DisplayDevice`].
-#[cfg(target_os = "macos")]
-pub trait DisplayDeviceExtMacOs {
-  /// Gets the Core Graphics display ID.
-  ///
-  /// # Platform-specific
-  ///
-  /// This method is only available on macOS.
-  fn cg_display_id(&self) -> CGDirectDisplayID;
-}
-
-#[cfg(target_os = "macos")]
-impl DisplayDeviceExtMacOs for DisplayDevice {
-  fn cg_display_id(&self) -> CGDirectDisplayID {
-    self.inner.cg_display_id()
-  }
-}
-
 /// Windows-specific extensions for [`DisplayDevice`].
-#[cfg(target_os = "windows")]
 pub trait DisplayDeviceExtWindows {
   /// Gets the device path.
   ///
@@ -241,7 +172,6 @@ pub trait DisplayDeviceExtWindows {
   fn output_technology(&self) -> crate::Result<Option<OutputTechnology>>;
 }
 
-#[cfg(target_os = "windows")]
 impl DisplayDeviceExtWindows for DisplayDevice {
   fn device_path(&self) -> Option<String> {
     self.inner.device_path.clone()

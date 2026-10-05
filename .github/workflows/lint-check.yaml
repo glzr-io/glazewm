@@ -7,30 +7,20 @@ on:
 
 jobs:
   lint-check:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # MacOS (Apple Silicon)
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-          # Windows (x64)
-          - platform: windows-latest
-            target: x86_64-pc-windows-msvc
-
-    runs-on: ${{ matrix.platform }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
         with:
           components: clippy, rustfmt
-          targets: ${{ matrix.target }}
+          targets: x86_64-pc-windows-msvc
           toolchain: nightly
 
+      # Cache key is shared with the build workflow's x64 Windows target.
       - uses: swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
         with:
-          shared-key: ${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          shared-key: x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}
 
       - name: Check formatting (rustfmt)
         run: cargo fmt --check

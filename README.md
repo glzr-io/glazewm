@@ -38,6 +38,24 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 
 **The latest version of GlazeWM is downloadable via [releases](https://github.com/glzr-io/GlazeWM/releases).** Zebar can optionally be installed as well via a checkbox during installation.
 
+**Install with a single command (Windows):**
+
+```powershell
+irm https://raw.githubusercontent.com/hairbui76/glazewm/main/resources/scripts/install.ps1 | iex
+```
+
+This downloads the latest installer and runs it. To pin a version, or to install without any installer UI, set the environment variables the script reads first:
+
+```powershell
+$env:GLAZEWM_VERSION = '3.11.0'  # Install a specific version.
+$env:GLAZEWM_SILENT = '1'        # Install without any installer UI.
+irm https://raw.githubusercontent.com/hairbui76/glazewm/main/resources/scripts/install.ps1 | iex
+```
+
+Once installed, updates can be applied from the system tray via **Check for updates**, which downloads and runs the latest installer for you.
+
+> These builds are not code signed, so Windows SmartScreen warns on first run and UIAccess is disabled. Without UIAccess, GlazeWM cannot position or focus windows belonging to elevated (administrator) processes unless it is run elevated itself.
+
 GlazeWM is also available through several package managers:
 
 **Winget**

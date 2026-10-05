@@ -31,7 +31,11 @@ function SignFiles() {
   )
 
   foreach ($secret in $secrets) {
-    if (!(Test-Path "env:$secret")) {
+    # A missing GitHub Actions secret is passed through as an empty string
+    # rather than an undefined variable, so check the value itself.
+    $value = [Environment]::GetEnvironmentVariable($secret)
+
+    if ([string]::IsNullOrWhiteSpace($value)) {
       Write-Output "Skipping signing due to missing secret '$secret'."
       Return
     }
@@ -47,27 +51,6 @@ function SignFiles() {
     -td sha256 $filePaths
 
   ExitOnError
-}
-
-function DownloadZebarInstallers() {
-  Write-Output "Downloading latest Zebar MSI's"
-
-  $latestRelease = 'https://api.github.com/repos/glzr-io/zebar/releases/latest'
-  $latestInstallers = Invoke-RestMethod $latestRelease | % assets | ? name -like "*.msi"
-
-  $latestInstallers | ForEach-Object {
-    $outFile = Join-Path "out" $_.name
-
-    # Rename the MSI files (e.g. `zebar-1.5.0-opt1-x64.msi` -> `zebar-x64.msi`).
-    if ($_.name -like "*-x64.msi") {
-      $outFile = "out/zebar-x64.msi"
-    }
-    elseif ($_.name -like "*-arm64.msi") {
-      $outFile = "out/zebar-arm64.msi"
-    }
-
-    Invoke-WebRequest $_.browser_download_url -OutFile $outFile
-  }
 }
 
 function BuildExes() {
@@ -139,7 +122,6 @@ function Package() {
   Write-Output "Creating output directory"
   New-Item -ItemType Directory -Force -Path "out"
 
-  DownloadZebarInstallers
   BuildExes
   BuildInstallers
 }

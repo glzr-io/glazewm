@@ -36,7 +36,6 @@
       <ComponentRef Id="Custom_AddDesktopShortcut" />
       <ComponentRef Id="Custom_AddStartMenuShortcut" />
       <ComponentRef Id="Custom_AddPathEnv" />
-      <ComponentRef Id="Custom_RemoveAutoLaunchRegistry" />
     </Feature>
 
     <StandardDirectory Id="ProgramFiles6432Folder">
@@ -124,25 +123,36 @@
       />
     </Component>
 
-    <!-- Remove auto-launch registry values on uninstall. -->
-    <Component Id="Custom_RemoveAutoLaunchRegistry" Guid="B1A2C3D4-E5F6-47A8-9B0C-1234567890AB">
-      <!-- `RegistryValue` with `KeyPath="yes"` is needed for component state tracking. -->
-      <RegistryValue
-        Root="HKLM"
-        Key="SOFTWARE\glzr.io\GlazeWM"
-        Name="AutoLaunchCleanup"
-        Type="integer"
-        Value="1"
-        KeyPath="yes"
+    <!--
+      Remove the per-user autostart registration when uninstalling: the
+      scheduled task, and the `Run` registry value that earlier versions
+      used instead.
+
+      This has to be a custom action limited to a full uninstall. The
+      `RemoveRegistryValue` element it replaces removes its values whenever
+      the component is installed, and an upgrade is an uninstall followed
+      by an install, so every update silently turned autostart off.
+    -->
+    <SetProperty
+      Id="Custom_CmdExe"
+      Value="[System64Folder]cmd.exe"
+      Before="Custom_RemoveAutostart"
+      Sequence="execute"
+    />
+    <CustomAction
+      Id="Custom_RemoveAutostart"
+      Property="Custom_CmdExe"
+      ExeCommand="/c &quot;schtasks /Delete /TN &quot;GlazeWM autostart for [LogonUser]&quot; /F &amp; reg delete &quot;HKCU\Software\Microsoft\Windows\CurrentVersion\Run&quot; /v GlazeWM /f&quot;"
+      Execute="deferred"
+      Impersonate="yes"
+      Return="ignore"
+    />
+    <InstallExecuteSequence>
+      <Custom
+        Action="Custom_RemoveAutostart"
+        Before="RemoveFiles"
+        Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"
       />
-      <RemoveRegistryValue
-        Root="HKCU"
-        Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
-        Name="GlazeWM" />
-      <RemoveRegistryValue
-        Root="HKCU"
-        Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
-        Name="GlazeWM" />
-    </Component>
+    </InstallExecuteSequence>
   </Package>
 </Wix>

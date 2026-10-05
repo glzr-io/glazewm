@@ -1,15 +1,11 @@
 use anyhow::Context;
-#[cfg(target_os = "windows")]
-use wm_common::WindowEffectConfig;
 use wm_common::{
   CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
-  WindowState, WmEvent,
+  WindowEffectConfig, WindowState, WmEvent,
 };
-#[cfg(target_os = "windows")]
-use wm_platform::NativeWindowWindowsExt;
-#[cfg(target_os = "windows")]
-use wm_platform::{CornerStyle, OpacityValue};
-use wm_platform::{Rect, WindowZOrder};
+use wm_platform::{
+  CornerStyle, NativeWindowWindowsExt, OpacityValue, Rect, WindowZOrder,
+};
 
 use crate::{
   models::{Container, WindowContainer},
@@ -248,10 +244,6 @@ fn redraw_containers(
     };
 
     // Set the z-order of the window.
-    //
-    // NOTE: macOS doesn't have a robust public API for setting the z-order
-    // of a window. See `NativeWindow::raise` for more details.
-    #[cfg(target_os = "windows")]
     if should_bring_to_front && !windows_to_redraw.contains(window) {
       tracing::info!("Updating window z-order: {window}");
 
@@ -294,22 +286,19 @@ fn redraw_containers(
     // Whether the window is either transitioning to or from fullscreen.
     // TODO: This check can be improved since `prev_state` can be
     // fullscreen without it needing to be marked as not fullscreen.
-    #[cfg(target_os = "windows")]
-    {
-      let is_transitioning_fullscreen =
-        match (window.prev_state(), window.state()) {
-          (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
-          (Some(WindowState::Fullscreen(_)), _) => true,
-          _ => false,
-        };
+    let is_transitioning_fullscreen =
+      match (window.prev_state(), window.state()) {
+        (Some(_), WindowState::Fullscreen(s)) if !s.maximized => true,
+        (Some(WindowState::Fullscreen(_)), _) => true,
+        _ => false,
+      };
 
-      if is_transitioning_fullscreen {
-        if let Err(err) = window.native().mark_fullscreen(matches!(
-          window.state(),
-          WindowState::Fullscreen(_)
-        )) {
-          tracing::warn!("Failed to mark window as fullscreen: {}", err);
-        }
+    if is_transitioning_fullscreen {
+      if let Err(err) = window.native().mark_fullscreen(matches!(
+        window.state(),
+        WindowState::Fullscreen(_)
+      )) {
+        tracing::warn!("Failed to mark window as fullscreen: {}", err);
       }
     }
 
@@ -317,7 +306,6 @@ fn redraw_containers(
     // effect). Since cloaked windows are normally always visible in the
     // taskbar, we only need to set visibility if `show_all_in_taskbar` is
     // `false`.
-    #[cfg(target_os = "windows")]
     if config.value.general.hide_method == HideMethod::Cloak
       && !config.value.general.show_all_in_taskbar
       && matches!(
@@ -338,8 +326,6 @@ fn redraw_containers(
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
-  // LINT: `z_order` is only used on Windows.
-  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   z_order: &WindowZOrder,
   is_visible: bool,
   config: &UserConfig,
@@ -373,7 +359,7 @@ fn reposition_window(
 
     // Even though the window size is unchanged, `NativeWindow::set_frame`
     // is used instead of `NativeWindow::reposition` because the latter
-    // resulted in occasional incorrect positionings on macOS.
+    // resulted in occasional incorrect positionings.
     window.native().set_frame(&Rect::from_xy(
       position_x,
       position_y,
@@ -387,84 +373,90 @@ fn reposition_window(
   if window.active_drag().is_some() {
     window.native().resize(rect.width(), rect.height())?;
   } else {
-    #[cfg(target_os = "macos")]
-    window.native().set_frame(&rect)?;
+    use wm_platform::{
+      SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
+      SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WS_MAXIMIZEBOX,
+    };
 
-    #[cfg(target_os = "windows")]
+    // For the cloak hide method, an off-screen window does not need its
+    // position updated — it will be repositioned when its workspace is
+    // shown again. Just cloak it, skipping the `set_window_pos` (and its
+    // DPI second pass) plus the restore-state syscalls. This avoids
+    // redundant work for the (usually many) hidden windows on reload,
+    // startup, and display changes.
+    if config.value.general.hide_method == HideMethod::Cloak && !is_visible
     {
-      use wm_platform::{
-        SWP_ASYNCWINDOWPOS, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-        SWP_NOCOPYBITS, SWP_NOSENDCHANGING, WS_MAXIMIZEBOX,
-      };
+      window.native().set_cloaked(true)?;
+      return Ok(());
+    }
 
-      // Restore window if it's minimized/maximized and shouldn't be. This
-      // is needed to be able to move and resize it.
-      let should_restore = match &window.state() {
-        // Need to restore window if transitioning from maximized
-        // fullscreen to non-maximized fullscreen.
-        WindowState::Fullscreen(fullscreen) => {
-          !fullscreen.maximized && window.native().is_maximized()?
-        }
-        // No need to restore window if it'll be minimized. Transitioning
-        // from maximized to minimized works without having to
-        // restore.
-        WindowState::Minimized => false,
-        _ => {
-          window.native().is_minimized()?
-            || window.native().is_maximized()?
-        }
-      };
-
-      if should_restore {
-        // Restoring to position has the same effect as `ShowWindow` with
-        // `SW_RESTORE`, but doesn't cause a flicker.
-        window.native().restore(Some(&rect))?;
+    // Restore window if it's minimized/maximized and shouldn't be. This
+    // is needed to be able to move and resize it.
+    let should_restore = match &window.state() {
+      // Need to restore window if transitioning from maximized
+      // fullscreen to non-maximized fullscreen.
+      WindowState::Fullscreen(fullscreen) => {
+        !fullscreen.maximized && window.native().is_maximized()?
       }
+      // No need to restore window if it'll be minimized. Transitioning
+      // from maximized to minimized works without having to
+      // restore.
+      WindowState::Minimized => false,
+      _ => {
+        window.native().is_minimized()?
+          || window.native().is_maximized()?
+      }
+    };
 
-      let mut swp_flags = SWP_NOACTIVATE
-        | SWP_NOCOPYBITS
-        | SWP_NOSENDCHANGING
-        | SWP_ASYNCWINDOWPOS;
+    if should_restore {
+      // Restoring to position has the same effect as `ShowWindow` with
+      // `SW_RESTORE`, but doesn't cause a flicker.
+      window.native().restore(Some(&rect))?;
+    }
 
-      match &window.state() {
-        WindowState::Minimized => {
-          if !window.native().is_minimized()? {
-            window.native().minimize()?;
-          }
+    let mut swp_flags = SWP_NOACTIVATE
+      | SWP_NOCOPYBITS
+      | SWP_NOSENDCHANGING
+      | SWP_ASYNCWINDOWPOS;
+
+    match &window.state() {
+      WindowState::Minimized => {
+        if !window.native().is_minimized()? {
+          window.native().minimize()?;
         }
-        WindowState::Fullscreen(fullscreen)
-          if fullscreen.maximized
-            && window.native().has_window_style(WS_MAXIMIZEBOX) =>
-        {
-          if !window.native().is_maximized()? {
-            window.native().maximize()?;
-          }
+      }
+      WindowState::Fullscreen(fullscreen)
+        if fullscreen.maximized
+          && window.native().has_window_style(WS_MAXIMIZEBOX) =>
+      {
+        if !window.native().is_maximized()? {
+          window.native().maximize()?;
+        }
 
+        window.native().set_window_pos(z_order, &rect, swp_flags)?;
+      }
+      _ => {
+        swp_flags |= SWP_FRAMECHANGED;
+
+        window.native().set_window_pos(z_order, &rect, swp_flags)?;
+
+        // When there's a mismatch between the DPI of the monitor and the
+        // window, the window might be sized incorrectly after the first
+        // move. If we set the position twice, inconsistencies after the
+        // first move are resolved.
+        if window.has_pending_dpi_adjustment() {
           window.native().set_window_pos(z_order, &rect, swp_flags)?;
         }
-        _ => {
-          swp_flags |= SWP_FRAMECHANGED;
-
-          window.native().set_window_pos(z_order, &rect, swp_flags)?;
-
-          // When there's a mismatch between the DPI of the monitor and the
-          // window, the window might be sized incorrectly after the first
-          // move. If we set the position twice, inconsistencies after the
-          // first move are resolved.
-          if window.has_pending_dpi_adjustment() {
-            window.native().set_window_pos(z_order, &rect, swp_flags)?;
-          }
-        }
       }
+    }
 
-      // Set visibility based on the hide method.
-      if config.value.general.hide_method == HideMethod::Cloak {
-        window.native().set_cloaked(!is_visible)?;
-      } else if is_visible {
-        window.native().show()?;
-      } else {
-        window.native().hide()?;
-      }
+    // Set visibility based on the hide method.
+    if config.value.general.hide_method == HideMethod::Cloak {
+      window.native().set_cloaked(!is_visible)?;
+    } else if is_visible {
+      window.native().show()?;
+    } else {
+      window.native().hide()?;
     }
   }
 
@@ -509,16 +501,12 @@ fn jump_cursor(
 }
 
 fn apply_window_effects(
-  // LINT: `window` is only used on Windows.
-  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   window: &WindowContainer,
   is_focused: bool,
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
 
-  // LINT: `effect_config` is only used on Windows.
-  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   let effect_config = if is_focused {
     &window_effects.focused_window
   } else {
@@ -526,28 +514,24 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
     apply_border_effect(window, effect_config);
   }
 
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.hide_title_bar.enabled
     || window_effects.other_windows.hide_title_bar.enabled
   {
     apply_hide_title_bar_effect(window, effect_config);
   }
 
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.corner_style.enabled
     || window_effects.other_windows.corner_style.enabled
   {
     apply_corner_effect(window, effect_config);
   }
 
-  #[cfg(target_os = "windows")]
   if window_effects.focused_window.transparency.enabled
     || window_effects.other_windows.transparency.enabled
   {
@@ -555,7 +539,6 @@ fn apply_window_effects(
   }
 }
 
-#[cfg(target_os = "windows")]
 fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
@@ -579,7 +562,6 @@ fn apply_border_effect(
   });
 }
 
-#[cfg(target_os = "windows")]
 fn apply_hide_title_bar_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
@@ -589,7 +571,6 @@ fn apply_hide_title_bar_effect(
     .set_title_bar_visibility(!effect_config.hide_title_bar.enabled);
 }
 
-#[cfg(target_os = "windows")]
 fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
@@ -603,7 +584,6 @@ fn apply_corner_effect(
   _ = window.native().set_corner_style(corner_style);
 }
 
-#[cfg(target_os = "windows")]
 fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,

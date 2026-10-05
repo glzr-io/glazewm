@@ -31,23 +31,32 @@ pub fn activate_workspace(
     config,
   )?;
 
-  let target_monitor = target_monitor
-    .or_else(|| {
-      workspace_config
-        .bind_to_monitor
-        .and_then(|index| {
-          state
-            .monitors()
-            .into_iter()
-            .find(|monitor| monitor.index() == index as usize)
-        })
-        .or_else(|| {
-          state
-            .focused_container()
-            .and_then(|focused| focused.monitor())
-        })
-    })
-    .context("Failed to get a target monitor for the workspace.")?;
+  // When multi-monitor workspaces are disabled, every workspace must live
+  // on the configured primary monitor regardless of `bind_to_monitor` or
+  // the explicit target monitor passed in.
+  let target_monitor = if config.value.general.multi_monitor_workspaces {
+    target_monitor
+      .or_else(|| {
+        workspace_config
+          .bind_to_monitor
+          .and_then(|index| {
+            state
+              .monitors()
+              .into_iter()
+              .find(|monitor| monitor.index() == index as usize)
+          })
+          .or_else(|| {
+            state
+              .focused_container()
+              .and_then(|focused| focused.monitor())
+          })
+      })
+      .context("Failed to get a target monitor for the workspace.")?
+  } else {
+    state
+      .primary_monitor(config)
+      .context("Failed to get the primary monitor.")?
+  };
 
   let monitor_rect = target_monitor.to_rect()?;
 
