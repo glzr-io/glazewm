@@ -475,7 +475,10 @@ fn reposition_window(
     window.native().resize(rect.width(), rect.height())?;
 
     #[cfg(target_os = "macos")]
-    macos_update_border_position(window.native().id(), &rect);
+    macos_update_border_position(
+      window.native().id(),
+      &window.native().frame()?,
+    );
   } else {
     #[cfg(target_os = "macos")]
     {
@@ -507,23 +510,20 @@ fn reposition_window(
           }
         }
       } else {
-        let first_result = window.native().set_frame(&rect);
-
         // When there's a mismatch between the DPI of the monitor and the
         // window, the first `set_frame` often fails or mis-sizes during
         // cross-DPI transitions. Re-apply after a short delay to allow
         // macOS to commit the screen association change.
         if window.has_pending_dpi_adjustment() {
-          let native = window.native().clone();
-          let rect = rect.clone();
-
-          tokio::task::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(100))
-              .await;
-            _ = native.set_frame(&rect);
-          });
+          if let Err(error) =
+            window.native().set_frame_with_dpi_retry(&rect)
+          {
+            tracing::debug!(
+              "Initial cross-DPI frame failed; retry queued: {error}"
+            );
+          }
         } else {
-          first_result?;
+          window.native().set_frame(&rect)?;
         }
 
         if is_visible
@@ -554,11 +554,8 @@ fn reposition_window(
             }
           }
         }
-        // Use the native fitted frame when detection changed the tile
-        // size.
-        let fitted_rect = window
-          .to_rect()?
-          .apply_delta(&window.total_border_delta()?, None);
+        // Detection may have restored the native size after probing.
+        let fitted_rect = window.native().frame()?;
         macos_update_border_position(window.native().id(), &fitted_rect);
       }
     }

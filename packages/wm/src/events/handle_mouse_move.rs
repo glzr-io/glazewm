@@ -1,6 +1,8 @@
 use anyhow::Context;
 #[cfg(target_os = "macos")]
 use wm_common::try_warn;
+#[cfg(target_os = "macos")]
+use wm_platform::{macos_update_border_position, NativeWindowExtMacOs};
 use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
@@ -42,7 +44,12 @@ pub fn handle_mouse_move(
       // Only one window should ever be actively dragged at a time, but
       // just in case, iterate over all active drag windows.
       for window in active_drag_windows {
+        window.native().cancel_pending_frame_retry();
         let new_rect = try_warn!(window.native().frame());
+
+        // A same-monitor floating drop queues no redraw. Always finish
+        // the overlay movement before handling the drop.
+        macos_update_border_position(window.native().id(), &new_rect);
 
         window.update_native_properties(|properties| {
           properties.frame = new_rect;

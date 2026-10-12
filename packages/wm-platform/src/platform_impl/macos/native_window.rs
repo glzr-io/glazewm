@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+  atomic::{AtomicU64, Ordering},
+  Arc,
+};
 
 use objc2::MainThreadMarker;
 use objc2_app_kit::{
@@ -67,12 +70,57 @@ fn core_graphics_window_title(id: WindowId) -> Option<String> {
   Some(title.to_string())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FrameAttribute {
+  Size,
+  Position,
+}
+
+/// Writes only position for a same-size move. Resizing retains the
+/// size-position-size workaround required by apps such as Firefox.
+fn apply_frame(
+  current: Option<&Rect>,
+  requested: &Rect,
+  force_size: bool,
+  mut write: impl FnMut(FrameAttribute) -> crate::Result<()>,
+) -> crate::Result<()> {
+  if !force_size && current == Some(requested) {
+    return Ok(());
+  }
+  let resize = force_size
+    || current.is_none_or(|frame| {
+      frame.width() != requested.width()
+        || frame.height() != requested.height()
+    });
+  if resize {
+    write(FrameAttribute::Size)?;
+  }
+  write(FrameAttribute::Position)?;
+  if resize {
+    write(FrameAttribute::Size)?;
+  }
+  Ok(())
+}
+
+/// Runs a queued write only if no newer command or user drag replaced it.
+fn apply_frame_at_revision(
+  current: &AtomicU64,
+  expected: u64,
+  write: impl FnOnce() -> crate::Result<()>,
+) -> crate::Result<()> {
+  if current.load(Ordering::SeqCst) == expected {
+    write()?;
+  }
+  Ok(())
+}
+
 /// Platform-specific implementation of [`NativeWindow`].
 #[derive(Clone, Debug)]
 pub(crate) struct NativeWindow {
   pub(crate) id: WindowId,
   pub(crate) element: Arc<ThreadBound<CFRetained<AXUIElement>>>,
   pub(crate) application: Application,
+  frame_revision: Arc<AtomicU64>,
 }
 
 impl NativeWindow {
@@ -87,6 +135,7 @@ impl NativeWindow {
       element: Arc::new(element),
       id,
       application,
+      frame_revision: Arc::new(AtomicU64::new(0)),
     }
   }
 
@@ -120,17 +169,23 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::frame`].
   pub(crate) fn frame(&self) -> crate::Result<Rect> {
-    // TODO: Consider refactoring this to use a single dispatch.
-    // TODO: Would `AXFrame` work instead?
-    let size = self.size()?;
-    let position = self.position()?;
-    #[allow(clippy::cast_possible_truncation)]
-    Ok(Rect::from_xy(
-      position.0 as i32,
-      position.1 as i32,
-      size.0 as i32,
-      size.1 as i32,
-    ))
+    // Read both attributes in one dispatch so a queued command cannot
+    // execute between the size and position reads.
+    self.element.with(|el| {
+      let size = el
+        .get_attribute::<AXValue>("AXSize")?
+        .value_strict::<CGSize>()?;
+      let position = el
+        .get_attribute::<AXValue>("AXPosition")?
+        .value_strict::<CGPoint>()?;
+      #[allow(clippy::cast_possible_truncation)]
+      Ok(Rect::from_xy(
+        position.x as i32,
+        position.y as i32,
+        size.width as i32,
+        size.height as i32,
+      ))
+    })?
   }
 
   /// Implements [`NativeWindow::position`].
@@ -273,26 +328,81 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::set_frame`].
   pub(crate) fn set_frame(&self, rect: &Rect) -> crate::Result<()> {
-    // TODO: Consider adding a separate `set_frame_async` method which
-    // spawns a thread. Calling blocking AXUIElement methods from different
-    // threads supposedly works fine.
-    // TODO: Refactor the repeated `set_attribute` calls.
+    let revision = self.next_frame_revision();
+    self.set_frame_at_revision(rect, revision, false)
+  }
+
+  /// Retries a cross-DPI frame only while it is the latest request.
+  pub(crate) fn set_frame_with_dpi_retry(
+    &self,
+    rect: &Rect,
+  ) -> crate::Result<()> {
+    let revision = self.next_frame_revision();
+    let result = self.set_frame_at_revision(rect, revision, true);
+    let native = self.clone();
+    let rect = rect.clone();
+    tokio::task::spawn(async move {
+      tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+      if let Err(error) =
+        native.set_frame_at_revision(&rect, revision, true)
+      {
+        tracing::warn!("Failed to retry macOS window frame: {error}");
+      }
+    });
+    result
+  }
+
+  /// Invalidates delayed frame writes when a drag or lifecycle change
+  /// wins.
+  pub(crate) fn cancel_pending_frame_retry(&self) {
+    self.next_frame_revision();
+  }
+
+  /// Returns the generation owned by a new geometry request.
+  fn next_frame_revision(&self) -> u64 {
+    self.frame_revision.fetch_add(1, Ordering::SeqCst) + 1
+  }
+
+  /// Checks freshness on the AX thread before applying delayed geometry.
+  fn set_frame_at_revision(
+    &self,
+    rect: &Rect,
+    revision: u64,
+    force_size: bool,
+  ) -> crate::Result<()> {
     let rect = rect.clone();
     self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
-      let ax_size = CGSize::new(rect.width().into(), rect.height().into());
-      let ax_value = AXValue::new_strict(&ax_size)?;
-      el.set_attribute("AXSize", &ax_value)?;
-      let ax_point = CGPoint::new(rect.x().into(), rect.y().into());
-      let ax_value = AXValue::new_strict(&ax_point)?;
-      el.set_attribute("AXPosition", &ax_value)?;
-      let ax_size = CGSize::new(rect.width().into(), rect.height().into());
-      let ax_value = AXValue::new_strict(&ax_size)?;
-      el.set_attribute("AXSize", &ax_value)
+      apply_frame_at_revision(&self.frame_revision, revision, || {
+        let current = self.committed_frame().ok();
+        apply_frame(current.as_ref(), &rect, force_size, |attribute| {
+          match attribute {
+            FrameAttribute::Size => {
+              let size =
+                CGSize::new(rect.width().into(), rect.height().into());
+              el.set_attribute("AXSize", &AXValue::new_strict(&size)?)
+            }
+            FrameAttribute::Position => {
+              let point = CGPoint::new(rect.x().into(), rect.y().into());
+              el.set_attribute("AXPosition", &AXValue::new_strict(&point)?)
+            }
+          }
+        })?;
+        if let Ok(frame) = self.committed_frame() {
+          if let Err(error) =
+            platform_impl::update_border_position(self.id(), &frame)
+          {
+            tracing::warn!(
+              "Failed to sync border after macOS frame change: {error}"
+            );
+          }
+        }
+        Ok(())
+      })
     })
   }
 
-  /// Reads committed geometry; `AXSize` can briefly echo a rejected size.
-  fn committed_size(&self) -> crate::Result<(i32, i32)> {
+  /// Reads committed geometry; AX attributes can echo a rejected request.
+  pub(crate) fn committed_frame(&self) -> crate::Result<Rect> {
     let mut bounds = CGRect::default();
     let result = unsafe {
       ffi::SLSGetWindowBounds(
@@ -307,10 +417,18 @@ impl NativeWindow {
       ));
     }
     #[allow(clippy::cast_possible_truncation)]
-    Ok((
+    Ok(Rect::from_xy(
+      bounds.origin.x.round() as i32,
+      bounds.origin.y.round() as i32,
       bounds.size.width.round() as i32,
       bounds.size.height.round() as i32,
     ))
+  }
+
+  /// Reads committed size for fixed-dimension detection.
+  fn committed_size(&self) -> crate::Result<(i32, i32)> {
+    let frame = self.committed_frame()?;
+    Ok((frame.width(), frame.height()))
   }
 
   /// Verifies both resize directions before treating a dimension as fixed.
@@ -397,6 +515,7 @@ impl NativeWindow {
     width: i32,
     height: i32,
   ) -> crate::Result<()> {
+    self.cancel_pending_frame_retry();
     self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
       let ax_size = CGSize::new(width.into(), height.into());
       let ax_value = AXValue::new_strict(&ax_size)?;
@@ -406,6 +525,7 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::reposition`].
   pub(crate) fn reposition(&self, x: i32, y: i32) -> crate::Result<()> {
+    self.cancel_pending_frame_retry();
     self.with_enhanced_ui_disabled(move |el| -> crate::Result<()> {
       let ax_point = CGPoint::new(x.into(), y.into());
       let ax_value = AXValue::new_strict(&ax_point)?;
@@ -415,6 +535,7 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::minimize`].
   pub(crate) fn minimize(&self) -> crate::Result<()> {
+    self.cancel_pending_frame_retry();
     self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXMinimized", &ax_bool.into())
@@ -423,6 +544,7 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::maximize`].
   pub(crate) fn maximize(&self) -> crate::Result<()> {
+    self.cancel_pending_frame_retry();
     self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(true);
       el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
@@ -431,6 +553,7 @@ impl NativeWindow {
 
   /// Implements [`NativeWindowExtMacOs::unmaximize`].
   pub(crate) fn unmaximize(&self) -> crate::Result<()> {
+    self.cancel_pending_frame_retry();
     self.element.with(move |el| -> crate::Result<()> {
       let ax_bool = CFBoolean::new(false);
       el.set_attribute::<CFBoolean>("AXFullScreen", &ax_bool.into())
@@ -447,6 +570,7 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::close`].
   pub(crate) fn close(&self) -> crate::Result<()> {
+    self.cancel_pending_frame_retry();
     self.element.with(|el| -> crate::Result<()> {
       let close_button =
         el.get_attribute::<AXUIElement>("AXCloseButton")?;
@@ -473,6 +597,9 @@ impl NativeWindow {
     color: Option<&Color>,
   ) -> crate::Result<()> {
     let window_id = self.id();
+    // Resolve geometry before locking. No overlay lock may be held
+    // across a dispatch to the AX thread.
+    let frame = color.map(|_| self.committed_frame()).transpose()?;
     let mut manager = BORDER_OVERLAY_MANAGER.lock().map_err(|_| {
       crate::Error::Platform(
         "Border overlay manager lock poisoned.".to_string(),
@@ -484,8 +611,10 @@ impl NativeWindow {
       return Ok(());
     };
 
-    let frame = self.frame()?;
-    manager.set_border_color(window_id, &frame, Some(color))
+    if let Some(frame) = frame {
+      manager.set_border_color(window_id, &frame, Some(color))?;
+    }
+    Ok(())
   }
 
   /// Executes a callback with the `AXEnhancedUserInterface` attribute
@@ -733,6 +862,106 @@ pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
   }
 
   Ok(())
+}
+
+#[cfg(test)]
+mod frame_tests {
+  use super::*;
+
+  #[test]
+  fn commands_write_only_the_attributes_they_need() {
+    let original = Rect::from_xy(10, 20, 800, 600);
+    for (current, requested, forced, expected) in [
+      (Some(&original), original.clone(), false, vec![]),
+      (
+        Some(&original),
+        Rect::from_xy(30, 40, 800, 600),
+        false,
+        vec![FrameAttribute::Position],
+      ),
+      (
+        Some(&original),
+        Rect::from_xy(30, 40, 900, 700),
+        false,
+        vec![
+          FrameAttribute::Size,
+          FrameAttribute::Position,
+          FrameAttribute::Size,
+        ],
+      ),
+      (
+        Some(&original),
+        original.clone(),
+        true,
+        vec![
+          FrameAttribute::Size,
+          FrameAttribute::Position,
+          FrameAttribute::Size,
+        ],
+      ),
+      (
+        None,
+        original.clone(),
+        false,
+        vec![
+          FrameAttribute::Size,
+          FrameAttribute::Position,
+          FrameAttribute::Size,
+        ],
+      ),
+    ] {
+      let mut writes = Vec::new();
+      apply_frame(current, &requested, forced, |attribute| {
+        writes.push(attribute);
+        Ok(())
+      })
+      .unwrap();
+      assert_eq!(writes, expected);
+    }
+  }
+
+  #[test]
+  fn failed_frame_writes_stop_and_propagate() {
+    let mut writes = Vec::new();
+    let result = apply_frame(
+      None,
+      &Rect::from_xy(0, 0, 800, 600),
+      false,
+      |attribute| {
+        writes.push(attribute);
+        Err(crate::Error::Platform("Injected failure".into()))
+      },
+    );
+    assert!(result.is_err());
+    assert_eq!(writes, [FrameAttribute::Size]);
+  }
+
+  #[test]
+  fn superseded_or_cancelled_retries_cannot_write() {
+    let revision = AtomicU64::new(1);
+    let mut writes = 0;
+    apply_frame_at_revision(&revision, 1, || {
+      writes += 1;
+      Ok(())
+    })
+    .unwrap();
+    revision.fetch_add(1, Ordering::SeqCst);
+    apply_frame_at_revision(&revision, 1, || {
+      panic!("stale retry executed")
+    })
+    .unwrap();
+    apply_frame_at_revision(&revision, 2, || {
+      writes += 1;
+      Ok(())
+    })
+    .unwrap();
+    revision.fetch_add(1, Ordering::SeqCst);
+    apply_frame_at_revision(&revision, 2, || {
+      panic!("cancelled retry executed")
+    })
+    .unwrap();
+    assert_eq!(writes, 2);
+  }
 }
 
 #[cfg(test)]

@@ -91,6 +91,12 @@ pub enum WindowZOrder {
 /// macOS-specific extension trait for [`NativeWindow`].
 #[cfg(target_os = "macos")]
 pub trait NativeWindowExtMacOs {
+  /// Sets a cross-DPI frame and retries only while the request is current.
+  fn set_frame_with_dpi_retry(&self, rect: &Rect) -> crate::Result<()>;
+
+  /// Cancels pending DPI frame retries for a user drag or lifecycle
+  /// change.
+  fn cancel_pending_frame_retry(&self);
   /// Gets the `AXUIElement` instance for this window.
   ///
   /// # Platform-specific
@@ -167,6 +173,13 @@ pub trait NativeWindowExtMacOs {
 
 #[cfg(target_os = "macos")]
 impl NativeWindowExtMacOs for NativeWindow {
+  fn set_frame_with_dpi_retry(&self, rect: &Rect) -> crate::Result<()> {
+    self.inner.set_frame_with_dpi_retry(rect)
+  }
+
+  fn cancel_pending_frame_retry(&self) {
+    self.inner.cancel_pending_frame_retry();
+  }
   fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>> {
     &self.inner.element
   }

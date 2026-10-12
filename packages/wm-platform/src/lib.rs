@@ -45,33 +45,17 @@ pub use windows::Win32::UI::WindowsAndMessaging::{
 /// Updates the border overlay position for a managed window.
 #[cfg(target_os = "macos")]
 pub fn macos_update_border_position(window_id: WindowId, frame: &Rect) {
-  match platform_impl::BORDER_OVERLAY_MANAGER.try_lock() {
-    Ok(mut manager) => {
-      if let Err(error) = manager.update_position(window_id, frame) {
-        tracing::warn!(
-          "Failed to update border overlay position: {error}"
-        );
-      }
-    }
-    Err(_) => {
-      tracing::warn!(
-        "Border overlay manager lock unavailable while updating position."
-      );
-    }
+  if let Err(error) =
+    platform_impl::update_border_position(window_id, frame)
+  {
+    tracing::warn!("Failed to update border overlay position: {error}");
   }
 }
 
 /// Removes the border overlay for a managed window.
 #[cfg(target_os = "macos")]
 pub fn macos_remove_border(window_id: WindowId) {
-  match platform_impl::BORDER_OVERLAY_MANAGER.try_lock() {
-    Ok(mut manager) => {
-      manager.remove(window_id);
-    }
-    Err(_) => {
-      tracing::warn!(
-        "Border overlay manager lock unavailable while removing border."
-      );
-    }
+  if let Err(error) = platform_impl::remove_border(window_id) {
+    tracing::warn!("Failed to remove border overlay: {error}");
   }
 }

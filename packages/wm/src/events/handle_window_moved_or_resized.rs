@@ -6,7 +6,10 @@ use wm_common::{
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "macos")]
-use wm_platform::{LengthValue, MouseButton, RectDelta};
+use wm_platform::{
+  macos_update_border_position, LengthValue, MouseButton,
+  NativeWindowExtMacOs, RectDelta,
+};
 use wm_platform::{NativeWindow, Rect};
 
 use crate::{
@@ -38,6 +41,16 @@ pub fn handle_window_moved_or_resized(
   if let Some(window) = found_window {
     let old_frame_position = window.native_properties().frame;
     let frame_position = try_warn!(window.native().frame());
+
+    #[cfg(target_os = "macos")]
+    {
+      if state.dispatcher.is_mouse_down(&MouseButton::Left) {
+        window.native().cancel_pending_frame_retry();
+      }
+      // Geometry must reach the overlay even when no layout sync is
+      // queued, including duplicate events and active floating drags.
+      macos_update_border_position(window.native().id(), &frame_position);
+    }
 
     // A pane change or display transition can change an application's
     // constraints. A genuinely accepted new size invalidates the cached
