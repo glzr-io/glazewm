@@ -31,8 +31,13 @@ fn length_constraint(
       } else {
         properties.fixed_size.height
       };
+      let minimum = if width {
+        properties.fixed_size.minimum_width
+      } else {
+        properties.fixed_size.minimum_height
+      };
       let border_delta = window.total_border_delta()?;
-      let fixed = fixed.map(|length| {
+      let tile_length = |length| {
         let native_rect = if width {
           Rect::from_xy(0, 0, length, properties.frame.height())
         } else {
@@ -44,10 +49,10 @@ fn length_constraint(
         } else {
           tile.height()
         }
-      });
+      };
       Ok(LengthConstraint {
-        fixed,
-        minimum: fixed.unwrap_or(0),
+        fixed: fixed.map(tile_length),
+        minimum: fixed.or(minimum).map_or(0, tile_length),
       })
     }
     TilingContainer::Split(split) => {
@@ -216,13 +221,15 @@ pub fn fitted_tiling_rect(
     .collect::<Vec<_>>();
   let lengths =
     allocate_lengths(available, &weights, &constraints, horizontal);
-  let cross_length = length_constraint(container, !horizontal)?
-    .fixed
-    .unwrap_or(if horizontal {
+  let cross_constraint = length_constraint(container, !horizontal)?;
+  let cross_length = cross_constraint.fixed.unwrap_or_else(|| {
+    let available = if horizontal {
       parent_rect.height()
     } else {
       parent_rect.width()
-    });
+    };
+    available.max(cross_constraint.minimum)
+  });
   Ok(tile_rect(
     &parent_rect,
     &lengths,
@@ -269,6 +276,85 @@ mod tests {
       fixed: Some(length),
       minimum: length,
     }
+  }
+
+  #[test]
+  fn minimum_width_moves_a_narrow_tile_inside_the_monitor() {
+    let lengths = allocate_lengths(
+      1698,
+      &[1.0 / 3.0; 3],
+      &[
+        LengthConstraint::default(),
+        LengthConstraint::default(),
+        LengthConstraint {
+          fixed: None,
+          minimum: 1200,
+        },
+      ],
+      true,
+    );
+    assert_eq!(lengths, vec![249, 249, 1200]);
+    assert_eq!(
+      tile_rect(
+        &Rect::from_xy(5, 45, 1718, 1067),
+        &lengths,
+        2,
+        10,
+        1067,
+        true
+      ),
+      Rect::from_xy(523, 45, 1200, 1067)
+    );
+    assert_eq!(
+      allocate_lengths(
+        3000,
+        &[0.5, 0.5],
+        &[
+          LengthConstraint {
+            fixed: None,
+            minimum: 1200
+          },
+          LengthConstraint::default()
+        ],
+        true
+      ),
+      vec![1500, 1500]
+    );
+  }
+
+  #[test]
+  fn nested_minimum_width_remains_flexible_above_its_bound() {
+    let nested = combine_constraints(
+      &[
+        LengthConstraint {
+          fixed: None,
+          minimum: 1200,
+        },
+        LengthConstraint::default(),
+      ],
+      false,
+      10,
+    );
+    assert_eq!(nested.fixed, None);
+    assert_eq!(nested.minimum, 1200);
+    assert_eq!(
+      allocate_lengths(
+        1700,
+        &[0.5, 0.5],
+        &[nested, LengthConstraint::default()],
+        true
+      ),
+      vec![1200, 500]
+    );
+    assert_eq!(
+      allocate_lengths(
+        3000,
+        &[0.5, 0.5],
+        &[nested, LengthConstraint::default()],
+        true
+      ),
+      vec![1500, 1500]
+    );
   }
 
   #[test]

@@ -440,13 +440,11 @@ fn reposition_window(
   } else {
     #[cfg(target_os = "macos")]
     {
-      window.native().set_frame(&rect)?;
-      if is_visible
-        && window.state() == WindowState::Tiling
-        && !window.has_pending_dpi_adjustment()
-      {
+      let frame_result = window.native().set_frame(&rect);
+      if is_visible && window.state() == WindowState::Tiling {
         detect_fixed_window_size(window, &rect);
       }
+      frame_result?;
     }
 
     #[cfg(target_os = "windows")]
