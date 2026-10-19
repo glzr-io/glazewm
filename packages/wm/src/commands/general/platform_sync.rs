@@ -514,7 +514,7 @@ fn reposition_window(
         // window, the first `set_frame` often fails or mis-sizes during
         // cross-DPI transitions. Re-apply after a short delay to allow
         // macOS to commit the screen association change.
-        if window.has_pending_dpi_adjustment() {
+        let frame_result = if window.has_pending_dpi_adjustment() {
           if let Err(error) =
             window.native().set_frame_with_dpi_retry(&rect)
           {
@@ -522,14 +522,12 @@ fn reposition_window(
               "Initial cross-DPI frame failed; retry queued: {error}"
             );
           }
+          Ok(())
         } else {
-          window.native().set_frame(&rect)?;
-        }
+          window.native().set_frame(&rect)
+        };
 
-        if is_visible
-          && window.state() == WindowState::Tiling
-          && !window.has_pending_dpi_adjustment()
-        {
+        if is_visible && window.state() == WindowState::Tiling {
           let properties = window.native_properties();
           let requested_size = (rect.width(), rect.height());
           if properties.fixed_size_probe != Some(requested_size) {
@@ -554,6 +552,7 @@ fn reposition_window(
             }
           }
         }
+        frame_result?;
         // Detection may have restored the native size after probing.
         let fitted_rect = window.native().frame()?;
         macos_update_border_position(window.native().id(), &fitted_rect);

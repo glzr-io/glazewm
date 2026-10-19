@@ -505,6 +505,8 @@ impl NativeWindow {
       Ok(FixedWindowSize {
         width: known.width.or(detected.width),
         height: known.height.or(detected.height),
+        minimum_width: known.minimum_width.or(detected.minimum_width),
+        minimum_height: known.minimum_height.or(detected.minimum_height),
       })
     })
   }

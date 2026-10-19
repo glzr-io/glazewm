@@ -76,6 +76,22 @@ pub fn handle_window_moved_or_resized(
           properties.fixed_size.height = None;
           fixed_size_changed = true;
         }
+        if properties
+          .fixed_size
+          .minimum_width
+          .is_some_and(|width| frame_position.width() < width - 1)
+        {
+          properties.fixed_size.minimum_width = None;
+          fixed_size_changed = true;
+        }
+        if properties
+          .fixed_size
+          .minimum_height
+          .is_some_and(|height| frame_position.height() < height - 1)
+        {
+          properties.fixed_size.minimum_height = None;
+          fixed_size_changed = true;
+        }
         if fixed_size_changed {
           properties.fixed_size_probe = None;
         }
