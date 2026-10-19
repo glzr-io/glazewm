@@ -39,9 +39,57 @@ pub fn handle_window_moved_or_resized(
     let old_frame_position = window.native_properties().frame;
     let frame_position = try_warn!(window.native().frame());
 
+    // A pane change or display transition can change an application's
+    // constraints. A genuinely accepted new size invalidates the cached
+    // fixed dimension; native fullscreen geometry is not such evidence.
+    let can_invalidate_fixed_size = matches!(
+      window.state(),
+      WindowState::Tiling | WindowState::Floating(_)
+    );
+    let mut fixed_size_changed = false;
     window.update_native_properties(|properties| {
+      if can_invalidate_fixed_size {
+        if properties
+          .fixed_size
+          .width
+          .is_some_and(|width| (width - frame_position.width()).abs() > 1)
+        {
+          properties.fixed_size.width = None;
+          fixed_size_changed = true;
+        }
+        if properties.fixed_size.height.is_some_and(|height| {
+          (height - frame_position.height()).abs() > 1
+        }) {
+          properties.fixed_size.height = None;
+          fixed_size_changed = true;
+        }
+        if properties
+          .fixed_size
+          .minimum_width
+          .is_some_and(|width| frame_position.width() < width - 1)
+        {
+          properties.fixed_size.minimum_width = None;
+          fixed_size_changed = true;
+        }
+        if properties
+          .fixed_size
+          .minimum_height
+          .is_some_and(|height| frame_position.height() < height - 1)
+        {
+          properties.fixed_size.minimum_height = None;
+          fixed_size_changed = true;
+        }
+        if fixed_size_changed {
+          properties.fixed_size_probe = None;
+        }
+      }
       properties.frame = frame_position.clone();
     });
+    if fixed_size_changed && window.state() == WindowState::Tiling {
+      state
+        .pending_sync
+        .queue_container_to_redraw(window.parent().context("No parent.")?);
+    }
 
     // Handle windows that are actively being dragged.
     if !state.is_paused && window.active_drag().is_some() {

@@ -4,12 +4,10 @@ use std::{
   rc::Rc,
 };
 
-use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
   ContainerDto, GapsConfig, SplitContainerDto, TilingDirection,
 };
-use wm_platform::Rect;
 
 use crate::{
   impl_common_getters, impl_container_debug,

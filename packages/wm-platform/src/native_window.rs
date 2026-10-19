@@ -98,6 +98,14 @@ pub trait NativeWindowExtMacOs {
   ///
   /// This method is only available on macOS.
   fn is_main(&self) -> crate::Result<bool>;
+
+  /// Detects fixed dimensions after a window refused its requested tile
+  /// size. Probes only unknown dimensions and restores the original size.
+  fn detect_fixed_size(
+    &self,
+    requested: &Rect,
+    known: crate::FixedWindowSize,
+  ) -> crate::Result<crate::FixedWindowSize>;
 }
 
 #[cfg(target_os = "macos")]
@@ -136,6 +144,14 @@ impl NativeWindowExtMacOs for NativeWindow {
       el.get_attribute::<CFBoolean>("AXMain")
         .map(|cf_bool| cf_bool.value())
     })?
+  }
+
+  fn detect_fixed_size(
+    &self,
+    requested: &Rect,
+    known: crate::FixedWindowSize,
+  ) -> crate::Result<crate::FixedWindowSize> {
+    self.inner.detect_fixed_size(requested, known)
   }
 }
 

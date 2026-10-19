@@ -6,7 +6,7 @@ use objc2_app_kit::{
 };
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
-  CFBoolean, CFRetained, CFString, CGPoint, CGSize,
+  CFBoolean, CFRetained, CFString, CGPoint, CGRect, CGSize,
 };
 use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
 
@@ -14,7 +14,7 @@ use crate::{
   platform_impl::{
     self, ffi, AXUIElement, AXUIElementExt, AXValueExt, Application,
   },
-  Dispatcher, Point, Rect, ThreadBound, WindowId,
+  Dispatcher, FixedWindowSize, Point, Rect, ThreadBound, WindowId,
 };
 
 /// Platform-specific implementation of [`NativeWindow`].
@@ -184,6 +184,108 @@ impl NativeWindow {
       let ax_size = CGSize::new(rect.width().into(), rect.height().into());
       let ax_value = AXValue::new_strict(&ax_size)?;
       el.set_attribute("AXSize", &ax_value)
+    })
+  }
+
+  /// Reads committed geometry; `AXSize` can briefly echo a rejected size.
+  fn committed_size(&self) -> crate::Result<(i32, i32)> {
+    let mut bounds = CGRect::default();
+    let result = unsafe {
+      ffi::SLSGetWindowBounds(
+        ffi::SLSMainConnectionID(),
+        self.id.0,
+        &raw mut bounds,
+      )
+    };
+    if result != CGError::Success {
+      return Err(crate::Error::Platform(
+        "Failed to read committed window bounds.".to_string(),
+      ));
+    }
+    #[allow(clippy::cast_possible_truncation)]
+    Ok((
+      bounds.size.width.round() as i32,
+      bounds.size.height.round() as i32,
+    ))
+  }
+
+  /// Verifies both resize directions before treating a dimension as fixed.
+  pub(crate) fn detect_fixed_size(
+    &self,
+    requested: &Rect,
+    known: FixedWindowSize,
+  ) -> crate::Result<FixedWindowSize> {
+    let original = self.committed_size()?;
+    let probe_width =
+      known.width.is_none() && (original.0 - requested.width()).abs() > 1;
+    let probe_height = known.height.is_none()
+      && (original.1 - requested.height()).abs() > 1;
+    if !probe_width && !probe_height {
+      return Ok(known);
+    }
+
+    // Give the owning app time to commit a refused/limited resize. Most
+    // windows match immediately and never enter this path.
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    let original = self.committed_size()?;
+    let probe_width =
+      known.width.is_none() && (original.0 - requested.width()).abs() > 1;
+    let probe_height = known.height.is_none()
+      && (original.1 - requested.height()).abs() > 1;
+    if !probe_width && !probe_height {
+      return Ok(known);
+    }
+
+    // A pending resize may temporarily leave AX and WindowServer out of
+    // sync. Don't infer constraints from that intermediate state.
+    let ax_size = self.size()?;
+    if (ax_size.0 - f64::from(original.0)).abs() > 0.5
+      || (ax_size.1 - f64::from(original.1)).abs() > 0.5
+    {
+      return Ok(known);
+    }
+
+    self.with_enhanced_ui_disabled(move |el| {
+      let original_size = CGSize::new(original.0.into(), original.1.into());
+      let original_value = AXValue::new_strict(&original_size)?;
+      let sample = |delta: i32| -> crate::Result<(i32, i32)> {
+        let size = CGSize::new(
+          f64::from(if probe_width { (original.0 + delta).max(1) } else { original.0 }),
+          f64::from(if probe_height { (original.1 + delta).max(1) } else { original.1 }),
+        );
+        el.set_attribute("AXSize", &AXValue::new_strict(&size)?)?;
+        // This only runs for a refused tile dimension, not on every resize.
+        // The owning app must commit its size before we sample it.
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let committed = self.committed_size()?;
+        let ax_size = el.get_attribute::<AXValue>("AXSize")?
+          .value_strict::<CGSize>()?;
+        if (ax_size.width - f64::from(committed.0)).abs() > 0.5
+          || (ax_size.height - f64::from(committed.1)).abs() > 0.5
+        {
+          return Err(crate::Error::Platform(
+            "Window resize has not settled; skipping fixed-size detection.".to_string(),
+          ));
+        }
+        Ok(committed)
+      };
+      let probes = (|| {
+        let larger = sample(100)?;
+        let smaller = sample(-100)?;
+        Ok::<_, crate::Error>(FixedWindowSize::from_probes(
+          original, larger, smaller, probe_width, probe_height,
+        ))
+      })();
+      // Restore even if either probe failed. Restoration failures must not
+      // be hidden, and an inconclusive probe must not freeze a dimension.
+      el.set_attribute("AXSize", &original_value)?;
+      let detected = probes?;
+      Ok(FixedWindowSize {
+        width: known.width.or(detected.width),
+        height: known.height.or(detected.height),
+        minimum_width: known.minimum_width.or(detected.minimum_width),
+        minimum_height: known.minimum_height.or(detected.minimum_height),
+      })
     })
   }
 
