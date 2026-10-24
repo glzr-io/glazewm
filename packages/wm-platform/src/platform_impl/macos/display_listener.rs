@@ -89,14 +89,17 @@ impl DisplayListener {
       // settle (e.g. menu bar auto-hide re-engaging after a display
       // reconfiguration).
       const SETTLED_RECAPTURE_DELAY: Duration = Duration::from_millis(500);
+      const SETTLED_RECAPTURE_DELAY_SLOW: Duration =
+        Duration::from_millis(1500);
 
       // Fire an initial event so that display properties are
       // re-captured shortly after startup, correcting any transient
       // `NSScreen.visibleFrame` values captured during launch.
+      for delay in [SETTLED_RECAPTURE_DELAY, SETTLED_RECAPTURE_DELAY_SLOW]
       {
         let tx = event_tx.clone();
         std::thread::spawn(move || {
-          std::thread::sleep(SETTLED_RECAPTURE_DELAY);
+          std::thread::sleep(delay);
           let _ = tx.send(());
         });
       }
@@ -156,11 +159,15 @@ impl DisplayListener {
             // macOS may briefly show the menu bar during display
             // reconfiguration and does not fire another notification
             // once it re-hides (~300-500ms later).
-            let tx = event_tx.clone();
-            std::thread::spawn(move || {
-              std::thread::sleep(SETTLED_RECAPTURE_DELAY);
-              let _ = tx.send(());
-            });
+            for delay in
+              [SETTLED_RECAPTURE_DELAY, SETTLED_RECAPTURE_DELAY_SLOW]
+            {
+              let tx = event_tx.clone();
+              std::thread::spawn(move || {
+                std::thread::sleep(delay);
+                let _ = tx.send(());
+              });
+            }
           }
           _ => {}
         }
