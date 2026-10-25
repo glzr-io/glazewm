@@ -225,6 +225,9 @@ gaps:
     right: "20px"
     bottom: "20px"
     left: "20px"
+
+  # 手风琴布局中，焦点窗口两侧相邻窗口露出的宽度。
+  accordion_padding: "30px"
 ```
 
 ### 配置：工作区
@@ -356,6 +359,21 @@ binding_modes:
 您可以通过使用 `alt+v` 更改平铺方向来创建自定义布局。这会改变下一个窗口相对于当前窗口的放置位置。如果当前窗口的方向是水平的，新窗口将放置在其右侧。如果是垂直的，将放置在其下方。这也适用于移动窗口；固定窗口的平铺方向将影响移动窗口的放置位置。
 
 社区制作的脚本如 [Dutch-Raptor/GAT-GWM](https://github.com/Dutch-Raptor/GAT-GWM) 和 [burgr033/GlazeWM-autotiling-python](https://github.com/burgr033/GlazeWM-autotiling-python) 可用于自动更改平铺方向。目前不支持自动布局的原生支持。
+
+**问：如何实现堆叠或标签页布局？**
+
+使用手风琴（accordion）布局。在手风琴布局中，每个窗口都占满整个容器，焦点窗口显示在最上层，其相邻窗口在边缘露出（可通过 `gaps.accordion_padding` 配置）。在其中可以像平常一样切换焦点和移动窗口。
+
+```yaml
+keybindings:
+  # 在 `tiles` 和 `accordion` 之间切换焦点窗口所在容器的布局。
+  # 使用 `set-tiling-layout tiles` 或 `set-tiling-layout accordion`
+  # 设置指定的布局。
+  - commands: ["toggle-tiling-layout"]
+    bindings: ["alt+oem_comma"]
+```
+
+水平方向的手风琴类似于标签页，垂直方向的手风琴类似于堆叠。使用 `toggle-tiling-direction` 在两者之间切换。
 
 **问：如何为 `<插入应用程序>` 创建规则？**
 

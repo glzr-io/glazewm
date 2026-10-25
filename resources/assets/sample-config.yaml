@@ -47,6 +47,10 @@ gaps:
   # Gap between adjacent windows.
   inner_gap: '20px'
 
+  # How far the neighbors of the focused window peek out when a container
+  # uses the accordion layout.
+  accordion_padding: '30px'
+
   # Gap between windows and the screen edge.
   outer_gap:
     top: '60px'
@@ -220,6 +224,12 @@ keybindings:
   # be inserted.
   - commands: ['toggle-tiling-direction']
     bindings: ['alt+v']
+
+  # Change the layout of the focused window's container between 'tiles'
+  # and 'accordion'. In accordion, windows overlap with the focused window
+  # on top. Also available as `set-tiling-layout accordion|tiles`.
+  - commands: ['toggle-tiling-layout']
+    bindings: ['alt+oem_comma']
 
   # Change focus from tiling windows -> floating -> fullscreen.
   - commands: ['wm-cycle-focus']

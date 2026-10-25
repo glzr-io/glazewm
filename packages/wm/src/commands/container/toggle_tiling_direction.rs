@@ -1,5 +1,5 @@
 use anyhow::Context;
-use wm_common::{TilingDirection, WmEvent};
+use wm_common::{TilingDirection, TilingLayout, WmEvent};
 
 use super::{flatten_split_container, wrap_in_split_container};
 use crate::{
@@ -16,7 +16,7 @@ pub fn toggle_tiling_direction(
 ) -> anyhow::Result<()> {
   let direction_container = match container {
     Container::TilingWindow(tiling_window) => {
-      toggle_window_direction(tiling_window, config)
+      toggle_window_direction(tiling_window, state, config)
     }
     Container::Workspace(workspace) => {
       workspace
@@ -38,11 +38,21 @@ pub fn toggle_tiling_direction(
 
 fn toggle_window_direction(
   tiling_window: TilingWindow,
+  state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<DirectionContainer> {
   let parent = tiling_window
     .direction_container()
     .context("No direction container.")?;
+
+  // In an accordion, flip the accordion itself instead of wrapping the
+  // window in a new split container (which would have no visible effect).
+  if parent.tiling_layout() == TilingLayout::Accordion {
+    parent.set_tiling_direction(parent.tiling_direction().inverse());
+    state.pending_sync.queue_container_to_redraw(parent.clone());
+
+    return Ok(parent);
+  }
 
   // If the window is an only child, then either change the tiling
   // direction of its parent workspace or flatten its parent split

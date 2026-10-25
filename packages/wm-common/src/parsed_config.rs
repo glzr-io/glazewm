@@ -49,6 +49,10 @@ pub struct GapsConfig {
   /// Gap between window and the screen edge if there is only one window
   /// in the workspace
   pub single_window_outer_gap: Option<RectDelta>,
+
+  /// How far the neighbors of the focused window peek out in the
+  /// accordion layout.
+  pub accordion_padding: LengthValue,
 }
 
 impl Default for GapsConfig {
@@ -63,6 +67,7 @@ impl Default for GapsConfig {
         LengthValue::from_px(0),
       ),
       single_window_outer_gap: None,
+      accordion_padding: LengthValue::from_px(30),
     }
   }
 }

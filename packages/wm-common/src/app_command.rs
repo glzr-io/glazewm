@@ -6,7 +6,7 @@ use tracing::Level;
 use uuid::Uuid;
 use wm_platform::{Delta, Direction, LengthValue, OpacityValue};
 
-use crate::TilingDirection;
+use crate::{TilingDirection, TilingLayout};
 
 const VERSION: &str = env!("VERSION_NUMBER");
 
@@ -234,6 +234,11 @@ pub enum InvokeCommand {
   SetTilingDirection {
     #[clap(required = true)]
     tiling_direction: TilingDirection,
+  },
+  ToggleTilingLayout,
+  SetTilingLayout {
+    #[clap(required = true)]
+    tiling_layout: TilingLayout,
   },
   WmCycleFocus {
     #[clap(long, default_value_t = false)]

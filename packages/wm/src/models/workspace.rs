@@ -7,7 +7,8 @@ use std::{
 use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ContainerDto, GapsConfig, TilingDirection, WorkspaceConfig, WorkspaceDto,
+  ContainerDto, GapsConfig, TilingDirection, TilingLayout,
+  WorkspaceConfig, WorkspaceDto,
 };
 use wm_platform::{Rect, RectDelta};
 
@@ -32,6 +33,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  tiling_layout: TilingLayout,
 }
 
 impl Workspace {
@@ -48,6 +50,7 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      tiling_layout: TilingLayout::default(),
     };
 
     Self(Rc::new(RefCell::new(workspace)))
@@ -173,6 +176,7 @@ impl Workspace {
       x: rect.x(),
       y: rect.y(),
       tiling_direction: self.tiling_direction(),
+      tiling_layout: self.tiling_layout(),
     }))
   }
 }

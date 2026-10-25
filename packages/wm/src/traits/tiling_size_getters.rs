@@ -41,6 +41,25 @@ pub trait TilingSizeGetters: CommonGetters {
     ))
   }
 
+  /// Gets how far the neighbors of the focused window peek out in the
+  /// accordion layout in pixels.
+  fn accordion_padding(&self, total_px: i32) -> anyhow::Result<i32> {
+    let monitor = self.monitor().context("No monitor.")?;
+    let gaps_config = self.gaps_config();
+
+    let scale_factor = if gaps_config.scale_with_dpi {
+      monitor.native_properties().scale_factor
+    } else {
+      1.
+    };
+
+    Ok(
+      gaps_config
+        .accordion_padding
+        .to_px(total_px, Some(scale_factor)),
+    )
+  }
+
   /// Gets the container to resize when resizing a tiling window.
   fn container_to_resize(
     &self,

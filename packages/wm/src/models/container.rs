@@ -8,7 +8,7 @@ use enum_as_inner::EnumAsInner;
 use uuid::Uuid;
 use wm_common::{
   ActiveDrag, ContainerDto, DisplayState, GapsConfig, TilingDirection,
-  WindowRuleConfig, WindowState,
+  TilingLayout, WindowRuleConfig, WindowState,
 };
 use wm_platform::{Direction, NativeWindow, Rect, RectDelta};
 

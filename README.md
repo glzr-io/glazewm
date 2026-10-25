@@ -232,6 +232,10 @@ gaps:
     right: "20px"
     bottom: "20px"
     left: "20px"
+
+  # How far neighbors of the focused window peek out in the accordion
+  # layout.
+  accordion_padding: "30px"
 ```
 
 ### Config: Workspaces
@@ -365,6 +369,21 @@ Right-click the GlazeWM icon in the system tray and select "Run on system startu
 You can create custom layouts by changing the tiling direction with `alt+v`. This changes where the next window is placed _in relation to the current window_. If the current window's direction is horizontal, the new window will be placed to the right of it. If it is vertical, it will be placed below it. This also applies when moving windows; the tiling direction of the stationary window will affect where the moved window will be placed.
 
 Community-made scripts like [Dutch-Raptor/GAT-GWM](https://github.com/Dutch-Raptor/GAT-GWM) and [burgr033/GlazeWM-autotiling-python](https://github.com/burgr033/GlazeWM-autotiling-python) can be used to automatically change the tiling direction. Native support for automatic layouts isn't _currently_ supported.
+
+**Q: How do I get a stacked or tabbed layout?**
+
+Use the accordion layout. In an accordion, every window takes up the full container and the focused window is shown on top, with its neighbors peeking out at the edges (configurable via `gaps.accordion_padding`). Focus and move windows within it as usual.
+
+```yaml
+keybindings:
+  # Toggle the focused window's container between `tiles` and `accordion`.
+  # Use `set-tiling-layout tiles` or `set-tiling-layout accordion` to set
+  # a specific layout.
+  - commands: ["toggle-tiling-layout"]
+    bindings: ["alt+oem_comma"]
+```
+
+A horizontal accordion behaves like tabs and a vertical accordion behaves like a stack. Use `toggle-tiling-direction` to switch between the two.
 
 **Q: How do I create a rule for `<insert application>`?**
 
