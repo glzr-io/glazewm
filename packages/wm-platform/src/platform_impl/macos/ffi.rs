@@ -6,6 +6,8 @@ use objc2_core_graphics::{CGDirectDisplayID, CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
 
+pub(crate) type SLSConnection = i32;
+
 /// Carbon process serial number (PSN), used to uniquely identify a
 /// process.
 #[derive(Clone, Debug, Default)]
@@ -66,6 +68,14 @@ unsafe extern "C" {
 
 #[link(name = "SkyLight", kind = "framework")]
 unsafe extern "C" {
+  pub(crate) fn SLSMainConnectionID() -> SLSConnection;
+
+  pub(crate) fn SLSGetWindowLevel(
+    connection: SLSConnection,
+    window_id: CGWindowID,
+    level: *mut i32,
+  ) -> CGError;
+
   pub(crate) fn _SLPSSetFrontProcessWithOptions(
     psn: &ProcessSerialNumber,
     window_id: i32,

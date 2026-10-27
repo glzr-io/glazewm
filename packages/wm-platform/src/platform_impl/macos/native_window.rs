@@ -96,6 +96,26 @@ impl NativeWindow {
     })?
   }
 
+  /// Gets the Core Graphics window layer.
+  pub(crate) fn layer(&self) -> crate::Result<i32> {
+    let mut layer = 0;
+    let result = unsafe {
+      ffi::SLSGetWindowLevel(
+        ffi::SLSMainConnectionID(),
+        self.id.0,
+        &raw mut layer,
+      )
+    };
+
+    if result != CGError::Success {
+      return Err(crate::Error::Platform(
+        "Failed to get Core Graphics window layer.".to_string(),
+      ));
+    }
+
+    Ok(layer)
+  }
+
   /// Implements [`NativeWindow::is_valid`].
   pub(crate) fn is_valid(&self) -> bool {
     // Query `AXRole`, which is present on all valid `AXUIElement`s.

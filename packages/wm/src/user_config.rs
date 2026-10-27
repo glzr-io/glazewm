@@ -83,7 +83,7 @@ impl UserConfig {
       config_path.parent().context("Invalid config path.")?;
 
     fs::create_dir_all(parent_dir).with_context(|| {
-      format!("Unable to create directory {}.", &config_path.display())
+      format!("Unable to create directory {}.", config_path.display())
     })?;
 
     fs::write(config_path, SAMPLE_CONFIG).with_context(|| {
