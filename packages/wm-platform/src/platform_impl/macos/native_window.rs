@@ -98,6 +98,13 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::is_valid`].
   pub(crate) fn is_valid(&self) -> bool {
+    // AX can keep returning attributes for a window after its application
+    // terminated. Check the owning application first so cleanup can remove
+    // stale windows even when no destroy notification was delivered.
+    if self.application.ns_app.isTerminated() {
+      return false;
+    }
+
     // Query `AXRole`, which is present on all valid `AXUIElement`s.
     self
       .element
@@ -127,7 +134,11 @@ impl NativeWindow {
         }
         _ => true,
       })
-      .unwrap_or(false)
+      // Accessibility reads can fail transiently while an app is updating
+      // its window, for example during a title or display transition. Keep
+      // the managed record in that case; the owning-app termination check
+      // above is the reliable signal for cleanup.
+      .unwrap_or(true)
   }
 
   /// Implements [`NativeWindow::is_visible`].
