@@ -57,11 +57,13 @@ pub fn activate_workspace(
     TilingDirection::Horizontal
   };
 
-  let workspace = Workspace::new(
-    workspace_config.clone(),
-    config.value.gaps.clone(),
-    tiling_direction,
+  let gaps = config.value.gaps.for_monitor(
+    target_monitor.index(),
+    &target_monitor.native_properties().device_name,
   );
+
+  let workspace =
+    Workspace::new(workspace_config.clone(), gaps, tiling_direction);
 
   // Attach the created workspace to the specified monitor.
   attach_container(

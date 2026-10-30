@@ -165,7 +165,10 @@ fn create_window(
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
-  let gaps_config = config.value.gaps.clone();
+  let gaps_config = config.value.gaps.for_monitor(
+    nearest_monitor.index(),
+    &nearest_monitor.native_properties().device_name,
+  );
   let window_state =
     window_state_to_create(&native_properties, &nearest_monitor, config)?;
 

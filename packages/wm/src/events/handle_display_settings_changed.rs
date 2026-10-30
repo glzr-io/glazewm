@@ -7,7 +7,9 @@ use crate::{
     sort_monitors, update_monitor,
   },
   models::{Monitor, NativeMonitorProperties},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{
+    CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
+  },
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -77,6 +79,10 @@ pub fn handle_display_settings_changed(
   // Sort monitors by position.
   sort_monitors(&state.root_container)?;
 
+  // Re-resolve per-monitor gap overrides for all tiling containers and
+  // workspaces, since monitor indices may have changed after sorting.
+  update_container_gaps(state, config);
+
   for new_monitor in new_monitors {
     move_bounded_workspaces_to_new_monitor(&new_monitor, state, config)?;
   }
@@ -120,6 +126,41 @@ pub fn handle_display_settings_changed(
     .queue_container_to_redraw(state.root_container.clone());
 
   Ok(())
+}
+
+/// Re-resolves per-monitor gap overrides for all tiling containers
+/// and workspaces.
+fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
+  let tiling_containers = state
+    .root_container
+    .self_and_descendants()
+    .filter_map(|container| container.as_tiling_container().ok());
+
+  for container in tiling_containers {
+    let gaps = container.monitor().map_or_else(
+      || config.value.gaps.clone(),
+      |monitor| {
+        config.value.gaps.for_monitor(
+          monitor.index(),
+          &monitor.native_properties().device_name,
+        )
+      },
+    );
+    container.set_gaps_config(gaps);
+  }
+
+  for workspace in state.workspaces() {
+    let gaps = workspace.monitor().map_or_else(
+      || config.value.gaps.clone(),
+      |monitor| {
+        config.value.gaps.for_monitor(
+          monitor.index(),
+          &monitor.native_properties().device_name,
+        )
+      },
+    );
+    workspace.set_gaps_config(gaps);
+  }
 }
 
 /// Finds the monitor matching the given display properties.
