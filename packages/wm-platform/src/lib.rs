@@ -41,3 +41,21 @@ pub use windows::Win32::UI::WindowsAndMessaging::{
   WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
   WS_MAXIMIZEBOX,
 };
+
+/// Updates the border overlay position for a managed window.
+#[cfg(target_os = "macos")]
+pub fn macos_update_border_position(window_id: WindowId, frame: &Rect) {
+  if let Err(error) =
+    platform_impl::update_border_position(window_id, frame)
+  {
+    tracing::warn!("Failed to update border overlay position: {error}");
+  }
+}
+
+/// Removes the border overlay for a managed window.
+#[cfg(target_os = "macos")]
+pub fn macos_remove_border(window_id: WindowId) {
+  if let Err(error) = platform_impl::remove_border(window_id) {
+    tracing::warn!("Failed to remove border overlay: {error}");
+  }
+}

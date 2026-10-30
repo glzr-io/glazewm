@@ -6,15 +6,16 @@ use objc2_app_kit::{
 };
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
-  CFBoolean, CFRetained, CFString, CGPoint, CGSize,
+  CFBoolean, CFRetained, CFString, CGPoint, CGRect, CGSize,
 };
 use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
 
 use crate::{
   platform_impl::{
     self, ffi, AXUIElement, AXUIElementExt, AXValueExt, Application,
+    BORDER_OVERLAY_MANAGER,
   },
-  Dispatcher, Point, Rect, ThreadBound, WindowId,
+  Color, Dispatcher, Point, Rect, ThreadBound, WindowId,
 };
 
 /// Platform-specific implementation of [`NativeWindow`].
@@ -187,6 +188,30 @@ impl NativeWindow {
     })
   }
 
+  /// Reads committed geometry; AX attributes can echo a rejected request.
+  pub(crate) fn committed_frame(&self) -> crate::Result<Rect> {
+    let mut bounds = CGRect::default();
+    let result = unsafe {
+      ffi::SLSGetWindowBounds(
+        ffi::SLSMainConnectionID(),
+        self.id.0,
+        &raw mut bounds,
+      )
+    };
+    if result != CGError::Success {
+      return Err(crate::Error::Platform(
+        "Failed to read committed window bounds.".to_string(),
+      ));
+    }
+    #[allow(clippy::cast_possible_truncation)]
+    Ok(Rect::from_xy(
+      bounds.origin.x.round() as i32,
+      bounds.origin.y.round() as i32,
+      bounds.size.width.round() as i32,
+      bounds.size.height.round() as i32,
+    ))
+  }
+
   /// Implements [`NativeWindow::resize`].
   pub(crate) fn resize(
     &self,
@@ -253,6 +278,32 @@ impl NativeWindow {
 
       Ok(())
     })?
+  }
+
+  /// Implements [`NativeWindowExtMacOs::set_border_color`].
+  pub(crate) fn set_border_color(
+    &self,
+    color: Option<&Color>,
+  ) -> crate::Result<()> {
+    let window_id = self.id();
+    // Resolve geometry before locking. No overlay lock may be held
+    // across a dispatch to the AX thread.
+    let frame = color.map(|_| self.committed_frame()).transpose()?;
+    let mut manager = BORDER_OVERLAY_MANAGER.lock().map_err(|_| {
+      crate::Error::Platform(
+        "Border overlay manager lock poisoned.".to_string(),
+      )
+    })?;
+
+    let Some(color) = color else {
+      manager.remove(window_id);
+      return Ok(());
+    };
+
+    if let Some(frame) = frame {
+      manager.set_border_color(window_id, &frame, Some(color))?;
+    }
+    Ok(())
   }
 
   /// Executes a callback with the `AXEnhancedUserInterface` attribute
@@ -394,9 +445,13 @@ impl From<NativeWindow> for crate::NativeWindow {
 pub(crate) fn visible_windows(
   dispatcher: &Dispatcher,
 ) -> crate::Result<Vec<crate::NativeWindow>> {
+  // Self-filtering: exclude GlazeWM's own overlay windows.
+  let own_pid = std::process::id().cast_signed();
+
   Ok(
     platform_impl::all_applications(dispatcher)?
       .iter()
+      .filter(|app| app.pid != own_pid)
       .filter_map(|app| app.windows().ok())
       .flat_map(std::iter::IntoIterator::into_iter)
       .collect(),

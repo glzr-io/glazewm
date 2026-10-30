@@ -1,6 +1,8 @@
 use anyhow::Context;
 #[cfg(target_os = "macos")]
 use wm_common::try_warn;
+#[cfg(target_os = "macos")]
+use wm_platform::macos_update_border_position;
 use wm_platform::{MouseButton, MouseEvent};
 
 use crate::{
@@ -43,6 +45,7 @@ pub fn handle_mouse_move(
       // just in case, iterate over all active drag windows.
       for window in active_drag_windows {
         let new_rect = try_warn!(window.native().frame());
+        macos_update_border_position(window.native().id(), &new_rect);
 
         window.update_native_properties(|properties| {
           properties.frame = new_rect;
