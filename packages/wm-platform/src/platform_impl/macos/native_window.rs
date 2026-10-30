@@ -6,9 +6,13 @@ use objc2_app_kit::{
 };
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
-  CFBoolean, CFRetained, CFString, CGPoint, CGSize,
+  CFArray, CFBoolean, CFDictionary, CFRetained, CFString, CFType, CGPoint,
+  CGSize,
 };
-use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
+use objc2_core_graphics::{
+  kCGWindowName, CGDisplayIsAsleep, CGError, CGWindowListCopyWindowInfo,
+  CGWindowListOption,
+};
 
 use crate::{
   platform_impl::{
@@ -16,6 +20,51 @@ use crate::{
   },
   Dispatcher, Point, Rect, ThreadBound, WindowId,
 };
+
+// A window title is optional metadata. Some Chromium app shims expose a
+// valid standard window but fail AXTitle reads, even with a visible title.
+fn resolve_window_title(
+  title: crate::Result<String>,
+  fallback: impl FnOnce() -> Option<String>,
+) -> crate::Result<String> {
+  match title {
+    Ok(title) => Ok(title),
+    Err(crate::Error::Accessibility(attribute, code))
+      if attribute == "AXTitle"
+        && [
+          AXError::Failure.0,
+          AXError::CannotComplete.0,
+          AXError::AttributeUnsupported.0,
+          AXError::NoValue.0,
+        ]
+        .contains(&code) =>
+    {
+      tracing::debug!("AXTitle read failed ({code}); using a Core Graphics title or an empty title.");
+      Ok(fallback().unwrap_or_default())
+    }
+    Err(error) => Err(error),
+  }
+}
+
+fn core_graphics_window_title(id: WindowId) -> Option<String> {
+  let windows = CGWindowListCopyWindowInfo(
+    CGWindowListOption::OptionIncludingWindow,
+    id.0,
+  )?;
+  // SAFETY: CGWindowListCopyWindowInfo returns dictionaries with CFString
+  // keys and Core Foundation values, retained by the array.
+  let windows = unsafe {
+    CFRetained::cast_unchecked::<CFArray<CFDictionary<CFString, CFType>>>(
+      windows,
+    )
+  };
+  let info = windows.get(0)?;
+  let title = info
+    .get(unsafe { kCGWindowName }.as_ref())?
+    .downcast::<CFString>()
+    .ok()?;
+  Some(title.to_string())
+}
 
 /// Platform-specific implementation of [`NativeWindow`].
 #[derive(Clone, Debug)]
@@ -47,10 +96,15 @@ impl NativeWindow {
 
   /// Implements [`NativeWindow::title`].
   pub(crate) fn title(&self) -> crate::Result<String> {
-    self.element.with(|el| {
+    let title = self.element.with(|el| {
       el.get_attribute::<CFString>("AXTitle")
         .map(|cf_string| cf_string.to_string())
-    })?
+    })?;
+    resolve_window_title(title, || {
+      // Native tab switches can change the ID of the same AX element.
+      let id = self.id;
+      core_graphics_window_title(id)
+    })
   }
 
   /// Implements [`NativeWindow::process_name`].
@@ -496,4 +550,71 @@ pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
   }
 
   Ok(())
+}
+
+#[cfg(test)]
+mod title_tests {
+  use super::*;
+
+  #[test]
+  fn available_accessibility_title_does_not_query_core_graphics() {
+    assert_eq!(
+      resolve_window_title(Ok("Document".into()), || panic!(
+        "unexpected fallback"
+      ))
+      .unwrap(),
+      "Document"
+    );
+    assert_eq!(
+      resolve_window_title(Ok(String::new()), || panic!(
+        "unexpected fallback"
+      ))
+      .unwrap(),
+      ""
+    );
+  }
+
+  #[test]
+  fn failed_accessibility_title_uses_visible_window_title() {
+    for code in [
+      AXError::Failure.0,
+      AXError::CannotComplete.0,
+      AXError::AttributeUnsupported.0,
+      AXError::NoValue.0,
+    ] {
+      let result = resolve_window_title(
+        Err(crate::Error::Accessibility("AXTitle".into(), code)),
+        || Some("Brain.fm App".into()),
+      );
+      assert_eq!(result.unwrap(), "Brain.fm App");
+    }
+  }
+
+  #[test]
+  fn unavailable_optional_titles_do_not_reject_a_window() {
+    let result = resolve_window_title(
+      Err(crate::Error::Accessibility(
+        "AXTitle".into(),
+        AXError::Failure.0,
+      )),
+      || None,
+    );
+    assert_eq!(result.unwrap(), "");
+  }
+
+  #[test]
+  fn invalid_window_and_dispatch_errors_are_preserved() {
+    for error in [
+      crate::Error::Accessibility(
+        "AXTitle".into(),
+        AXError::InvalidUIElement.0,
+      ),
+      crate::Error::EventLoopStopped,
+    ] {
+      assert!(resolve_window_title(Err(error), || panic!(
+        "unexpected fallback"
+      ))
+      .is_err());
+    }
+  }
 }
