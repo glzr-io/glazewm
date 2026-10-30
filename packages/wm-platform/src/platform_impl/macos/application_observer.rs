@@ -80,11 +80,15 @@ impl ApplicationObserver {
         ));
       }
 
-      CFRetained::retain(NonNull::new(observer).ok_or_else(|| {
+      // AXObserverCreate transfers ownership. Adopt its reference so a
+      // failed attempt releases the observer rather than leaking it.
+      CFRetained::from_raw(NonNull::new(observer).ok_or_else(|| {
         crate::Error::InvalidPointer("AXObserver is null.".to_string())
       })?)
     };
 
+    let runloop =
+      CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
     let app_windows = Arc::new(Mutex::new(app.windows()?));
     let context = Box::into_raw(Box::new(ApplicationEventContext {
       application: app.clone(),
@@ -93,17 +97,33 @@ impl ApplicationObserver {
       observer: observer.clone(),
     }));
 
-    let runloop =
-      CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
+    // Subscribe before attaching the source: a failed attempt must not
+    // leave callbacks pointing at an abandoned context.
+    if let Err(error) =
+      Self::register_app_notifications(app, &observer, context)
+    {
+      if let Ok(element) = app.ax_element.get_ref() {
+        for notification in AX_APP_NOTIFICATIONS {
+          unsafe {
+            observer.remove_notification(
+              element,
+              &CFString::from_static_str(notification),
+            );
+          }
+        }
+      }
+      // SAFETY: The source has never been attached, so no callbacks can
+      // have received this context. All subscriptions were removed above.
+      unsafe {
+        drop(Box::from_raw(context));
+      }
+      return Err(error);
+    }
 
     let observer_source = unsafe { observer.run_loop_source() };
     runloop.add_source(Some(&observer_source), unsafe {
       kCFRunLoopDefaultMode
     });
-
-    // Register for all window notifications.
-    // TODO: Remove from runloop if registration fails.
-    Self::register_app_notifications(app, &observer, context)?;
 
     // Emit `WindowEvent::Shown` for all existing windows.
     for window in app_windows.lock().unwrap().iter() {
@@ -157,10 +177,13 @@ impl ApplicationObserver {
         );
 
         if result != AXError::Success {
-          return Err(crate::Error::Platform(format!(
-            "Failed to add notification {} for PID {}: {:?}",
-            notification, app.pid, result
-          )));
+          return Err(crate::Error::Accessibility(
+            format!(
+              "AXObserverAddNotification({notification}) for PID {}",
+              app.pid
+            ),
+            result.0,
+          ));
         }
       }
     }
@@ -296,6 +319,90 @@ impl ApplicationObserver {
             err
           );
         }
+
+        // Re-enumerate the application's windows after a short delay
+        // to catch replacements whose `AXWindowCreated` notification
+        // was missed (e.g. Spotify rapidly destroys and recreates its
+        // window on launch).
+        //
+        // The re-enumeration is dispatched back to the event loop
+        // thread so that AX notifications can be registered for any
+        // newly discovered windows.
+
+        // SAFETY: The `ApplicationEventContext` is heap-allocated via
+        // `Box::into_raw` and lives for the lifetime of the
+        // `ApplicationObserver`. Passing the address as `usize` keeps
+        // the closure `Send`.
+        let context_addr =
+          std::ptr::from_ref::<ApplicationEventContext>(context) as usize;
+        let dispatcher = context.application.dispatcher.clone();
+        let pid = context.application.pid;
+
+        std::thread::spawn(move || {
+          std::thread::sleep(std::time::Duration::from_millis(500));
+
+          let result = dispatcher.dispatch_sync(move || {
+            // SAFETY: See comment above — pointer is stable and the
+            // closure runs on the event loop thread.
+            let context = unsafe {
+              &*(context_addr as *const ApplicationEventContext)
+            };
+
+            let current_windows = match context.application.windows() {
+              Ok(w) => w,
+              Err(err) => {
+                tracing::debug!(
+                  "Re-enumeration failed for PID {}: {}",
+                  pid,
+                  err,
+                );
+                return;
+              }
+            };
+
+            let mut tracked = context.app_windows.lock().unwrap();
+
+            for new_window in current_windows {
+              if tracked.iter().any(|w| w.id() == new_window.id()) {
+                continue;
+              }
+
+              tracing::info!(
+                "Re-discovered window {} for PID {} after destroy.",
+                new_window.id().0,
+                pid,
+              );
+
+              tracked.push(new_window.clone());
+
+              if let Err(err) = Self::register_window_notifications(
+                &new_window,
+                &context.observer,
+                context_addr as *mut ApplicationEventContext,
+              ) {
+                tracing::warn!(
+                  "Failed to register notifications for \
+                   re-discovered window {}: {}",
+                  new_window.id().0,
+                  err,
+                );
+              }
+
+              let _ = context.events_tx.send(WindowEvent::Shown {
+                window: new_window,
+                notification: crate::WindowEventNotification(None),
+              });
+            }
+          });
+
+          if let Err(err) = result {
+            tracing::debug!(
+              "Failed to dispatch re-enumeration for PID {}: {}",
+              pid,
+              err,
+            );
+          }
+        });
       }
 
       return;

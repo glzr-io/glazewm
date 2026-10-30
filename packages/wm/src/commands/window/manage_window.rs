@@ -23,10 +23,16 @@ pub fn manage_window(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  let Some(native_properties) =
-    check_is_manageable(&native_window).unwrap_or(None)
-  else {
-    return Ok(());
+  let native_properties = match check_is_manageable(&native_window) {
+    Ok(Some(properties)) => properties,
+    Ok(None) => return Ok(()),
+    Err(error) => {
+      tracing::warn!(
+        "Failed to check eligibility for window {}: {error}",
+        native_window.id().0,
+      );
+      return Ok(());
+    }
   };
 
   // Create the window instance. This may fail if the window handle has
@@ -92,6 +98,10 @@ fn check_is_manageable(
   native_window: &NativeWindow,
 ) -> anyhow::Result<Option<NativeWindowProperties>> {
   if !native_window.is_visible()? {
+    tracing::debug!(
+      "Window {} not manageable: not visible.",
+      native_window.id().0,
+    );
     return Ok(None);
   }
 
@@ -99,10 +109,18 @@ fn check_is_manageable(
   {
     use wm_platform::NativeWindowExtMacOs;
 
-    let is_standard_window = native_window.role()? == "AXWindow"
-      && native_window.subrole()? == "AXStandardWindow";
+    let role = native_window.role()?;
+    let subrole = native_window.subrole()?;
+    let is_standard_window =
+      role == "AXWindow" && subrole == "AXStandardWindow";
 
     if !is_standard_window {
+      tracing::debug!(
+        "Window {} not manageable: role={}, subrole={}.",
+        native_window.id().0,
+        role,
+        subrole,
+      );
       return Ok(None);
     }
   }

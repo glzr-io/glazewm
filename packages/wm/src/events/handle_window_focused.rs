@@ -41,6 +41,19 @@ pub fn handle_window_focused(
     return Ok(());
   }
 
+  // A first Shown event may arrive before the app exposes a standard
+  // window. Retry through the same discovery path once it receives focus,
+  // preserving ignore rules and native tab handling.
+  #[cfg(target_os = "macos")]
+  if found_window.is_none()
+    && !state.ignored_windows.contains(native_window)
+  {
+    super::handle_window_shown(native_window.clone(), state, config)?;
+  }
+
+  #[cfg(target_os = "macos")]
+  let found_window = state.window_from_native(native_window);
+
   // Ignore the focus event if window is being hidden by the WM.
   if let Some(window) = &found_window {
     if window.display_state() == DisplayState::Hiding {
