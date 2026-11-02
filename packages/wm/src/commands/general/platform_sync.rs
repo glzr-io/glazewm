@@ -34,22 +34,8 @@ pub fn platform_sync(
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
-    // Each overflow pass changes at most one split direction.
-    // Redraw again after probing because newly learned bounds affect
-    // siblings.
-    for _ in 0..=state.windows().len() * 2 {
-      resolve_tiling_overflow(state)?;
-      let focused =
-        state.focused_container().context("No focused container.")?;
-      redraw_containers(&focused, state, config)?;
-      if !resolve_tiling_overflow(state)? {
-        break;
-      }
-    }
+    redraw_containers(&focused_container, state, config)?;
   }
-
-  let focused_container =
-    state.focused_container().context("No focused container.")?;
 
   if state.pending_sync.needs_cursor_jump()
     && config.value.general.cursor_jump.enabled
@@ -92,39 +78,6 @@ pub fn platform_sync(
   state.pending_sync.clear();
 
   Ok(())
-}
-
-fn resolve_tiling_overflow(state: &mut WmState) -> anyhow::Result<bool> {
-  use crate::traits::{tiling_fits, TilingDirectionGetters};
-
-  // Walk parents before descendants so nested rectangles are valid after a
-  // parent changes direction. Only visible workspaces need intervention.
-  let parents = state
-    .root_container
-    .descendants()
-    .filter_map(|container| container.as_direction_container().ok())
-    .filter(|parent| parent.workspace().is_some_and(|w| w.is_displayed()))
-    .collect::<Vec<_>>();
-  for parent in parents {
-    let direction = parent.tiling_direction();
-    if tiling_fits(&parent, &direction)? {
-      continue;
-    }
-    let workspace = parent.workspace().context("No workspace.")?;
-    if tiling_fits(&parent, &direction.inverse())? {
-      parent.set_tiling_direction(direction.inverse());
-      state
-        .pending_sync
-        .queue_containers_to_redraw(workspace.tiling_children());
-      state.emit_event(WmEvent::TilingDirectionChanged {
-        direction_container: parent.to_dto()?,
-        new_tiling_direction: direction.inverse(),
-      });
-      return Ok(true);
-    }
-    // Preserve the user's tiling state even when neither direction fits.
-  }
-  Ok(false)
 }
 
 fn sync_focus(

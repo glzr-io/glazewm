@@ -3,7 +3,7 @@ use wm_common::TilingDirection;
 use wm_platform::Rect;
 
 use crate::{
-  models::{DirectionContainer, TilingContainer},
+  models::TilingContainer,
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters,
     TilingSizeGetters, WindowGetters,
@@ -103,34 +103,6 @@ fn combine_constraints(
   LengthConstraint { fixed, minimum }
 }
 
-/// Check both axes before submitting a layout that native windows cannot
-/// fit.
-pub fn tiling_fits(
-  parent: &DirectionContainer,
-  direction: &TilingDirection,
-) -> anyhow::Result<bool> {
-  let rect = parent.to_rect()?;
-  let children = parent.tiling_children().collect::<Vec<_>>();
-  let Some(first) = children.first() else {
-    return Ok(true);
-  };
-  let (horizontal_gap, vertical_gap) = first.inner_gaps()?;
-  for (width, available, gap) in [
-    (true, rect.width(), horizontal_gap),
-    (false, rect.height(), vertical_gap),
-  ] {
-    let constraints = children
-      .iter()
-      .map(|child| length_constraint(child, width))
-      .collect::<anyhow::Result<Vec<_>>>()?;
-    let along = width == (*direction == TilingDirection::Horizontal);
-    if combine_constraints(&constraints, along, gap).minimum > available {
-      return Ok(false);
-    }
-  }
-  Ok(true)
-}
-
 /// Reserve fixed/minimum lengths and redistribute the remaining space in
 /// proportion to the flexible containers' existing tiling weights.
 #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
@@ -140,11 +112,17 @@ fn allocate_lengths(
   constraints: &[LengthConstraint],
   horizontal: bool,
 ) -> Vec<i32> {
-  if constraints
+  let minimum_total: i64 = constraints
     .iter()
-    .all(|c| c.minimum == 0 && c.fixed.is_none())
+    .map(|constraint| i64::from(constraint.minimum.max(1)))
+    .sum();
+  if minimum_total > i64::from(available)
+    || constraints
+      .iter()
+      .all(|c| c.minimum == 0 && c.fixed.is_none())
   {
-    // Preserve the existing unconstrained layout's rounding behavior.
+    // If native bounds cannot fit, use the default proportional layout.
+    // Apps may overlap their tiles, but must not push sibling tiles away.
     return weights
       .iter()
       .map(|weight| {
@@ -250,14 +228,15 @@ pub fn fitted_tiling_rect(
   let lengths =
     allocate_lengths(available, &weights, &constraints, horizontal);
   let cross_constraint = length_constraint(container, !horizontal)?;
-  let cross_length = cross_constraint.fixed.unwrap_or_else(|| {
-    let available = if horizontal {
-      parent_rect.height()
-    } else {
-      parent_rect.width()
-    };
-    available.max(cross_constraint.minimum)
-  });
+  let cross_available = if horizontal {
+    parent_rect.height()
+  } else {
+    parent_rect.width()
+  };
+  let cross_length = cross_constraint
+    .fixed
+    .unwrap_or(cross_available)
+    .min(cross_available);
   Ok(tile_rect(
     &parent_rect,
     &lengths,
@@ -306,6 +285,72 @@ mod tests {
     }
   }
 
+  #[test]
+  fn overflowing_minimums_use_default_horizontal_tiles() {
+    let constraints =
+      [770, 694, 360, 200, 500].map(|minimum| LengthConstraint {
+        fixed: None,
+        minimum,
+      });
+    let lengths = allocate_lengths(
+      1600,
+      &[0.1, 0.2, 0.2, 0.25, 0.25],
+      &constraints,
+      true,
+    );
+    assert_eq!(lengths, [160, 320, 320, 400, 400]);
+    assert_eq!(
+      tile_rect(
+        &Rect::from_xy(5, 45, 1640, 1067),
+        &lengths,
+        4,
+        10,
+        1067,
+        true
+      ),
+      Rect::from_xy(1245, 45, 400, 1067)
+    );
+  }
+
+  #[test]
+  fn overflowing_minimums_use_default_vertical_tiles() {
+    let constraints =
+      [620, 650, 400, 150, 470].map(|minimum| LengthConstraint {
+        fixed: None,
+        minimum,
+      });
+    let lengths = allocate_lengths(1030, &[0.2; 5], &constraints, false);
+    assert_eq!(lengths, [206; 5]);
+    assert_eq!(
+      tile_rect(
+        &Rect::from_xy(5, 45, 1718, 1070),
+        &lengths,
+        4,
+        10,
+        1718,
+        false
+      ),
+      Rect::from_xy(5, 909, 1718, 206)
+    );
+  }
+
+  #[test]
+  fn oversized_fixed_and_nested_constraints_do_not_expand_tiles() {
+    assert_eq!(
+      allocate_lengths(1000, &[1.0], &[fixed(2000)], true),
+      [1000]
+    );
+    let nested = combine_constraints(&[fixed(600), fixed(600)], true, 10);
+    assert_eq!(
+      allocate_lengths(
+        1000,
+        &[0.5, 0.5],
+        &[nested, LengthConstraint::default()],
+        true
+      ),
+      [500, 500]
+    );
+  }
   #[test]
   fn minimums_fit_vertically_but_not_horizontally() {
     let widths = [860, 694, 500, 380].map(|minimum| LengthConstraint {
@@ -571,7 +616,7 @@ mod tests {
   }
 
   #[test]
-  fn insufficient_space_never_produces_negative_lengths() {
+  fn insufficient_space_preserves_proportional_shares() {
     let constraints = [
       LengthConstraint {
         fixed: Some(740),
@@ -581,7 +626,7 @@ mod tests {
     ];
     assert_eq!(
       allocate_lengths(600, &[0.5, 0.5], &constraints, true),
-      vec![740, 1]
+      vec![300, 300]
     );
   }
 }
