@@ -335,6 +335,11 @@ impl ApplicationObserver {
     }
 
     let window_event = match notification.name.as_str() {
+      // A hidden window may already be observed but not yet managed.
+      "AXWindowCreated" if !is_new_window => WindowEvent::Shown {
+        window,
+        notification: crate::WindowEventNotification(Some(notification)),
+      },
       "AXFocusedWindowChanged" => WindowEvent::Focused {
         window,
         notification: crate::WindowEventNotification(Some(notification)),

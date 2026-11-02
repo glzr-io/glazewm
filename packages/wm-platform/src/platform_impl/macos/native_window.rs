@@ -6,9 +6,13 @@ use objc2_app_kit::{
 };
 use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
-  CFBoolean, CFRetained, CFString, CGPoint, CGSize,
+  CFArray, CFBoolean, CFDictionary, CFRetained, CFString, CFType, CGPoint,
+  CGSize,
 };
-use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
+use objc2_core_graphics::{
+  kCGWindowIsOnscreen, CGDisplayIsAsleep, CGError,
+  CGWindowListCopyWindowInfo, CGWindowListOption,
+};
 
 use crate::{
   platform_impl::{
@@ -16,6 +20,29 @@ use crate::{
   },
   Dispatcher, Point, Rect, ThreadBound, WindowId,
 };
+
+fn core_graphics_window_is_onscreen(id: WindowId) -> crate::Result<bool> {
+  let windows = CGWindowListCopyWindowInfo(
+    CGWindowListOption::OptionIncludingWindow,
+    id.0,
+  )
+  .ok_or_else(|| {
+    crate::Error::Platform("Failed to read window visibility.".into())
+  })?;
+  // SAFETY: The returned array owns dictionaries of CFString keys and
+  // Core Foundation values.
+  let windows = unsafe {
+    CFRetained::cast_unchecked::<CFArray<CFDictionary<CFString, CFType>>>(
+      windows,
+    )
+  };
+  Ok(windows.get(0).is_some_and(|info| {
+    info
+      .get(unsafe { kCGWindowIsOnscreen }.as_ref())
+      .and_then(|value| value.downcast::<CFBoolean>().ok())
+      .is_some_and(|value| value.value())
+  }))
+}
 
 /// Platform-specific implementation of [`NativeWindow`].
 #[derive(Clone, Debug)]
@@ -131,9 +158,16 @@ impl NativeWindow {
   }
 
   /// Implements [`NativeWindow::is_visible`].
-  #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn is_visible(&self) -> crate::Result<bool> {
-    Ok(!self.application.is_hidden())
+    if self.application.is_hidden() {
+      return Ok(false);
+    }
+    // Minimized windows remain managed without reserving a tile. A
+    // retained AX window in a running app does not imply an open window.
+    if self.is_minimized()? {
+      return Ok(true);
+    }
+    core_graphics_window_is_onscreen(self.id)
   }
 
   /// Implements [`NativeWindow::is_minimized`].
@@ -496,4 +530,66 @@ pub(crate) fn reset_focus(dispatcher: &Dispatcher) -> crate::Result<()> {
   }
 
   Ok(())
+}
+
+#[cfg(test)]
+mod visibility_tests {
+  use objc2::MainThreadOnly;
+  use objc2_app_kit::{
+    NSApplication, NSBackingStoreType, NSWindowStyleMask,
+  };
+  use objc2_core_foundation::CGRect;
+
+  use super::*;
+
+  #[test]
+  fn ordered_out_window_is_not_visible_and_can_reopen() {
+    let mtm = MainThreadMarker::new().expect("main-thread test runner");
+    let app = NSApplication::sharedApplication(mtm);
+    app.setActivationPolicy(
+      objc2_app_kit::NSApplicationActivationPolicy::Regular,
+    );
+    app.finishLaunching();
+    let window = unsafe {
+      NSWindow::initWithContentRect_styleMask_backing_defer(
+        NSWindow::alloc(mtm),
+        CGRect::new(CGPoint::new(100.0, 100.0), CGSize::new(400.0, 300.0)),
+        NSWindowStyleMask::Titled,
+        NSBackingStoreType::Buffered,
+        false,
+      )
+    };
+    unsafe {
+      window.setReleasedWhenClosed(false);
+    }
+    window.orderFrontRegardless();
+    objc2_core_foundation::CFRunLoop::run_in_mode(
+      unsafe { objc2_core_foundation::kCFRunLoopDefaultMode },
+      0.1,
+      false,
+    );
+    let id = WindowId(u32::try_from(window.windowNumber()).unwrap());
+    assert!(core_graphics_window_is_onscreen(id).unwrap());
+    window.orderOut(None);
+    objc2_core_foundation::CFRunLoop::run_in_mode(
+      unsafe { objc2_core_foundation::kCFRunLoopDefaultMode },
+      0.1,
+      false,
+    );
+    assert!(!core_graphics_window_is_onscreen(id).unwrap());
+    window.orderFrontRegardless();
+    objc2_core_foundation::CFRunLoop::run_in_mode(
+      unsafe { objc2_core_foundation::kCFRunLoopDefaultMode },
+      0.1,
+      false,
+    );
+    assert!(core_graphics_window_is_onscreen(id).unwrap());
+    window.close();
+    objc2_core_foundation::CFRunLoop::run_in_mode(
+      unsafe { objc2_core_foundation::kCFRunLoopDefaultMode },
+      0.1,
+      false,
+    );
+    assert!(!core_graphics_window_is_onscreen(id).unwrap());
+  }
 }
