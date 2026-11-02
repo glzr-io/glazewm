@@ -34,15 +34,15 @@ pub fn platform_sync(
   if !state.pending_sync.containers_to_redraw().is_empty()
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
-    // Each overflow pass floats one window or changes one split direction.
+    // Each overflow pass changes at most one split direction.
     // Redraw again after probing because newly learned bounds affect
     // siblings.
     for _ in 0..=state.windows().len() * 2 {
-      resolve_tiling_overflow(state, config)?;
+      resolve_tiling_overflow(state)?;
       let focused =
         state.focused_container().context("No focused container.")?;
       redraw_containers(&focused, state, config)?;
-      if !resolve_tiling_overflow(state, config)? {
+      if !resolve_tiling_overflow(state)? {
         break;
       }
     }
@@ -94,14 +94,8 @@ pub fn platform_sync(
   Ok(())
 }
 
-fn resolve_tiling_overflow(
-  state: &mut WmState,
-  config: &UserConfig,
-) -> anyhow::Result<bool> {
-  use crate::{
-    commands::window::update_window_state,
-    traits::{tiling_fits, TilingDirectionGetters},
-  };
+fn resolve_tiling_overflow(state: &mut WmState) -> anyhow::Result<bool> {
+  use crate::traits::{tiling_fits, TilingDirectionGetters};
 
   // Walk parents before descendants so nested rectangles are valid after a
   // parent changes direction. Only visible workspaces need intervention.
@@ -128,57 +122,7 @@ fn resolve_tiling_overflow(
       });
       return Ok(true);
     }
-    let Some(window) = parent
-      .descendants()
-      .filter_map(|container| container.as_window_container().ok())
-      .filter(|window| window.state() == WindowState::Tiling)
-      .last()
-    else {
-      continue;
-    };
-    let bounds = workspace.to_rect()?;
-    let properties = window.native_properties();
-    let width = window
-      .floating_placement()
-      .width()
-      .max(
-        properties
-          .fixed_size
-          .width
-          .or(properties.fixed_size.minimum_width)
-          .unwrap_or(1),
-      )
-      .min(bounds.width())
-      .max(1);
-    let height = window
-      .floating_placement()
-      .height()
-      .max(
-        properties
-          .fixed_size
-          .height
-          .or(properties.fixed_size.minimum_height)
-          .unwrap_or(1),
-      )
-      .min(bounds.height())
-      .max(1);
-    window.set_floating_placement(
-      Rect::from_xy(0, 0, width, height).translate_to_center(&bounds),
-    );
-    window.set_has_custom_floating_placement(true);
-    tracing::warn!("Floating window because native minimum sizes exceed the workspace: {window}");
-    update_window_state(
-      window,
-      WindowState::Floating(
-        config.value.window_behavior.state_defaults.floating.clone(),
-      ),
-      state,
-      config,
-    )?;
-    state
-      .pending_sync
-      .queue_containers_to_redraw(workspace.tiling_children());
-    return Ok(true);
+    // Preserve the user's tiling state even when neither direction fits.
   }
   Ok(false)
 }
