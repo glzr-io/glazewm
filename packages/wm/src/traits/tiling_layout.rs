@@ -123,15 +123,26 @@ fn allocate_lengths(
   {
     // If native bounds cannot fit, use the default proportional layout.
     // Apps may overlap their tiles, but must not push sibling tiles away.
+    let total_weight: f32 = weights.iter().sum();
+    let mut weight_sum = 0.0;
+    let mut assigned = 0;
     return weights
       .iter()
       .map(|weight| {
-        let length = available as f32 * weight;
-        if horizontal {
-          length.round() as i32
+        weight_sum += weight;
+        let end = if total_weight > 0.0 {
+          let length = available.max(0) as f32 * weight_sum / total_weight;
+          if horizontal {
+            length.round() as i32
+          } else {
+            length as i32
+          }
         } else {
-          length as i32
-        }
+          0
+        };
+        let length = end - assigned;
+        assigned = end;
+        length
       })
       .collect();
   }
@@ -206,17 +217,22 @@ pub fn fitted_tiling_rect(
     .position(|child| child.id() == container.id())
     .context("Tile is missing from its parent.")?;
   let (horizontal_gap, vertical_gap) = container.inner_gaps()?;
+  let axis_length = if horizontal {
+    parent_rect.width()
+  } else {
+    parent_rect.height()
+  }
+  .max(0);
+  #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+  let gap_count = children.len().saturating_sub(1) as i32;
   let gap = if horizontal {
     horizontal_gap
   } else {
     vertical_gap
-  };
-  #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-  let available = if horizontal {
-    parent_rect.width()
-  } else {
-    parent_rect.height()
-  } - gap * (children.len() - 1) as i32;
+  }
+  .max(0)
+  .min(axis_length / gap_count.max(1));
+  let available = axis_length - gap * gap_count;
   let constraints = children
     .iter()
     .map(|child| length_constraint(child, horizontal))
@@ -282,6 +298,22 @@ mod tests {
     LengthConstraint {
       fixed: Some(length),
       minimum: length,
+    }
+  }
+
+  #[test]
+  fn crowded_proportional_layout_does_not_accumulate_rounding_overflow() {
+    for horizontal in [true, false] {
+      for count in [3_u16, 7, 15, 51] {
+        let weight = 1.0 / f32::from(count);
+        let count = usize::from(count);
+        let weights = vec![weight; count];
+        let constraints = vec![fixed(700); count];
+        let lengths =
+          allocate_lengths(1001, &weights, &constraints, horizontal);
+        assert_eq!(lengths.iter().sum::<i32>(), 1001);
+        assert!(lengths.iter().all(|length| *length >= 0));
+      }
     }
   }
 
@@ -552,11 +584,11 @@ mod tests {
     assert_eq!(split.fixed, None);
     assert_eq!(
       allocate_lengths(1001, &[0.5, 0.5], &[split; 2], true),
-      vec![501, 501]
+      vec![501, 500]
     );
     assert_eq!(
       allocate_lengths(1001, &[0.5, 0.5], &[split; 2], false),
-      vec![500, 500]
+      vec![500, 501]
     );
   }
 
