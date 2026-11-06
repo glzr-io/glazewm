@@ -11,6 +11,8 @@ use wm_platform::{
 };
 use wm_platform::{NativeWindow, Rect};
 
+#[cfg(target_os = "macos")]
+use crate::traits::PositionGetters;
 use crate::{
   commands::{
     container::{flatten_split_container, move_container_within_tree},
@@ -18,7 +20,7 @@ use crate::{
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
-  traits::{CommonGetters, PositionGetters, WindowGetters},
+  traits::{CommonGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
