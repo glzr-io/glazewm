@@ -57,6 +57,36 @@ pub enum WindowZOrder {
 /// macOS-specific extension trait for [`NativeWindow`].
 #[cfg(target_os = "macos")]
 pub trait NativeWindowExtMacOs {
+  /// Places a visible window within its assigned monitor. A DPI retry
+  /// retains the same bounds and is discarded if a newer request wins.
+  fn set_frame_within(
+    &self,
+    rect: &Rect,
+    bounds: &Rect,
+    retry: bool,
+  ) -> crate::Result<()>;
+
+  /// Moves the committed native frame inside bounds, preserving its size.
+  fn constrain_to_bounds(&self, bounds: &Rect) -> crate::Result<Rect>;
+
+  /// Restores a tiled window's origin using its accepted native size,
+  /// shifted inward only as far as its assigned monitor requires.
+  fn reconcile_tiling_frame(
+    &self,
+    requested: &Rect,
+    bounds: &Rect,
+  ) -> crate::Result<Rect>;
+
+  /// Reads `WindowServer` geometry rather than an uncommitted AX request.
+  fn committed_frame(&self) -> crate::Result<Rect>;
+
+  /// Whether a geometry event matches our latest write or its result.
+  fn is_programmatic_frame(&self, frame: &Rect) -> bool;
+
+  /// Cancels pending DPI frame retries for a user drag or lifecycle
+  /// change.
+  fn cancel_pending_frame_retry(&self);
+
   /// Gets the `AXUIElement` instance for this window.
   ///
   /// # Platform-specific
@@ -102,6 +132,38 @@ pub trait NativeWindowExtMacOs {
 
 #[cfg(target_os = "macos")]
 impl NativeWindowExtMacOs for NativeWindow {
+  fn set_frame_within(
+    &self,
+    rect: &Rect,
+    bounds: &Rect,
+    retry: bool,
+  ) -> crate::Result<()> {
+    self.inner.set_frame_within(rect, bounds, retry)
+  }
+
+  fn constrain_to_bounds(&self, bounds: &Rect) -> crate::Result<Rect> {
+    self.inner.constrain_to_bounds(bounds)
+  }
+
+  fn reconcile_tiling_frame(
+    &self,
+    requested: &Rect,
+    bounds: &Rect,
+  ) -> crate::Result<Rect> {
+    self.inner.reconcile_tiling_frame(requested, bounds)
+  }
+
+  fn committed_frame(&self) -> crate::Result<Rect> {
+    self.inner.committed_frame()
+  }
+
+  fn is_programmatic_frame(&self, frame: &Rect) -> bool {
+    self.inner.is_programmatic_frame(frame)
+  }
+
+  fn cancel_pending_frame_retry(&self) {
+    self.inner.cancel_pending_frame_retry();
+  }
   fn ax_ui_element(&self) -> &ThreadBound<CFRetained<AXUIElement>> {
     &self.inner.element
   }
