@@ -126,6 +126,8 @@ impl NativeWindowProperties {
       is_minimized,
       is_maximized,
       is_resizable,
+      fixed_size: wm_platform::FixedWindowSize::default(),
+      fixed_size_probe: None,
       #[cfg(target_os = "windows")]
       class_name: String::new(),
       #[cfg(target_os = "windows")]

@@ -6,9 +6,13 @@ use wm_common::{
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "macos")]
-use wm_platform::{LengthValue, MouseButton, RectDelta};
+use wm_platform::{
+  LengthValue, MouseButton, NativeWindowExtMacOs, RectDelta,
+};
 use wm_platform::{NativeWindow, Rect};
 
+#[cfg(target_os = "macos")]
+use crate::traits::PositionGetters;
 use crate::{
   commands::{
     container::{flatten_split_container, move_container_within_tree},
@@ -37,11 +41,78 @@ pub fn handle_window_moved_or_resized(
 
   if let Some(window) = found_window {
     let old_frame_position = window.native_properties().frame;
+    #[cfg(target_os = "windows")]
     let frame_position = try_warn!(window.native().frame());
+    #[cfg(target_os = "macos")]
+    let mut frame_position = try_warn!(window.native().committed_frame());
+    #[cfg(target_os = "macos")]
+    let is_programmatic =
+      window.native().is_programmatic_frame(&frame_position);
 
+    #[cfg(target_os = "macos")]
+    {
+      if !is_programmatic
+        && state.dispatcher.is_mouse_down(&MouseButton::Left)
+      {
+        window.native().cancel_pending_frame_retry();
+      }
+    }
+
+    let old_is_maximized = window.native_properties().is_maximized;
+    let is_maximized = try_warn!(window.native().is_maximized());
+
+    // A pane change or display transition can change an application's
+    // constraints. A genuinely accepted new size invalidates the cached
+    // fixed dimension; native fullscreen geometry is not such evidence.
+    let can_invalidate_fixed_size = !is_maximized
+      && matches!(
+        window.state(),
+        WindowState::Tiling | WindowState::Floating(_)
+      );
+    let mut fixed_size_changed = false;
     window.update_native_properties(|properties| {
+      if can_invalidate_fixed_size {
+        if properties
+          .fixed_size
+          .width
+          .is_some_and(|width| (width - frame_position.width()).abs() > 1)
+        {
+          properties.fixed_size.width = None;
+          fixed_size_changed = true;
+        }
+        if properties.fixed_size.height.is_some_and(|height| {
+          (height - frame_position.height()).abs() > 1
+        }) {
+          properties.fixed_size.height = None;
+          fixed_size_changed = true;
+        }
+        if minimum_is_stale(
+          properties.fixed_size.minimum_width,
+          frame_position.width(),
+          properties.fixed_size_probe.map(|size| size.0),
+        ) {
+          properties.fixed_size.minimum_width = None;
+          fixed_size_changed = true;
+        }
+        if minimum_is_stale(
+          properties.fixed_size.minimum_height,
+          frame_position.height(),
+          properties.fixed_size_probe.map(|size| size.1),
+        ) {
+          properties.fixed_size.minimum_height = None;
+          fixed_size_changed = true;
+        }
+        if fixed_size_changed {
+          properties.fixed_size_probe = None;
+        }
+      }
       properties.frame = frame_position.clone();
     });
+    if fixed_size_changed && window.state() == WindowState::Tiling {
+      state
+        .pending_sync
+        .queue_container_to_redraw(window.parent().context("No parent.")?);
+    }
 
     // Handle windows that are actively being dragged.
     if !state.is_paused && window.active_drag().is_some() {
@@ -73,8 +144,44 @@ pub fn handle_window_moved_or_resized(
       return update_drag_state(&window, &frame_position, state, config);
     }
 
-    let old_is_maximized = window.native_properties().is_maximized;
-    let is_maximized = try_warn!(window.native().is_maximized());
+    // An app can commit a minimum size or move itself after our initial
+    // write and after the DPI retry. Keep windows on their assigned
+    // monitor without inferring ownership from the overflowing frame.
+    #[cfg(target_os = "macos")]
+    if !state.is_paused
+      && !is_maximized
+      && matches!(
+        window.state(),
+        WindowState::Tiling | WindowState::Floating(_)
+      )
+      && window.active_drag().is_none()
+      && window
+        .workspace()
+        .is_some_and(|workspace| workspace.is_displayed())
+      && matches!(
+        window.display_state(),
+        DisplayState::Shown | DisplayState::Showing
+      )
+      && (is_programmatic
+        || !state.dispatcher.is_mouse_down(&MouseButton::Left))
+    {
+      let bounds = window
+        .monitor()
+        .context("No monitor.")?
+        .native_properties()
+        .working_area;
+      frame_position = if window.state() == WindowState::Tiling {
+        let target = window
+          .to_rect()?
+          .apply_delta(&window.total_border_delta()?, None);
+        try_warn!(window.native().reconcile_tiling_frame(&target, &bounds))
+      } else {
+        try_warn!(window.native().constrain_to_bounds(&bounds))
+      };
+      window.update_native_properties(|properties| {
+        properties.frame = frame_position.clone();
+      });
+    }
 
     // Ignore duplicate move/resize events. Window position changes can
     // trigger multiple events. For example, restoring from maximized can
@@ -143,7 +250,11 @@ pub fn handle_window_moved_or_resized(
         //  2. No other window is being dragged.
         //  3. Left-click is down.
         //  4. The cursor is within 40px margin around the window's frame.
-        if is_valid_state && !is_dragging_other_window && is_left_click {
+        if is_valid_state
+          && !is_dragging_other_window
+          && is_left_click
+          && !is_programmatic
+        {
           // The window frame can lag behind the cursor when moving or
           // resizing quickly, so allow for a bit of leeway.
           let frame_to_check = frame_position.apply_delta(
@@ -370,6 +481,16 @@ pub fn update_floating_window_position(
     window.as_window_container()?
   );
 
+  #[cfg(target_os = "macos")]
+  let frame_position = {
+    let bounds = nearest_monitor.native_properties().working_area;
+    if state.is_paused || bounds.contains_rect(&frame_position) {
+      frame_position
+    } else {
+      window.native().constrain_to_bounds(&bounds)?
+    }
+  };
+
   // Update state with the new location of the floating window.
   window.set_floating_placement(frame_position);
   window.set_has_custom_floating_placement(true);
@@ -512,6 +633,20 @@ fn update_drag_state(
   Ok(())
 }
 
+// A larger accepted size alone does not disprove a lower bound. Re-probe
+// only when the app also exceeded a tile we actually sized and probed.
+fn minimum_is_stale(
+  minimum: Option<i32>,
+  actual: i32,
+  requested: Option<i32>,
+) -> bool {
+  minimum.is_some_and(|minimum| {
+    actual < minimum - 1
+      || (actual > minimum + 1
+        && requested.is_some_and(|requested| actual > requested + 1))
+  })
+}
+
 /// Gets whether the window is in the corner of the monitor.
 fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
   // Visible portion of the window used when positioning windows in the
@@ -543,7 +678,18 @@ fn is_in_corner(window_frame: &Rect, monitor_rect: &Rect) -> bool {
 mod tests {
   use wm_platform::Rect;
 
-  use super::is_in_corner;
+  use super::{is_in_corner, minimum_is_stale};
+
+  #[test]
+  fn outlook_minimum_is_rechecked_when_the_app_outgrows_its_probed_tile() {
+    assert!(minimum_is_stale(Some(770), 860, Some(770)));
+    assert!(minimum_is_stale(Some(770), 700, Some(770)));
+    assert!(!minimum_is_stale(Some(860), 860, Some(770)));
+    assert!(!minimum_is_stale(Some(770), 1000, Some(1000)));
+    assert!(!minimum_is_stale(Some(770), 770, Some(500)));
+    assert!(!minimum_is_stale(Some(770), 860, None));
+    assert!(!minimum_is_stale(None, 860, Some(770)));
+  }
 
   #[test]
   fn matches_corner_positions() {

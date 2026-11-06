@@ -4,11 +4,10 @@ use std::{
   rc::Rc,
 };
 
-use anyhow::Context;
 use uuid::Uuid;
 use wm_common::{
-  ActiveDrag, ContainerDto, DisplayState, GapsConfig, TilingDirection,
-  WindowDto, WindowRuleConfig, WindowState,
+  ActiveDrag, ContainerDto, DisplayState, GapsConfig, WindowDto,
+  WindowRuleConfig, WindowState,
 };
 use wm_platform::{NativeWindow, Rect, RectDelta};
 
@@ -22,8 +21,7 @@ use crate::{
     WindowContainer,
   },
   traits::{
-    CommonGetters, PositionGetters, TilingDirectionGetters,
-    TilingSizeGetters, WindowGetters,
+    CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
   },
 };
 
