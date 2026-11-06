@@ -3,12 +3,12 @@ use wm_common::{
   try_warn, ActiveDrag, ActiveDragOperation, DisplayState,
   FloatingStateConfig, FullscreenStateConfig, HideMethod, WindowState,
 };
-#[cfg(target_os = "macos")]
-use wm_platform::NativeWindowExtMacOs;
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 #[cfg(target_os = "macos")]
-use wm_platform::{LengthValue, MouseButton, RectDelta};
+use wm_platform::{
+  LengthValue, MouseButton, NativeWindowExtMacOs, RectDelta,
+};
 use wm_platform::{NativeWindow, Rect};
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
-  traits::{CommonGetters, WindowGetters},
+  traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
 };
@@ -39,11 +39,25 @@ pub fn handle_window_moved_or_resized(
 
   if let Some(window) = found_window {
     let old_frame_position = window.native_properties().frame;
+    #[cfg(target_os = "windows")]
     let frame_position = try_warn!(window.native().frame());
     #[cfg(target_os = "macos")]
-    if state.dispatcher.is_mouse_down(&MouseButton::Left) {
-      window.native().cancel_pending_frame_retry();
+    let mut frame_position = try_warn!(window.native().committed_frame());
+    #[cfg(target_os = "macos")]
+    let is_programmatic =
+      window.native().is_programmatic_frame(&frame_position);
+
+    #[cfg(target_os = "macos")]
+    {
+      if !is_programmatic
+        && state.dispatcher.is_mouse_down(&MouseButton::Left)
+      {
+        window.native().cancel_pending_frame_retry();
+      }
     }
+
+    let old_is_maximized = window.native_properties().is_maximized;
+    let is_maximized = try_warn!(window.native().is_maximized());
 
     window.update_native_properties(|properties| {
       properties.frame = frame_position.clone();
@@ -79,8 +93,44 @@ pub fn handle_window_moved_or_resized(
       return update_drag_state(&window, &frame_position, state, config);
     }
 
-    let old_is_maximized = window.native_properties().is_maximized;
-    let is_maximized = try_warn!(window.native().is_maximized());
+    // An app can commit a minimum size or move itself after our initial
+    // write and after the DPI retry. Keep windows on their assigned
+    // monitor without inferring ownership from the overflowing frame.
+    #[cfg(target_os = "macos")]
+    if !state.is_paused
+      && !is_maximized
+      && matches!(
+        window.state(),
+        WindowState::Tiling | WindowState::Floating(_)
+      )
+      && window.active_drag().is_none()
+      && window
+        .workspace()
+        .is_some_and(|workspace| workspace.is_displayed())
+      && matches!(
+        window.display_state(),
+        DisplayState::Shown | DisplayState::Showing
+      )
+      && (is_programmatic
+        || !state.dispatcher.is_mouse_down(&MouseButton::Left))
+    {
+      let bounds = window
+        .monitor()
+        .context("No monitor.")?
+        .native_properties()
+        .working_area;
+      frame_position = if window.state() == WindowState::Tiling {
+        let target = window
+          .to_rect()?
+          .apply_delta(&window.total_border_delta()?, None);
+        try_warn!(window.native().reconcile_tiling_frame(&target, &bounds))
+      } else {
+        try_warn!(window.native().constrain_to_bounds(&bounds))
+      };
+      window.update_native_properties(|properties| {
+        properties.frame = frame_position.clone();
+      });
+    }
 
     // Ignore duplicate move/resize events. Window position changes can
     // trigger multiple events. For example, restoring from maximized can
@@ -149,7 +199,11 @@ pub fn handle_window_moved_or_resized(
         //  2. No other window is being dragged.
         //  3. Left-click is down.
         //  4. The cursor is within 40px margin around the window's frame.
-        if is_valid_state && !is_dragging_other_window && is_left_click {
+        if is_valid_state
+          && !is_dragging_other_window
+          && is_left_click
+          && !is_programmatic
+        {
           // The window frame can lag behind the cursor when moving or
           // resizing quickly, so allow for a bit of leeway.
           let frame_to_check = frame_position.apply_delta(
@@ -375,6 +429,16 @@ pub fn update_floating_window_position(
     "Updating floating window position: {}",
     window.as_window_container()?
   );
+
+  #[cfg(target_os = "macos")]
+  let frame_position = {
+    let bounds = nearest_monitor.native_properties().working_area;
+    if state.is_paused || bounds.contains_rect(&frame_position) {
+      frame_position
+    } else {
+      window.native().constrain_to_bounds(&bounds)?
+    }
+  };
 
   // Update state with the new location of the floating window.
   window.set_floating_placement(frame_position);

@@ -45,7 +45,7 @@ pub fn handle_mouse_move(
       // just in case, iterate over all active drag windows.
       for window in active_drag_windows {
         window.native().cancel_pending_frame_retry();
-        let new_rect = try_warn!(window.native().frame());
+        let new_rect = try_warn!(window.native().committed_frame());
 
         window.update_native_properties(|properties| {
           properties.frame = new_rect;

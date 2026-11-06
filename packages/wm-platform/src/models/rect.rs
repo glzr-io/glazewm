@@ -104,6 +104,24 @@ impl Rect {
     )
   }
 
+  /// Moves a frame inside the bounds without changing its native size.
+  /// An oversized dimension is anchored at the bounds' leading edge.
+  #[must_use]
+  pub fn translate_within(&self, bounds: &Rect) -> Self {
+    Self::from_xy(
+      self.x().clamp(
+        bounds.left,
+        (bounds.right - self.width()).max(bounds.left),
+      ),
+      self.y().clamp(
+        bounds.top,
+        (bounds.bottom - self.height()).max(bounds.top),
+      ),
+      self.width(),
+      self.height(),
+    )
+  }
+
   /// Returns a new `Rect` that is clamped within the bounds of the given
   /// outer rectangle. Attempts to preserve the width and height of the
   /// original rectangle.
@@ -270,6 +288,41 @@ impl Rect {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn native_minimum_size_overlaps_tiles_inside_the_monitor() {
+    let monitor = Rect::from_xy(5, 45, 1718, 1067);
+    let accepted = Rect::from_xy(1400, 45, 700, 1067);
+    let contained = accepted.translate_within(&monitor);
+    assert_eq!(contained, Rect::from_xy(1023, 45, 700, 1067));
+    assert!(monitor.contains_rect(&contained));
+    assert_eq!(contained.translate_within(&monitor), contained);
+  }
+
+  #[test]
+  fn containment_handles_every_edge_and_negative_monitor_origins() {
+    let monitor = Rect::from_xy(-2560, -200, 2560, 1440);
+    for frame in [
+      Rect::from_xy(-2800, -400, 700, 600),
+      Rect::from_xy(-300, 1000, 700, 600),
+      Rect::from_xy(1728, 45, 700, 600),
+    ] {
+      let contained = frame.translate_within(&monitor);
+      assert!(monitor.contains_rect(&contained));
+      assert_eq!(contained.width(), frame.width());
+      assert_eq!(contained.height(), frame.height());
+    }
+  }
+
+  #[test]
+  fn impossible_native_size_is_anchored_without_resize_loops() {
+    let monitor = Rect::from_xy(1728, -120, 2560, 1390);
+    let frame = Rect::from_xy(4000, 500, 3000, 1500);
+    assert_eq!(
+      frame.translate_within(&monitor),
+      Rect::from_xy(1728, -120, 3000, 1500)
+    );
+  }
 
   #[test]
   fn intersection_area() {

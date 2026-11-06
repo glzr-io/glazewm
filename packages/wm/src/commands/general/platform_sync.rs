@@ -338,6 +338,40 @@ fn redraw_containers(
 }
 
 #[allow(clippy::too_many_lines)]
+#[cfg(target_os = "macos")]
+fn reposition_visible_macos_window(
+  window: &WindowContainer,
+  rect: &Rect,
+  is_visible: bool,
+) -> anyhow::Result<()> {
+  let bounds = window
+    .monitor()
+    .context("No monitor.")?
+    .native_properties()
+    .working_area;
+  let frame_result = if is_visible {
+    window.native().set_frame_within(
+      rect,
+      &bounds,
+      window.has_pending_dpi_adjustment(),
+    )
+  } else {
+    window.native().set_frame(rect)
+  };
+  frame_result?;
+  let fitted = if is_visible && window.state() == WindowState::Tiling {
+    window.native().reconcile_tiling_frame(rect, &bounds)?
+  } else if is_visible {
+    window.native().constrain_to_bounds(&bounds)?
+  } else {
+    window.native().committed_frame()?
+  };
+  if is_visible && matches!(window.state(), WindowState::Floating(_)) {
+    window.set_floating_placement(fitted);
+  }
+  Ok(())
+}
+
 fn reposition_window(
   window: &WindowContainer,
   hide_corner: HideCorner,
@@ -392,16 +426,7 @@ fn reposition_window(
   } else {
     #[cfg(target_os = "macos")]
     {
-      if window.has_pending_dpi_adjustment() {
-        if let Err(error) = window.native().set_frame_with_dpi_retry(&rect)
-        {
-          tracing::debug!(
-            "Initial cross-DPI frame failed; retry queued: {error}"
-          );
-        }
-      } else {
-        window.native().set_frame(&rect)?;
-      }
+      reposition_visible_macos_window(window, &rect, is_visible)?;
     }
 
     #[cfg(target_os = "windows")]
