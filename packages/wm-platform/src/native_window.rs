@@ -245,6 +245,24 @@ pub trait NativeWindowWindowsExt {
   /// This method is only available on Windows.
   fn set_cloaked(&self, cloaked: bool) -> crate::Result<()>;
 
+  /// Whether the window is on the currently active virtual desktop.
+  ///
+  /// Windows that are pinned to all virtual desktops are considered to be
+  /// on the current one.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn is_on_current_virtual_desktop(&self) -> crate::Result<bool>;
+
+  /// Whether the window is cloaked by the Windows shell (e.g. when it is
+  /// on a different virtual desktop).
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn is_cloaked_by_shell(&self) -> crate::Result<bool>;
+
   /// Marks the window as fullscreen.
   ///
   /// Causes the native Windows taskbar to be moved to the bottom of the
@@ -382,6 +400,14 @@ impl NativeWindowWindowsExt for NativeWindow {
 
   fn set_cloaked(&self, cloaked: bool) -> crate::Result<()> {
     self.inner.set_cloaked(cloaked)
+  }
+
+  fn is_on_current_virtual_desktop(&self) -> crate::Result<bool> {
+    self.inner.is_on_current_virtual_desktop()
+  }
+
+  fn is_cloaked_by_shell(&self) -> crate::Result<bool> {
+    self.inner.is_cloaked_by_shell()
   }
 
   fn mark_fullscreen(&self, fullscreen: bool) -> crate::Result<()> {

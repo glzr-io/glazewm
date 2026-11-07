@@ -19,8 +19,9 @@ use crate::{
     window::{manage_window, unmanage_window},
   },
   models::{
-    Container, Monitor, NativeMonitorProperties, RootContainer,
-    WindowContainer, Workspace, WorkspaceTarget,
+    Container, LayoutSnapshot, Monitor, NativeMonitorProperties,
+    ParkedWindow, RootContainer, WindowContainer, Workspace,
+    WorkspaceTarget,
   },
   pending_sync::PendingSync,
   traits::{CommonGetters, PositionGetters, WindowGetters},
@@ -61,6 +62,16 @@ pub struct WmState {
   /// `ignore` command.
   pub ignored_windows: Vec<NativeWindow>,
 
+  /// Managed windows that were moved off the current virtual desktop.
+  /// These are detached from the container tree until their virtual
+  /// desktop becomes active again.
+  pub parked_windows: Vec<ParkedWindow>,
+
+  /// Tiling layouts of workspaces whose windows were moved off the
+  /// current virtual desktop. Used to restore the layout of parked
+  /// windows.
+  pub layout_snapshots: Vec<LayoutSnapshot>,
+
   /// Whether the WM is paused.
   pub is_paused: bool,
 
@@ -92,6 +103,8 @@ impl WmState {
       unmanaged_or_minimized_timestamp: None,
       binding_modes: Vec::new(),
       ignored_windows: Vec::new(),
+      parked_windows: Vec::new(),
+      layout_snapshots: Vec::new(),
       is_paused: false,
       is_focus_synced: false,
       has_initialized: false,
@@ -325,6 +338,18 @@ impl WmState {
         (monitor, corner)
       })
       .collect()
+  }
+
+  /// Removes layout snapshots that are no longer used by any parked
+  /// window.
+  pub fn prune_layout_snapshots(&mut self) {
+    let parked_windows = &self.parked_windows;
+
+    self.layout_snapshots.retain(|snapshot| {
+      parked_windows
+        .iter()
+        .any(|parked| parked.layout_snapshot_id == Some(snapshot.id))
+    });
   }
 
   /// Gets window that corresponds to the given `NativeWindow`.
@@ -677,6 +702,13 @@ impl WmState {
     // Prune ignored windows that are no longer valid.
     self.ignored_windows.retain(NativeWindow::is_valid);
 
+    // Prune parked windows that are no longer valid.
+    self
+      .parked_windows
+      .retain(|parked| parked.window.native().is_valid());
+
+    self.prune_layout_snapshots();
+
     Ok(())
   }
 }
@@ -701,12 +733,26 @@ impl Drop for WmState {
           warn!("Failed to show window: {:?}", err);
         }
 
-        let _ = window.native().set_taskbar_visibility(true);
-        let _ = window.native().set_border_color(None);
-        let _ = window
-          .native()
-          .set_transparency(&OpacityValue::from_alpha(u8::MAX));
+        reset_window_effects(window);
       }
     }
+
+    // Parked windows are on other virtual desktops, so only their effects
+    // need to be reset.
+    #[cfg(target_os = "windows")]
+    for parked in &self.parked_windows {
+      reset_window_effects(&parked.window);
+    }
   }
+}
+
+/// Resets the taskbar visibility, border color, and transparency of a
+/// window.
+#[cfg(target_os = "windows")]
+fn reset_window_effects(window: &WindowContainer) {
+  let _ = window.native().set_taskbar_visibility(true);
+  let _ = window.native().set_border_color(None);
+  let _ = window
+    .native()
+    .set_transparency(&OpacityValue::from_alpha(u8::MAX));
 }

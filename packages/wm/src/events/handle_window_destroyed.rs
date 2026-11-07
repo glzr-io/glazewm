@@ -17,6 +17,13 @@ pub fn handle_window_destroyed(
     .into_iter()
     .find(|window| window.native().id() == native_window_id);
 
+  // Forget the window if it was closed while on another virtual desktop.
+  state
+    .parked_windows
+    .retain(|parked| parked.window.native().id() != native_window_id);
+
+  state.prune_layout_snapshots();
+
   // Unmanage the window if it's currently managed.
   if let Some(window) = found_window {
     let workspace = window.workspace().context("No workspace.")?;
