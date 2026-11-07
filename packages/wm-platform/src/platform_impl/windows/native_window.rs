@@ -10,7 +10,7 @@ use windows::{
       DwmGetWindowAttribute, DwmSetWindowAttribute, DWMWA_BORDER_COLOR,
       DWMWA_CLOAKED, DWMWA_COLOR_NONE, DWMWA_EXTENDED_FRAME_BOUNDS,
       DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DEFAULT, DWMWCP_DONOTROUND,
-      DWMWCP_ROUND, DWMWCP_ROUNDSMALL,
+      DWMWCP_ROUND, DWMWCP_ROUNDSMALL, DWM_CLOAKED_SHELL,
     },
     System::Threading::{
       OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
@@ -490,6 +490,23 @@ impl NativeWindow {
     })
   }
 
+  /// Implements [`NativeWindowWindowsExt::is_on_current_virtual_desktop`].
+  pub(crate) fn is_on_current_virtual_desktop(
+    &self,
+  ) -> crate::Result<bool> {
+    COM_INIT.with(|com_init| -> crate::Result<bool> {
+      com_init.borrow_mut().with_retry(|com| {
+        let is_on_current = unsafe {
+          com
+            .virtual_desktop_manager()?
+            .IsWindowOnCurrentVirtualDesktop(self.hwnd())
+        }?;
+
+        Ok(is_on_current.as_bool())
+      })
+    })
+  }
+
   /// Implements [`NativeWindowWindowsExt::mark_fullscreen`].
   pub(crate) fn mark_fullscreen(
     &self,
@@ -720,6 +737,17 @@ impl NativeWindow {
   /// `DWMWA_CLOAKED` attribute is used to check whether these apps are
   /// visible.
   fn is_cloaked(&self) -> crate::Result<bool> {
+    Ok(self.cloaked_flags()? != 0)
+  }
+
+  /// Implements [`NativeWindowWindowsExt::is_cloaked_by_shell`].
+  pub(crate) fn is_cloaked_by_shell(&self) -> crate::Result<bool> {
+    Ok(self.cloaked_flags()? & DWM_CLOAKED_SHELL != 0)
+  }
+
+  /// Gets the `DWMWA_CLOAKED` attribute of the window, which is a bitmask
+  /// of the reasons that the window is cloaked (0 if not cloaked).
+  fn cloaked_flags(&self) -> crate::Result<u32> {
     let mut cloaked = 0u32;
 
     unsafe {
@@ -732,7 +760,7 @@ impl NativeWindow {
       )
     }?;
 
-    Ok(cloaked != 0)
+    Ok(cloaked)
   }
 }
 
