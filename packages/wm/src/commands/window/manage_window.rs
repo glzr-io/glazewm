@@ -29,6 +29,59 @@ pub fn manage_window(
     return Ok(());
   };
 
+  // Native tabs inherit their group's last workspace, including after
+  // Cmd+H.
+  #[cfg(target_os = "macos")]
+  let target_parent = {
+    use wm_platform::NativeWindowExtMacOs;
+    let bundle = native_window.bundle_id().filter(|bundle| {
+      config
+        .value
+        .general
+        .macos_grouped_applications
+        .contains(bundle)
+    });
+    let mut inherited = None;
+    if let Some(bundle) = bundle {
+      let owner = state
+        .windows()
+        .into_iter()
+        .find(|window| {
+          window.native().bundle_id().as_ref() == Some(&bundle)
+        })
+        .and_then(|window| window.workspace())
+        .map(|workspace| workspace.config().name)
+        .or_else(|| {
+          state.application_group_workspaces.get(&bundle).cloned()
+        });
+      if let Some(name) = owner {
+        if state.workspace_by_name(&name).is_none()
+          && config
+            .value
+            .workspaces
+            .iter()
+            .any(|workspace| workspace.name == name)
+        {
+          crate::commands::workspace::activate_workspace(
+            Some(&name),
+            None,
+            state,
+            config,
+          )?;
+        }
+        inherited = state.workspace_by_name(&name).map(Into::into);
+      }
+    }
+    inherited.or(target_parent)
+  };
+
+  #[cfg(target_os = "macos")]
+  let previously_displayed = state
+    .monitors()
+    .into_iter()
+    .filter_map(|monitor| monitor.displayed_workspace())
+    .collect::<Vec<_>>();
+
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
   let window = try_warn!(create_window(
@@ -42,6 +95,15 @@ pub fn manage_window(
   // Set the newly added window as focus descendant. This means the window
   // rules will be run as if the window is focused.
   set_focused_descendant(&window.clone().into(), None);
+
+  // Managing a tab on an existing hidden group can display that workspace.
+  // Hide the workspace it replaces in the same redraw transaction.
+  #[cfg(target_os = "macos")]
+  for workspace in previously_displayed {
+    if !workspace.is_displayed() {
+      state.pending_sync.queue_container_to_redraw(workspace);
+    }
+  }
 
   // Window might be detached if `ignore` command has been invoked.
   let updated_window = run_window_rules(

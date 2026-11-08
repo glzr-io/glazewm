@@ -80,6 +80,8 @@ impl WindowManager {
   ) -> anyhow::Result<()> {
     let state = &mut self.state;
 
+    let groups_before = state.application_group_snapshot(config);
+
     match event {
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
@@ -107,9 +109,15 @@ impl WindowManager {
         handle_mouse_move(&event, state, config)
       }
       PlatformEvent::Window(window_event) => match window_event {
-        WindowEvent::Focused { window, .. } => {
-          handle_window_focused(&window, state, config)
-        }
+        WindowEvent::Focused {
+          window,
+          notification,
+        } => handle_window_focused(
+          &window,
+          notification.is_application_activation(),
+          state,
+          config,
+        ),
         WindowEvent::Shown { window, .. } => {
           handle_window_shown(window, state, config)
         }
@@ -143,6 +151,9 @@ impl WindowManager {
       },
     }?;
 
+    if !state.is_paused {
+      state.reconcile_application_groups(&groups_before, config)?;
+    }
     if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
@@ -158,6 +169,8 @@ impl WindowManager {
   ) -> anyhow::Result<Uuid> {
     let state = &mut self.state;
 
+    let groups_before = state.application_group_snapshot(config);
+
     // Get the container to run WM commands with.
     let subject_container = match subject_container_id {
       Some(id) => state.container_by_id(id).with_context(|| {
@@ -168,12 +181,14 @@ impl WindowManager {
         .context("No subject container for command.")?,
     };
 
-    let new_subject_container_id = WindowManager::run_commands(
+    let command_result = WindowManager::run_commands(
       commands,
       subject_container,
       state,
       config,
-    )?;
+    );
+    state.reconcile_application_groups(&groups_before, config)?;
+    let new_subject_container_id = command_result?;
 
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;

@@ -111,6 +111,45 @@ pub fn handle_window_moved_or_resized(
       return Ok(());
     }
 
+    #[cfg(target_os = "macos")]
+    if config.value.general.hide_method == HideMethod::PlaceInCorner {
+      let groups = state.application_group_snapshot(config);
+      if let Some(member) =
+        groups.iter().find(|member| member.id == window.id())
+      {
+        let workspace = window.workspace().context("No workspace.")?;
+        let group = groups
+          .iter()
+          .filter(|peer| peer.application == member.application)
+          .collect::<Vec<_>>();
+        let same_workspace =
+          group.iter().all(|peer| peer.workspace == workspace.id());
+        let actual_focus = state.dispatcher.focused_window().ok();
+        let application_is_focused =
+          state.windows().into_iter().any(|peer| {
+            group.iter().any(|member| member.id == peer.id())
+              && actual_focus.as_ref() == Some(&peer.native())
+          });
+        if same_workspace
+          && !workspace.is_displayed()
+          && !application_is_focused
+        {
+          // Native tabs can restore their shared frame without changing
+          // logical workspace membership. Rehide the whole inactive group.
+          let monitor = workspace.monitor().context("No monitor.")?;
+          if !is_in_corner(
+            &frame_position,
+            &monitor.native_properties().working_area,
+          ) {
+            state.pending_sync.queue_container_to_redraw(workspace);
+          } else if window.display_state() == DisplayState::Hiding {
+            window.set_display_state(DisplayState::Hidden);
+          }
+          return Ok(());
+        }
+      }
+    }
+
     // Detect whether the window is starting to be interactively moved or
     // resized by the user (e.g. via the window's drag handles).
     let is_drag_start = !state.is_paused && {

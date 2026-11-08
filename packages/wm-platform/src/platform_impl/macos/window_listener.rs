@@ -183,7 +183,14 @@ impl WindowListener {
 
           let _ = events_tx.send(WindowEvent::Focused {
             window: focused_window,
-            notification: crate::WindowEventNotification(None),
+            notification: crate::WindowEventNotification(Some(
+              WindowEventNotificationInner {
+                name: "NSWorkspaceDidActivateApplicationNotification"
+                  .to_string(),
+                // This event comes from NSWorkspace, not an AX callback.
+                ax_element_ptr: std::ptr::null_mut(),
+              },
+            )),
           });
         }
         NotificationEvent::WorkspaceDidHideApplication(running_app) => {

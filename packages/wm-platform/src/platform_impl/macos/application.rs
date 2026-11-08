@@ -56,6 +56,9 @@ impl Application {
 
       focused_window.map(|window_el| {
         let window_id = WindowId::from_window_element(&window_el);
+        if window_id.0 == 0 {
+          return None;
+        }
         let window_el =
           ThreadBound::new(window_el, self.dispatcher.clone());
         Some(NativeWindow::new(window_id, window_el, self.clone()).into())
@@ -70,11 +73,16 @@ impl Application {
       windows.map(|windows| {
         windows
           .iter()
-          .map(|window_el| {
+          .filter_map(|window_el| {
             let window_id = WindowId::from_window_element(&window_el);
+            if window_id.0 == 0 {
+              return None;
+            }
             let window_el =
               ThreadBound::new(window_el, self.dispatcher.clone());
-            NativeWindow::new(window_id, window_el, self.clone()).into()
+            Some(
+              NativeWindow::new(window_id, window_el, self.clone()).into(),
+            )
           })
           .collect()
       })

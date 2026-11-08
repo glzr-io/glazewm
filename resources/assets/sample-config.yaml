@@ -14,6 +14,12 @@ general:
   # Whether to automatically focus windows underneath the cursor.
   focus_follows_cursor: false
 
+  # (macOS only) Bundle IDs of applications whose windows are kept on a
+  # single workspace and move between workspaces together. Useful for apps
+  # with native tabs, since each tab is a separate window.
+  # Example: `['com.mitchellh.ghostty']`.
+  macos_grouped_applications: []
+
   # Whether to switch back and forth between the previously focused
   # workspace when focusing the current workspace.
   toggle_workspace_on_refocus: false
