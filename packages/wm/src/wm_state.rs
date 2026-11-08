@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -12,6 +12,7 @@ use wm_platform::{
 use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
+  application_group::{plan_group_moves, GroupedWindow},
   commands::{
     container::set_focused_descendant,
     general::platform_sync,
@@ -35,6 +36,10 @@ pub struct WmState {
   pub dispatcher: Dispatcher,
 
   pub pending_sync: PendingSync,
+
+  /// Last workspace of each configured application group, including
+  /// hidden apps.
+  pub application_group_workspaces: HashMap<String, String>,
 
   /// Name of the most recently focused workspace.
   ///
@@ -87,6 +92,7 @@ impl WmState {
       root_container: RootContainer::new(),
       dispatcher,
       pending_sync: PendingSync::default(),
+      application_group_workspaces: HashMap::new(),
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
@@ -160,9 +166,104 @@ impl WmState {
       self.pending_sync.queue_workspace_to_reorder(workspace);
     }
 
+    self.reconcile_application_groups(&[], config)?;
     platform_sync(self, config)?;
     self.has_initialized = true;
 
+    Ok(())
+  }
+
+  /// Captures the managed windows of configured application groups,
+  /// without reading window geometry.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: Always returns an empty vector.
+  #[cfg_attr(not(target_os = "macos"), allow(clippy::unused_self))]
+  pub fn application_group_snapshot(
+    &self,
+    config: &UserConfig,
+  ) -> Vec<GroupedWindow> {
+    #[cfg(target_os = "macos")]
+    {
+      use wm_platform::NativeWindowExtMacOs;
+      if config.value.general.macos_grouped_applications.is_empty() {
+        return Vec::new();
+      }
+      self
+        .windows()
+        .into_iter()
+        .filter_map(|window| {
+          let application = window.native().bundle_id()?;
+          if !config
+            .value
+            .general
+            .macos_grouped_applications
+            .contains(&application)
+          {
+            return None;
+          }
+          Some(GroupedWindow {
+            id: window.id(),
+            application,
+            workspace: window.workspace()?.id(),
+            has_focus: window.has_focus(None),
+          })
+        })
+        .collect()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+      let _ = config;
+      Vec::new()
+    }
+  }
+
+  /// Applies group membership after a command or native window event.
+  pub fn reconcile_application_groups(
+    &mut self,
+    before: &[GroupedWindow],
+    config: &UserConfig,
+  ) -> anyhow::Result<()> {
+    self.application_group_workspaces.retain(|application, _| {
+      config
+        .value
+        .general
+        .macos_grouped_applications
+        .contains(application)
+    });
+    let after = self.application_group_snapshot(config);
+    for (window_id, workspace_id) in plan_group_moves(before, &after) {
+      let window = self
+        .windows()
+        .into_iter()
+        .find(|window| window.id() == window_id);
+      let workspace = self
+        .workspaces()
+        .into_iter()
+        .find(|workspace| workspace.id() == workspace_id);
+      if let (Some(window), Some(workspace)) = (window, workspace) {
+        crate::commands::window::move_window_to_workspace(
+          window,
+          WorkspaceTarget::Name(workspace.config().name),
+          self,
+          config,
+        )?;
+      }
+    }
+    // Keep the last assignment when Cmd+H temporarily unmanages every
+    // window. Unhiding the app must not adopt the active workspace.
+    for member in self.application_group_snapshot(config) {
+      if let Some(workspace) = self
+        .workspaces()
+        .into_iter()
+        .find(|workspace| workspace.id() == member.workspace)
+      {
+        self
+          .application_group_workspaces
+          .insert(member.application, workspace.config().name);
+      }
+    }
     Ok(())
   }
 

@@ -123,6 +123,29 @@ pub struct WindowEventNotification(
   pub Option<WindowEventNotificationInner>,
 );
 
+impl WindowEventNotification {
+  /// Whether this focus event came from an explicit app activation (e.g.
+  /// Cmd+Tab or clicking the Dock).
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Windows**: Always returns `false`.
+  #[must_use]
+  pub fn is_application_activation(&self) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+      self.0.as_ref().is_some_and(|notification| {
+        notification.name
+          == "NSWorkspaceDidActivateApplicationNotification"
+      })
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+      false
+    }
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct KeybindingEvent(pub Keybinding);
 
@@ -219,5 +242,28 @@ impl MouseEvent {
         pressed_buttons, ..
       } => pressed_buttons,
     }
+  }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod focus_notification_tests {
+  use super::*;
+
+  #[test]
+  fn application_activation_is_distinct_from_ax_focus() {
+    let notification = |name: &str| {
+      WindowEventNotification(Some(WindowEventNotificationInner {
+        name: name.to_string(),
+        ax_element_ptr: std::ptr::null_mut(),
+      }))
+    };
+    assert!(
+      notification("NSWorkspaceDidActivateApplicationNotification")
+        .is_application_activation()
+    );
+    assert!(
+      !notification("AXFocusedWindowChanged").is_application_activation()
+    );
+    assert!(!WindowEventNotification(None).is_application_activation());
   }
 }

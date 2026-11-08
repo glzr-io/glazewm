@@ -1,3 +1,4 @@
+mod focus_policy;
 mod handle_display_settings_changed;
 mod handle_mouse_move;
 mod handle_window_destroyed;

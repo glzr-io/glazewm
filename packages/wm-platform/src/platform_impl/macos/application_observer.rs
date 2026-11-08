@@ -267,6 +267,7 @@ impl ApplicationObserver {
       context.application.pid
     );
 
+    let window_id = WindowId::from_window_element(&ax_element);
     let found_window = {
       let app_windows = context.app_windows.lock().unwrap();
 
@@ -274,6 +275,9 @@ impl ApplicationObserver {
         .iter()
         .find(|window| {
           window.ax_ui_element().get_ref().ok() == Some(&ax_element)
+            || (notification.name != "AXUIElementDestroyed"
+              && window_id.0 != 0
+              && window.id() == window_id)
         })
         .cloned()
     };
@@ -298,6 +302,12 @@ impl ApplicationObserver {
         }
       }
 
+      return;
+    }
+
+    // AX can emit notifications for tab controls and windows which do
+    // not yet have a WindowServer ID. Never manage the shared zero ID.
+    if found_window.is_none() && window_id.0 == 0 {
       return;
     }
 

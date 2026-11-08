@@ -25,6 +25,7 @@ pub fn platform_sync(
   let focused_container =
     state.focused_container().context("No focused container.")?;
 
+  #[cfg(not(target_os = "macos"))]
   if state.pending_sync.needs_focus_update() {
     sync_focus(&focused_container, state)?;
   }
@@ -33,6 +34,13 @@ pub fn platform_sync(
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
     redraw_containers(&focused_container, state, config)?;
+  }
+
+  // Restore workspace geometry before activating its application. Native
+  // tab groups can otherwise raise or reposition still-hidden windows.
+  #[cfg(target_os = "macos")]
+  if state.pending_sync.needs_focus_update() {
+    sync_focus(&focused_container, state)?;
   }
 
   if state.pending_sync.needs_cursor_jump()

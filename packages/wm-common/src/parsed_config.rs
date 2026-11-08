@@ -76,6 +76,9 @@ pub struct GeneralConfig {
   /// Whether to automatically focus windows underneath the cursor.
   pub focus_follows_cursor: bool,
 
+  /// macOS bundle IDs whose windows move between workspaces as one group.
+  pub macos_grouped_applications: Vec<String>,
+
   /// Whether to switch back and forth between the previously focused
   /// workspace when focusing the current workspace.
   pub toggle_workspace_on_refocus: bool,
@@ -103,6 +106,7 @@ impl Default for GeneralConfig {
     GeneralConfig {
       cursor_jump: CursorJumpConfig::default(),
       focus_follows_cursor: false,
+      macos_grouped_applications: vec![],
       toggle_workspace_on_refocus: true,
       startup_commands: vec![],
       shutdown_commands: vec![],

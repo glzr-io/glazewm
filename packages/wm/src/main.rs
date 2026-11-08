@@ -34,6 +34,7 @@ use crate::{
   wm::WindowManager,
 };
 
+mod application_group;
 mod commands;
 mod events;
 mod ipc_server;
