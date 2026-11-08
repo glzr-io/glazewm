@@ -8,7 +8,7 @@ use objc2_application_services::{AXError, AXValue};
 use objc2_core_foundation::{
   CFBoolean, CFRetained, CFString, CGPoint, CGSize,
 };
-use objc2_core_graphics::{CGDisplayIsAsleep, CGError};
+use objc2_core_graphics::{CGDisplayIsAsleep, CGError, CGMainDisplayID};
 
 use crate::{
   platform_impl::{
@@ -123,7 +123,7 @@ impl NativeWindow {
           //   2. Login window deactivates and AX calls succeed again.
           //
           // Perf: `CGDisplayIsAsleep` ~1-5µs, login window check ~1-2ms.
-          CGDisplayIsAsleep(0) || has_login_window
+          CGDisplayIsAsleep(CGMainDisplayID()) || has_login_window
         }
         _ => true,
       })

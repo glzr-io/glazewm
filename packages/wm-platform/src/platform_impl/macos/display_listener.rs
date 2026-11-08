@@ -1,4 +1,10 @@
-use std::time::{Duration, Instant};
+use std::{
+  sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+  },
+  time::{Duration, Instant},
+};
 
 use objc2::rc::Retained;
 use tokio::sync::mpsc;
@@ -36,13 +42,13 @@ impl DisplayListener {
   /// Implements [`DisplayListener::terminate`].
   #[allow(clippy::unnecessary_wraps)]
   pub(crate) fn terminate(&mut self) -> crate::Result<()> {
-    // On macOS 10.11+, observer subscriptions are cleaned up automatically
-    // without calling `removeObserver`.
-    // Ref: https://developer.apple.com/documentation/foundation/notificationcenter/removeobserver(_:name:object:)
-    //
-    // Dropping the `NotificationObserver` also drops its channel sender,
-    // causing the listener thread to exit.
-    self.observer.take();
+    if let Some(observer) = self.observer.take() {
+      observer.with(|observer| {
+        NotificationCenter::workspace_center().remove_observer(observer);
+        NotificationCenter::default_center().remove_observer(observer);
+        NotificationCenter::distributed_center().remove_observer(observer);
+      })?;
+    }
     Ok(())
   }
 
@@ -54,6 +60,18 @@ impl DisplayListener {
     let (observer, mut events_rx) = NotificationObserver::new();
     let mut default_center = NotificationCenter::default_center();
     let mut workspace_center = NotificationCenter::workspace_center();
+    let mut distributed_center = NotificationCenter::distributed_center();
+    // Unlock can occur without a system wake or a screen configuration
+    // change.
+    // SAFETY: The observer is unregistered from every center in
+    // `terminate` before it is dropped.
+    unsafe {
+      distributed_center.add_observer(
+        NotificationName::ScreenUnlocked,
+        &observer,
+        None,
+      );
+    }
 
     // Add observer which will fire when displays are connected and
     // disconnected, resolution changes, or arrangement changes.
@@ -72,11 +90,13 @@ impl DisplayListener {
         &observer,
         None,
       );
-      workspace_center.add_observer(
+      for name in [
         NotificationName::WorkspaceDidWake,
-        &observer,
-        None,
-      );
+        NotificationName::WorkspaceSessionDidBecomeActive,
+        NotificationName::WorkspaceScreensDidWake,
+      ] {
+        workspace_center.add_observer(name, &observer, None);
+      }
     }
 
     std::thread::spawn(move || {
@@ -85,6 +105,7 @@ impl DisplayListener {
       // take 1-2 seconds to be reported as online.
       const WAKE_COALESCE_DURATION: Duration = Duration::from_secs(5);
 
+      let generation = Arc::new(AtomicU64::new(0));
       let mut is_asleep = false;
       let mut wake_time: Option<Instant> = None;
 
@@ -93,6 +114,7 @@ impl DisplayListener {
         match event {
           NotificationEvent::WorkspaceWillSleep => {
             is_asleep = true;
+            generation.fetch_add(1, Ordering::Relaxed);
           }
           NotificationEvent::WorkspaceDidWake => {
             is_asleep = false;
@@ -101,9 +123,15 @@ impl DisplayListener {
             // Send a single display change event after the coalesce
             // duration to pick up any changes that occurred during wake.
             let event_tx = event_tx.clone();
+            let current_generation =
+              generation.fetch_add(1, Ordering::Relaxed) + 1;
+            let generation = generation.clone();
             std::thread::spawn(move || {
               std::thread::sleep(WAKE_COALESCE_DURATION);
 
+              if generation.load(Ordering::Relaxed) != current_generation {
+                return;
+              }
               if let Err(err) = event_tx.send(()) {
                 tracing::warn!(
                   "Failed to send display change event: {}",
@@ -139,6 +167,7 @@ impl DisplayListener {
         }
       }
 
+      generation.fetch_add(1, Ordering::Relaxed);
       tracing::debug!("Display listener thread exited.");
     });
 

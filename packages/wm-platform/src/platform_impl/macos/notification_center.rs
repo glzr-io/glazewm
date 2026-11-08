@@ -1,5 +1,5 @@
 use objc2::{
-  define_class, msg_send, rc::Retained, runtime::AnyObject, sel,
+  class, define_class, msg_send, rc::Retained, runtime::AnyObject, sel,
   AnyThread, DefinedClass,
 };
 use objc2_app_kit::{
@@ -11,7 +11,9 @@ use objc2_app_kit::{
   NSWorkspaceDidLaunchApplicationNotification,
   NSWorkspaceDidTerminateApplicationNotification,
   NSWorkspaceDidUnhideApplicationNotification,
-  NSWorkspaceDidWakeNotification, NSWorkspaceWillSleepNotification,
+  NSWorkspaceDidWakeNotification, NSWorkspaceScreensDidWakeNotification,
+  NSWorkspaceSessionDidBecomeActiveNotification,
+  NSWorkspaceWillSleepNotification,
 };
 use objc2_foundation::{
   ns_string, NSNotification, NSNotificationCenter, NSNotificationName,
@@ -29,6 +31,9 @@ pub(crate) enum NotificationName {
   WorkspaceDidHideApplication,
   WorkspaceDidUnhideApplication,
   WorkspaceDidWake,
+  WorkspaceSessionDidBecomeActive,
+  WorkspaceScreensDidWake,
+  ScreenUnlocked,
   WorkspaceWillSleep,
   ApplicationDidChangeScreenParameters,
 }
@@ -56,7 +61,11 @@ impl From<&NSNotificationName> for NotificationName {
       == unsafe { NSWorkspaceDidUnhideApplicationNotification }
     {
       Self::WorkspaceDidUnhideApplication
-    } else if name == unsafe { NSWorkspaceDidWakeNotification } {
+    } else if name == ns_string!("com.apple.screenIsUnlocked")
+      || name == unsafe { NSWorkspaceSessionDidBecomeActiveNotification }
+      || name == unsafe { NSWorkspaceScreensDidWakeNotification }
+      || name == unsafe { NSWorkspaceDidWakeNotification }
+    {
       Self::WorkspaceDidWake
     } else if name == unsafe { NSWorkspaceWillSleepNotification } {
       Self::WorkspaceWillSleep
@@ -94,6 +103,15 @@ impl From<NotificationName> for &NSString {
       NotificationName::WorkspaceDidWake => unsafe {
         NSWorkspaceDidWakeNotification
       },
+      NotificationName::WorkspaceSessionDidBecomeActive => unsafe {
+        NSWorkspaceSessionDidBecomeActiveNotification
+      },
+      NotificationName::WorkspaceScreensDidWake => unsafe {
+        NSWorkspaceScreensDidWakeNotification
+      },
+      NotificationName::ScreenUnlocked => {
+        ns_string!("com.apple.screenIsUnlocked")
+      }
       NotificationName::WorkspaceWillSleep => unsafe {
         NSWorkspaceWillSleepNotification
       },
@@ -207,7 +225,10 @@ impl NotificationObserver {
           );
         }
       }
-      NotificationName::WorkspaceDidWake => {
+      NotificationName::WorkspaceDidWake
+      | NotificationName::WorkspaceSessionDidBecomeActive
+      | NotificationName::WorkspaceScreensDidWake
+      | NotificationName::ScreenUnlocked => {
         self.emit_event(NotificationEvent::WorkspaceDidWake);
       }
       NotificationName::WorkspaceWillSleep => {
@@ -241,10 +262,29 @@ impl NotificationCenter {
     Self { inner: center }
   }
 
+  /// Observes system-wide session notifications, including unlock without
+  /// sleep.
+  pub fn distributed_center() -> Self {
+    // SAFETY: NSDistributedNotificationCenter inherits
+    // NSNotificationCenter.
+    let inner = unsafe {
+      msg_send![class!(NSDistributedNotificationCenter), defaultCenter]
+    };
+    Self { inner }
+  }
+
   pub fn default_center() -> Self {
     let center = NSNotificationCenter::defaultCenter();
 
     Self { inner: center }
+  }
+
+  /// Removes every registration for this observer from the center.
+  pub fn remove_observer(&self, observer: &NotificationObserver) {
+    // SAFETY: The observer remains alive for this call.
+    unsafe {
+      self.inner.removeObserver(observer);
+    }
   }
 
   pub unsafe fn add_observer(
@@ -271,4 +311,23 @@ pub unsafe fn app_from_notification(
     .userInfo()?
     .objectForKey(ns_string!("NSWorkspaceApplicationKey"))
     .map(|app| Retained::<AnyObject>::cast_unchecked(app))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn unlock_and_screen_wake_trigger_recovery() {
+    for name in [
+      ns_string!("com.apple.screenIsUnlocked"),
+      unsafe { NSWorkspaceSessionDidBecomeActiveNotification },
+      unsafe { NSWorkspaceScreensDidWakeNotification },
+    ] {
+      assert!(matches!(
+        NotificationName::from(name),
+        NotificationName::WorkspaceDidWake
+      ));
+    }
+  }
 }
