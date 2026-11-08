@@ -5,8 +5,9 @@ use std::sync::{
 
 use objc2::MainThreadMarker;
 use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
+use objc2_application_services::{AXError, AXUIElement};
 use objc2_core_foundation::{
-  kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource,
+  kCFRunLoopCommonModes, CFRetained, CFRunLoop, CFRunLoopSource,
   CFRunLoopSourceContext,
 };
 
@@ -107,6 +108,16 @@ pub(crate) struct EventLoop {
 impl EventLoop {
   /// Implements [`EventLoop::new`].
   pub fn new() -> crate::Result<(Self, Dispatcher)> {
+    // Bound requests to unresponsive applications so they cannot block
+    // window management for the default accessibility timeout.
+    // SAFETY: The system-wide AX element sets this process's global
+    // timeout.
+    let result =
+      unsafe { AXUIElement::new_system_wide().set_messaging_timeout(1.0) };
+    if result != AXError::Success {
+      tracing::warn!("Failed to set accessibility timeout: {result:?}");
+    }
+
     // Add a new run loop source that allows dispatching from any thread.
     let source = Self::add_dispatch_source()?;
 
@@ -180,7 +191,7 @@ impl EventLoop {
     let run_loop =
       CFRunLoop::current().ok_or(crate::Error::EventLoopStopped)?;
 
-    run_loop.add_source(Some(&source), unsafe { kCFRunLoopDefaultMode });
+    run_loop.add_source(Some(&source), unsafe { kCFRunLoopCommonModes });
 
     Ok(EventLoopSource {
       dispatch_tx,

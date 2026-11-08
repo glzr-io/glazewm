@@ -5,7 +5,7 @@ use std::{
 
 use objc2_application_services::{AXError, AXObserver, AXUIElement};
 use objc2_core_foundation::{
-  kCFRunLoopDefaultMode, CFRetained, CFRunLoop, CFRunLoopSource, CFString,
+  kCFRunLoopCommonModes, CFRetained, CFRunLoop, CFRunLoopSource, CFString,
 };
 use tokio::sync::mpsc;
 
@@ -98,7 +98,7 @@ impl ApplicationObserver {
 
     let observer_source = unsafe { observer.run_loop_source() };
     runloop.add_source(Some(&observer_source), unsafe {
-      kCFRunLoopDefaultMode
+      kCFRunLoopCommonModes
     });
 
     // Register for all window notifications.

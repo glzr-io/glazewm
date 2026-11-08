@@ -34,6 +34,11 @@ pub fn handle_display_settings_changed(
         .try_collect::<Vec<_>>()
     }));
 
+  // Preserve all workspace assignments during a temporary display outage.
+  if displays.is_empty() {
+    return Ok(());
+  }
+
   let mut pending_monitors = state.monitors();
   let mut unmatched_displays = Vec::new();
 
