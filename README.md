@@ -255,6 +255,11 @@ workspaces:
 
     # Optionally prevent workspace from being deactivated when empty.
     keep_alive: false
+
+    # Optionally toggle between this workspace, and the most recent workspace when focusing this workspace
+    # Like the `toggle_workspace_on_refocus` global option, but specific to this workspace
+    # If this option is specified as `false` and the `toggle_workspace_on_refocus` option is set to `true` then this workspace will not toggle
+    toggle_on_refocus: false
 ```
 
 ### Config: Window rules

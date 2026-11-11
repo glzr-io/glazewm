@@ -12,7 +12,8 @@ use wm_platform::{CornerStyle, OpacityValue};
 use wm_platform::{Rect, WindowZOrder};
 
 use crate::{
-  models::{Container, WindowContainer},
+  commands::group::sync_tab_strips,
+  models::{is_on_inactive_page, Container, WindowContainer, Workspace},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -33,6 +34,7 @@ pub fn platform_sync(
     || !state.pending_sync.workspaces_to_reorder().is_empty()
   {
     redraw_containers(&focused_container, state, config)?;
+    sync_tab_strips(state, &config.value);
   }
 
   if state.pending_sync.needs_cursor_jump()
@@ -169,6 +171,17 @@ fn windows_to_bring_to_front(
   Ok(windows_to_bring_to_front)
 }
 
+/// Whether a window should be displayed.
+///
+/// A window is hidden if its workspace is not displayed, or if it is a
+/// page of a group that doesn't have it as the active page.
+fn is_window_displayed(
+  window: &WindowContainer,
+  workspace: &Workspace,
+) -> bool {
+  workspace.is_displayed() && !is_on_inactive_page(window)
+}
+
 #[allow(clippy::too_many_lines)]
 fn redraw_containers(
   focused_container: &Container,
@@ -269,7 +282,10 @@ fn redraw_containers(
     // Transition display state depending on whether window will be
     // shown or hidden.
     window.set_display_state(
-      match (window.display_state(), workspace.is_displayed()) {
+      match (
+        window.display_state(),
+        is_window_displayed(window, &workspace),
+      ) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
           DisplayState::Showing
         }

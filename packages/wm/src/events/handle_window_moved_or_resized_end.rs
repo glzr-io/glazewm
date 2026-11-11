@@ -6,7 +6,7 @@ use wm_platform::{LengthValue, Point, Rect};
 
 use crate::{
   commands::{
-    container::{move_container_within_tree, wrap_in_split_container},
+    container::{move_container_within_tree, wrap_in_container},
     window::{set_window_size, update_window_state},
   },
   events::update_floating_window_position,
@@ -248,7 +248,7 @@ fn drop_as_tiling_window(
       config.value.gaps.clone(),
     );
 
-    wrap_in_split_container(
+    wrap_in_container(
       &split_container,
       &target_parent.clone().into(),
       &[nearest_container],

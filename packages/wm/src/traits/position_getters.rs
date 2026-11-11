@@ -16,6 +16,13 @@ macro_rules! impl_position_getters_as_resizable {
   ($struct_name:ident) => {
     impl PositionGetters for $struct_name {
       fn to_rect(&self) -> anyhow::Result<Rect> {
+        // Pages of a group share the group's content area.
+        if let Some(group) =
+          self.parent().and_then(|parent| parent.as_group().cloned())
+        {
+          return group.content_rect();
+        }
+
         let parent = self
           .parent()
           .and_then(|parent| parent.as_direction_container().ok())

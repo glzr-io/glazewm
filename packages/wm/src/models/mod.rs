@@ -1,4 +1,5 @@
 mod container;
+mod group_container;
 mod insertion_target;
 mod monitor;
 mod native_monitor_properties;
@@ -11,6 +12,7 @@ mod workspace;
 mod workspace_target;
 
 pub use container::*;
+pub use group_container::*;
 pub use insertion_target::*;
 pub use monitor::*;
 pub use native_monitor_properties::*;

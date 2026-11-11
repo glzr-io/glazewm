@@ -26,7 +26,7 @@ use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
   Dispatcher, DisplayListener, EventLoop, KeybindingListener,
   MouseEventKind, MouseListener, PlatformEvent, SingleInstance,
-  WindowListener,
+  TabStripListener, WindowListener,
 };
 
 use crate::{
@@ -153,6 +153,7 @@ async fn start_wm(
   // Start listening for platform events after populating initial state.
   let mut window_listener = WindowListener::new(dispatcher)?;
   let mut display_listener = DisplayListener::new(dispatcher)?;
+  let mut tab_strip_listener = TabStripListener::new(dispatcher)?;
   let mut mouse_listener = MouseListener::new(
     if config.value.general.focus_follows_cursor {
       &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
@@ -201,6 +202,10 @@ async fn start_wm(
       Some(event) = mouse_listener.next_event() => {
         tracing::debug!("Received mouse event: {:?}", event);
         wm.process_event(PlatformEvent::Mouse(event), &mut config)
+      },
+      Some(event) = tab_strip_listener.next_event() => {
+        tracing::debug!("Received tab strip event: {:?}", event);
+        wm.process_event(PlatformEvent::TabStrip(event), &mut config)
       },
       Some(event) = window_listener.next_event() => {
         tracing::debug!("Received window event: {:?}", event);

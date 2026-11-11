@@ -27,6 +27,8 @@ pub trait TilingDirectionGetters: CommonGetters {
       TilingContainer::Split(split_child) => {
         split_child.descendant_in_direction(direction)
       }
+      // Descend into the active page of a group.
+      TilingContainer::Group(group) => group.active_window(),
       TilingContainer::TilingWindow(window) => Some(window),
     }
   }

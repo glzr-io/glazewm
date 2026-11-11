@@ -55,5 +55,14 @@ pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
     }
   }
 
+  // Remove the group from the tree once its last page has been detached.
+  if let Some(group) = parent.as_group().cloned() {
+    if group.child_count() == 0 {
+      // Dropping the tab strip destroys its window.
+      let _ = group.take_tab_strip();
+      detach_container(group.into())?;
+    }
+  }
+
   Ok(())
 }

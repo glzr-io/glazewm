@@ -38,6 +38,9 @@ pub fn update_workspace_config(
       .bind_to_monitor
       .or(current_config.bind_to_monitor),
     keep_alive: new_config.keep_alive.unwrap_or(current_config.keep_alive),
+    toggle_on_refocus: new_config
+      .toggle_on_refocus
+      .or(current_config.toggle_on_refocus),
   };
 
   workspace.set_config(updated_config);

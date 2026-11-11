@@ -5,7 +5,9 @@ use anyhow::Context;
 use wm_common::{GapsConfig, TilingDirection};
 
 use super::{CommonGetters, TilingDirectionGetters};
-use crate::models::{Container, DirectionContainer, TilingContainer};
+use crate::models::{
+  enclosing_group, Container, DirectionContainer, TilingContainer,
+};
 
 pub const MIN_TILING_SIZE: f32 = 0.01;
 
@@ -46,6 +48,12 @@ pub trait TilingSizeGetters: CommonGetters {
     &self,
     is_width_resize: bool,
   ) -> anyhow::Result<Option<TilingContainer>> {
+    // Pages of a group share the group's space, so resizing a page
+    // resizes the group.
+    if let Some(group) = enclosing_group(self) {
+      return group.container_to_resize(is_width_resize);
+    }
+
     let parent = self.direction_container().context("No parent.")?;
 
     let tiling_direction = parent.tiling_direction();
