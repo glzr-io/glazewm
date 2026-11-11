@@ -111,6 +111,16 @@ impl Verbosity {
   }
 }
 
+#[derive(Clone, Debug, Parser, PartialEq, Serialize)]
+pub enum GroupCommand {
+  /// Wraps the focused window in a new group.
+  Create,
+  /// Focuses the next page in the focused window's group.
+  Next,
+  /// Focuses the previous page in the focused window's group.
+  Prev,
+}
+
 #[derive(Clone, Debug, Parser)]
 pub enum QueryCommand {
   /// Outputs metadata about the application (e.g. version number).
@@ -157,6 +167,11 @@ pub enum SubscribableEvent {
 pub enum InvokeCommand {
   AdjustBorders(InvokeAdjustBordersCommand),
   Close,
+  /// Commands for grouping windows into tabbed pages.
+  Group {
+    #[clap(subcommand)]
+    command: GroupCommand,
+  },
   Focus(InvokeFocusCommand),
   Ignore,
   Move(InvokeMoveCommand),
@@ -231,6 +246,9 @@ pub enum InvokeCommand {
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,
+  /// Removes the focused window from its group. If the group has only
+  /// that window, the group is dissolved.
+  Ungroup,
   SetTilingDirection {
     #[clap(required = true)]
     tiling_direction: TilingDirection,
@@ -434,4 +452,47 @@ pub struct InvokeUpdateWorkspaceConfig {
 
   #[clap(long)]
   pub toggle_on_refocus: Option<bool>,
+}
+
+#[cfg(test)]
+mod tests {
+  use clap::Parser;
+
+  use super::{GroupCommand, InvokeCommand};
+
+  #[test]
+  fn parses_group_commands() {
+    let parse = |args: &[&str]| {
+      InvokeCommand::try_parse_from(
+        std::iter::once("").chain(args.iter().copied()),
+      )
+    };
+
+    assert_eq!(
+      parse(&["group", "create"]).unwrap(),
+      InvokeCommand::Group {
+        command: GroupCommand::Create
+      }
+    );
+    assert_eq!(
+      parse(&["group", "next"]).unwrap(),
+      InvokeCommand::Group {
+        command: GroupCommand::Next
+      }
+    );
+    assert_eq!(
+      parse(&["group", "prev"]).unwrap(),
+      InvokeCommand::Group {
+        command: GroupCommand::Prev
+      }
+    );
+  }
+
+  #[test]
+  fn parses_ungroup_command() {
+    assert_eq!(
+      InvokeCommand::try_parse_from(["", "ungroup"]).unwrap(),
+      InvokeCommand::Ungroup
+    );
+  }
 }

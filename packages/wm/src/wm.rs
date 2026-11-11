@@ -5,13 +5,14 @@ use uuid::Uuid;
 #[cfg(target_os = "windows")]
 use wm_common::TitleBarVisibility;
 use wm_common::{
-  FloatingStateConfig, FullscreenStateConfig, InvokeCommand, WindowState,
-  WmEvent,
+  FloatingStateConfig, FullscreenStateConfig, GroupCommand, InvokeCommand,
+  WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 use wm_platform::{
-  Dispatcher, LengthValue, PlatformEvent, RectDelta, WindowEvent,
+  Dispatcher, LengthValue, PlatformEvent, RectDelta, TabStripEvent,
+  WindowEvent,
 };
 
 use crate::{
@@ -24,6 +25,7 @@ use crate::{
       cycle_focus, disable_binding_mode, enable_binding_mode,
       platform_sync, reload_config, shell_exec, toggle_pause,
     },
+    group::{create_group, cycle_group_page, ungroup_window},
     monitor::focus_monitor,
     window::{
       ignore_window, move_window_in_direction, move_window_to_workspace,
@@ -37,7 +39,8 @@ use crate::{
   },
   events::{
     handle_display_settings_changed, handle_mouse_move,
-    handle_window_destroyed, handle_window_focused, handle_window_hidden,
+    handle_tab_strip_clicked, handle_window_destroyed,
+    handle_window_focused, handle_window_hidden,
     handle_window_minimize_ended, handle_window_minimized,
     handle_window_moved_or_resized, handle_window_shown,
     handle_window_title_changed,
@@ -106,6 +109,10 @@ impl WindowManager {
       PlatformEvent::Mouse(event) => {
         handle_mouse_move(&event, state, config)
       }
+      PlatformEvent::TabStrip(TabStripEvent::TabClicked {
+        strip_id,
+        index,
+      }) => handle_tab_strip_clicked(strip_id, index, state),
       PlatformEvent::Window(window_event) => match window_event {
         WindowEvent::Focused { window, .. } => {
           handle_window_focused(&window, state, config)
@@ -330,6 +337,23 @@ impl WindowManager {
 
         Ok(())
       }
+      InvokeCommand::Group { command } => {
+        match subject_container.as_tiling_window() {
+          Some(window) => match command {
+            GroupCommand::Create => {
+              create_group(window, &config.value, state)
+            }
+            GroupCommand::Next => cycle_group_page(window, true, state),
+            GroupCommand::Prev => cycle_group_page(window, false, state),
+          },
+          None => Ok(()),
+        }
+      }
+      InvokeCommand::Ungroup => match subject_container.as_tiling_window()
+      {
+        Some(window) => ungroup_window(window, state),
+        None => Ok(()),
+      },
       InvokeCommand::Ignore => {
         match subject_container.as_window_container() {
           Ok(window) => ignore_window(window, state),

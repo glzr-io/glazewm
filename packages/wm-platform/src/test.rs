@@ -13,6 +13,7 @@ mod mouse_listener;
 mod native_window;
 mod platform_event;
 mod platform_impl;
+mod tab_strip;
 mod thread_bound;
 mod window_listener;
 
@@ -25,6 +26,7 @@ pub use models::*;
 pub use mouse_listener::*;
 pub use native_window::*;
 pub use platform_event::*;
+pub use tab_strip::*;
 pub use thread_bound::*;
 pub use window_listener::*;
 

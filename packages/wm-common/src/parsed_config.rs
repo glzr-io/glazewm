@@ -12,6 +12,7 @@ pub struct ParsedConfig {
   pub binding_modes: Vec<BindingModeConfig>,
   pub gaps: GapsConfig,
   pub general: GeneralConfig,
+  pub groups: GroupsConfig,
   pub keybindings: Vec<KeybindingConfig>,
   pub window_behavior: WindowBehaviorConfig,
   pub window_effects: WindowEffectsConfig,
@@ -118,6 +119,77 @@ impl Default for GeneralConfig {
         }
       },
       show_all_in_taskbar: false,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct GroupsConfig {
+  /// Height of the header shown above the active page of a group.
+  pub header_height: LengthValue,
+
+  /// Color of the header tab for the active page.
+  ///
+  /// Defaults to the focused window's border color.
+  pub active_page_color: Option<Color>,
+
+  /// Color of the header tabs for inactive pages.
+  ///
+  /// Defaults to the other windows' border color.
+  pub inactive_page_color: Option<Color>,
+
+  /// Color of the page number text in the header.
+  pub text_color: Color,
+
+  /// Whether to draw the page number on each tab of the header.
+  pub show_labels: bool,
+}
+
+impl GroupsConfig {
+  /// Gets the color of the header tab for the active page.
+  ///
+  /// Falls back to the focused window border color from `window_effects`
+  /// when `active_page_color` is not set.
+  #[must_use]
+  pub fn resolved_active_page_color(
+    &self,
+    window_effects: &WindowEffectsConfig,
+  ) -> Color {
+    self.active_page_color.clone().unwrap_or_else(|| {
+      window_effects.focused_window.border.color.clone()
+    })
+  }
+
+  /// Gets the color of the header tabs for inactive pages.
+  ///
+  /// Falls back to the other windows border color from `window_effects`
+  /// when `inactive_page_color` is not set.
+  #[must_use]
+  pub fn resolved_inactive_page_color(
+    &self,
+    window_effects: &WindowEffectsConfig,
+  ) -> Color {
+    self
+      .inactive_page_color
+      .clone()
+      .unwrap_or_else(|| window_effects.other_windows.border.color.clone())
+  }
+}
+
+impl Default for GroupsConfig {
+  fn default() -> Self {
+    GroupsConfig {
+      header_height: LengthValue::from_px(24),
+      active_page_color: None,
+      inactive_page_color: None,
+      show_labels: true,
+      text_color: Color {
+        r: 30,
+        g: 30,
+        b: 30,
+        a: 255,
+      },
     }
   }
 }
@@ -473,5 +545,54 @@ where
   #[cfg(not(target_os = "macos"))]
   {
     Ok(method)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use wm_platform::Color;
+
+  use super::{GroupsConfig, WindowEffectsConfig};
+
+  fn color(r: u8, g: u8, b: u8) -> Color {
+    Color { r, g, b, a: 255 }
+  }
+
+  #[test]
+  fn group_page_colors_default_to_window_border_colors() {
+    let mut window_effects = WindowEffectsConfig::default();
+    window_effects.focused_window.border.color = color(1, 2, 3);
+    window_effects.other_windows.border.color = color(4, 5, 6);
+
+    let groups = GroupsConfig::default();
+
+    assert_eq!(
+      groups.resolved_active_page_color(&window_effects),
+      color(1, 2, 3)
+    );
+    assert_eq!(
+      groups.resolved_inactive_page_color(&window_effects),
+      color(4, 5, 6)
+    );
+  }
+
+  #[test]
+  fn group_page_colors_prefer_explicit_values() {
+    let window_effects = WindowEffectsConfig::default();
+
+    let groups = GroupsConfig {
+      active_page_color: Some(color(10, 20, 30)),
+      inactive_page_color: Some(color(40, 50, 60)),
+      ..GroupsConfig::default()
+    };
+
+    assert_eq!(
+      groups.resolved_active_page_color(&window_effects),
+      color(10, 20, 30)
+    );
+    assert_eq!(
+      groups.resolved_inactive_page_color(&window_effects),
+      color(40, 50, 60)
+    );
   }
 }

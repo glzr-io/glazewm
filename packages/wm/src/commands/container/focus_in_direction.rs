@@ -4,7 +4,7 @@ use wm_platform::Direction;
 
 use super::set_focused_descendant;
 use crate::{
-  models::{Container, TilingContainer},
+  models::{enclosing_group, Container, TilingContainer},
   traits::{CommonGetters, TilingDirectionGetters, WindowGetters},
   wm_state::WmState,
 };
@@ -16,9 +16,14 @@ pub fn focus_in_direction(
 ) -> anyhow::Result<()> {
   let focus_target = match origin_container {
     Container::TilingWindow(_) => {
+      // Focus moves between tiles, so a page of a group searches from the
+      // group's tile rather than the page itself.
+      let origin_tile = enclosing_group(origin_container)
+        .map_or_else(|| origin_container.clone(), Into::into);
+
       // If a suitable focus target isn't found in the current workspace,
       // attempt to find a workspace in the given direction.
-      tiling_focus_target(origin_container, direction)?.map_or_else(
+      tiling_focus_target(&origin_tile, direction)?.map_or_else(
         || workspace_focus_target(origin_container, direction, state),
         |container| Ok(Some(container)),
       )?
@@ -118,6 +123,9 @@ fn tiling_focus_target(
           TilingContainer::Split(split) => split
             .descendant_in_direction(&direction.inverse())
             .map(Into::into),
+          TilingContainer::Group(group) => {
+            group.active_window().map(Into::into)
+          }
         });
       }
       None => origin_or_ancestor = parent.into(),

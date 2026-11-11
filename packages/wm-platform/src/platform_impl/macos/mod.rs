@@ -11,6 +11,7 @@ mod mouse_listener;
 mod native_window;
 mod notification_center;
 mod single_instance;
+mod tab_strip;
 mod window_listener;
 
 pub(crate) use application::*;
@@ -25,4 +26,5 @@ pub(crate) use mouse_listener::*;
 pub(crate) use native_window::*;
 pub(crate) use notification_center::*;
 pub(crate) use single_instance::*;
+pub(crate) use tab_strip::*;
 pub(crate) use window_listener::*;

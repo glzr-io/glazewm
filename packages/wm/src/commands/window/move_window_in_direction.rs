@@ -3,14 +3,17 @@ use wm_common::{TilingDirection, WindowState};
 use wm_platform::{Direction, Rect};
 
 use crate::{
-  commands::container::{
-    flatten_child_split_containers, flatten_split_container,
-    move_container_within_tree, resize_tiling_container,
-    set_focused_descendant, wrap_in_split_container,
+  commands::{
+    container::{
+      flatten_child_split_containers, flatten_split_container,
+      move_container_within_tree, resize_tiling_container,
+      set_focused_descendant, wrap_in_container,
+    },
+    group::{insert_window_into_group, move_window_in_group},
   },
   models::{
-    DirectionContainer, Monitor, NonTilingWindow, SplitContainer,
-    TilingContainer, TilingWindow, WindowContainer,
+    enclosing_group, DirectionContainer, Monitor, NonTilingWindow,
+    SplitContainer, TilingContainer, TilingWindow, WindowContainer,
   },
   traits::{
     CommonGetters, PositionGetters, TilingDirectionGetters, WindowGetters,
@@ -54,6 +57,14 @@ fn move_tiling_window(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
+  // Moves of a group's page are handled by the group. A vertical move out
+  // of the group continues below, since the window is then a regular tile.
+  if let Some(group) = enclosing_group(&window_to_move) {
+    if move_window_in_group(&window_to_move, &group, direction, state)? {
+      return Ok(());
+    }
+  }
+
   // Flatten the parent split container if it only contains the window.
   if let Some(split_parent) = window_to_move
     .parent()
@@ -165,12 +176,30 @@ fn move_to_sibling_container(
         .queue_container_to_redraw(sibling_window)
         .queue_container_to_redraw(window_to_move);
     }
+    TilingContainer::Group(sibling_group) => {
+      insert_window_into_group(&window_to_move, &sibling_group, state)?;
+
+      state
+        .pending_sync
+        .queue_containers_to_redraw(parent.tiling_children());
+    }
     TilingContainer::Split(sibling_split) => {
       let sibling_descendant =
         sibling_split.descendant_in_direction(&direction.inverse());
 
       // Move the window into the sibling split container.
       if let Some(sibling_descendant) = sibling_descendant {
+        // Insert as a page if the target is a page of a group.
+        if let Some(group) = enclosing_group(&sibling_descendant) {
+          insert_window_into_group(&window_to_move, &group, state)?;
+
+          state
+            .pending_sync
+            .queue_containers_to_redraw(parent.tiling_children());
+
+          return Ok(());
+        }
+
         let target_parent = sibling_descendant
           .direction_container()
           .context("No direction container.")?;
@@ -300,7 +329,7 @@ fn invert_workspace_tiling_direction(
       config.value.gaps.clone(),
     );
 
-    wrap_in_split_container(
+    wrap_in_container(
       &split_container,
       &workspace.clone().into(),
       &workspace_children,

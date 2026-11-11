@@ -153,6 +153,14 @@ fn update_container_gaps(state: &mut WmState, config: &UserConfig) {
   for workspace in state.workspaces() {
     workspace.set_gaps_config(config.value.gaps.clone());
   }
+
+  for group in state
+    .root_container
+    .descendants()
+    .filter_map(|container| container.as_group().cloned())
+  {
+    group.set_groups_config(config.value.groups.clone());
+  }
 }
 
 #[cfg(target_os = "windows")]

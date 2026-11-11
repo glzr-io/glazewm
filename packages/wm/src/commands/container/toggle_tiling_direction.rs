@@ -1,9 +1,12 @@
 use anyhow::Context;
 use wm_common::{TilingDirection, WmEvent};
 
-use super::{flatten_split_container, wrap_in_split_container};
+use super::{flatten_split_container, wrap_in_container};
 use crate::{
-  models::{Container, DirectionContainer, SplitContainer, TilingWindow},
+  models::{
+    enclosing_group, Container, DirectionContainer, SplitContainer,
+    TilingContainer, TilingWindow,
+  },
   traits::{CommonGetters, TilingDirectionGetters},
   user_config::UserConfig,
   wm_state::WmState,
@@ -16,7 +19,7 @@ pub fn toggle_tiling_direction(
 ) -> anyhow::Result<()> {
   let direction_container = match container {
     Container::TilingWindow(tiling_window) => {
-      toggle_window_direction(tiling_window, config)
+      toggle_tile_direction(tile_of_window(tiling_window), config)
     }
     Container::Workspace(workspace) => {
       workspace
@@ -36,18 +39,27 @@ pub fn toggle_tiling_direction(
   Ok(())
 }
 
-fn toggle_window_direction(
-  tiling_window: TilingWindow,
+/// Gets the container that a window occupies in the tiling layout.
+///
+/// For a page of a group, this is the group itself.
+fn tile_of_window(tiling_window: TilingWindow) -> TilingContainer {
+  enclosing_group(&tiling_window)
+    .map_or_else(|| tiling_window.into(), Into::into)
+}
+
+/// Toggles the tiling direction of a tile in the layout.
+fn toggle_tile_direction(
+  tile: TilingContainer,
   config: &UserConfig,
 ) -> anyhow::Result<DirectionContainer> {
-  let parent = tiling_window
+  let parent = tile
     .direction_container()
     .context("No direction container.")?;
 
-  // If the window is an only child, then either change the tiling
+  // If the tile is an only child, then either change the tiling
   // direction of its parent workspace or flatten its parent split
   // container.
-  if tiling_window.tiling_siblings().count() == 0 {
+  if tile.tiling_siblings().count() == 0 {
     return match parent {
       DirectionContainer::Workspace(workspace) => {
         workspace
@@ -58,24 +70,20 @@ fn toggle_window_direction(
       DirectionContainer::Split(split_container) => {
         flatten_split_container(split_container.clone())?;
 
-        tiling_window
+        tile
           .direction_container()
           .context("No direction container.")
       }
     };
   }
 
-  // Create a new split container to wrap the window.
+  // Create a new split container to wrap the tile.
   let split_container = SplitContainer::new(
     parent.tiling_direction().inverse(),
     config.value.gaps.clone(),
   );
 
-  wrap_in_split_container(
-    &split_container,
-    &parent.into(),
-    &[tiling_window.into()],
-  )?;
+  wrap_in_container(&split_container, &parent.into(), &[tile])?;
 
   Ok(split_container.into())
 }
