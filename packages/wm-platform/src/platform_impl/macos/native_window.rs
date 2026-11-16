@@ -110,6 +110,31 @@ fn contain_native_frame(
   }
 }
 
+fn reconcile_native_tiling_frame(
+  requested: &Rect,
+  bounds: &Rect,
+  revision: u64,
+  recovery: &mut Option<(u64, i32, i32)>,
+  mut read: impl FnMut() -> crate::Result<Rect>,
+  resize: impl FnOnce() -> crate::Result<()>,
+  move_to: impl FnOnce(&Rect) -> crate::Result<()>,
+) -> crate::Result<Rect> {
+  let frame = read()?;
+  let request = (revision, requested.width(), requested.height());
+  if frame.width() == requested.width()
+    && frame.height() == requested.height()
+  {
+    *recovery = None;
+  } else if *recovery != Some(request) {
+    // Retry drift once; repeated refusal must not create an AX event loop.
+    *recovery = Some(request);
+    if let Err(error) = resize() {
+      tracing::warn!("Failed to recover macOS tile size: {error}");
+    }
+  }
+  contain_native_frame(bounds, Some(requested), read, move_to)
+}
+
 /// Some apps reject `AXSize` with an error rather than accepting a clamped
 /// size. Still move their accepted frame onto the assigned monitor.
 fn place_visible_frame(
@@ -148,6 +173,7 @@ pub(crate) struct NativeWindow {
   pub(crate) application: Application,
   frame_revision: Arc<AtomicU64>,
   commanded_frames: Arc<Mutex<Option<[Rect; 2]>>>,
+  size_recovery: Arc<Mutex<Option<(u64, i32, i32)>>>,
 }
 
 impl NativeWindow {
@@ -164,6 +190,7 @@ impl NativeWindow {
       application,
       frame_revision: Arc::new(AtomicU64::new(0)),
       commanded_frames: Arc::new(Mutex::new(None)),
+      size_recovery: Arc::new(Mutex::new(None)),
     }
   }
 
@@ -366,13 +393,24 @@ impl NativeWindow {
     self.reconcile_frame(None, bounds)
   }
 
-  /// Re-anchor a tile without retrying a native size the app refused.
+  /// Recover a tile size once, then contain the size the app accepts.
   pub(crate) fn reconcile_tiling_frame(
     &self,
     requested: &Rect,
     bounds: &Rect,
   ) -> crate::Result<Rect> {
-    self.reconcile_frame(Some(requested), bounds)
+    let revision = self.frame_revision.load(Ordering::SeqCst);
+    reconcile_native_tiling_frame(
+      requested,
+      bounds,
+      revision,
+      &mut self.size_recovery.lock().unwrap(),
+      || self.committed_frame(),
+      || {
+        self.set_frame_at_revision(requested, revision, true, Some(bounds))
+      },
+      |frame| self.reconcile_frame(Some(frame), bounds).map(|_| ()),
+    )
   }
 
   fn reconcile_frame(
@@ -920,6 +958,138 @@ mod frame_tests {
     // native minimum. Returning success here would cache that request.
     assert!(ensure_size_settled((323.0, 1067.0), (700, 1067)).is_err());
     assert!(ensure_size_settled((700.0, 1067.0), (700, 1067)).is_ok());
+  }
+
+  #[test]
+  fn tiled_size_drift_recovers_without_leaving_a_gap() {
+    use std::cell::RefCell;
+    let requested = Rect::from_xy(2718, 45, 1696, 1390);
+    let native = RefCell::new(Rect::from_xy(2718, 45, 1512, 1390));
+    let actual = reconcile_native_tiling_frame(
+      &requested,
+      &Rect::from_xy(1728, 0, 3440, 1440),
+      1,
+      &mut None,
+      || Ok(native.borrow().clone()),
+      || {
+        *native.borrow_mut() = requested.clone();
+        Ok(())
+      },
+      |frame| {
+        *native.borrow_mut() = frame.clone();
+        Ok(())
+      },
+    )
+    .unwrap();
+    assert_eq!(actual, Rect::from_xy(2718, 45, 1696, 1390));
+  }
+
+  #[test]
+  fn slack_huddle_and_main_window_recover_without_a_desktop_strip() {
+    use std::cell::RefCell;
+    let bounds = Rect::from_xy(0, 32, 1728, 1085);
+    let mut frames = Vec::new();
+    for (requested, observed, accepted_size) in [
+      (
+        Rect::from_xy(785, 45, 668, 1067),
+        Rect::from_xy(437, 45, 668, 1067),
+        (668, 1067),
+      ),
+      (
+        Rect::from_xy(1463, 45, 260, 1067),
+        Rect::from_xy(1273, 45, 455, 335),
+        (455, 1067),
+      ),
+    ] {
+      let native = RefCell::new(observed);
+      let actual = reconcile_native_tiling_frame(
+        &requested,
+        &bounds,
+        1,
+        &mut None,
+        || Ok(native.borrow().clone()),
+        || {
+          *native.borrow_mut() = Rect::from_xy(
+            requested.x(),
+            requested.y(),
+            accepted_size.0,
+            accepted_size.1,
+          );
+          Ok(())
+        },
+        |frame| {
+          *native.borrow_mut() = frame.clone();
+          Ok(())
+        },
+      )
+      .unwrap();
+      assert!(bounds.contains_rect(&actual));
+      frames.push(actual);
+    }
+    assert_eq!(frames[0], Rect::from_xy(785, 45, 668, 1067));
+    assert_eq!(frames[1], Rect::from_xy(1273, 45, 455, 1067));
+  }
+
+  #[test]
+  fn refused_tile_recovery_is_bounded_and_stays_on_its_monitor() {
+    use std::cell::{Cell, RefCell};
+    let requested = Rect::from_xy(1400, 45, 323, 1067);
+    let bounds = Rect::from_xy(5, 45, 1718, 1067);
+    let native = RefCell::new(Rect::from_xy(1400, 45, 700, 1067));
+    let attempts = Cell::new(0);
+    let mut recovery = None;
+    for revision in [1, 1, 1, 2, 2] {
+      let actual = reconcile_native_tiling_frame(
+        &requested,
+        &bounds,
+        revision,
+        &mut recovery,
+        || Ok(native.borrow().clone()),
+        || {
+          attempts.set(attempts.get() + 1);
+          // Model an app refusing AXSize while accepting AXPosition.
+          Err(crate::Error::Platform("App refused AXSize".into()))
+        },
+        |frame| {
+          *native.borrow_mut() = frame.clone();
+          Ok(())
+        },
+      )
+      .unwrap();
+      assert_eq!(actual, Rect::from_xy(1023, 45, 700, 1067));
+    }
+    assert_eq!(attempts.get(), 2);
+  }
+
+  #[test]
+  fn matching_tile_events_allow_recovery_of_later_size_drift() {
+    use std::cell::{Cell, RefCell};
+    let requested = Rect::from_xy(10, 45, 800, 900);
+    let native = RefCell::new(requested.clone());
+    let attempts = Cell::new(0);
+    let mut recovery = Some((1, 800, 900));
+    for height in [900, 700, 900, 1100] {
+      *native.borrow_mut() = Rect::from_xy(10, 45, 800, height);
+      let actual = reconcile_native_tiling_frame(
+        &requested,
+        &Rect::from_xy(0, 0, 1728, 1117),
+        1,
+        &mut recovery,
+        || Ok(native.borrow().clone()),
+        || {
+          attempts.set(attempts.get() + 1);
+          *native.borrow_mut() = requested.clone();
+          Ok(())
+        },
+        |frame| {
+          *native.borrow_mut() = frame.clone();
+          Ok(())
+        },
+      )
+      .unwrap();
+      assert_eq!(actual, Rect::from_xy(10, 45, 800, 900));
+    }
+    assert_eq!(attempts.get(), 2);
   }
 
   #[test]
