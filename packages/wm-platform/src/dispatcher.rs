@@ -48,6 +48,8 @@ use windows::{
 
 #[cfg(target_os = "macos")]
 use crate::platform_impl::Application;
+#[cfg(target_os = "windows")]
+use crate::AccentPalette;
 use crate::{
   platform_impl, Display, DisplayDevice, MouseButton, NativeWindow, Point,
 };
@@ -105,6 +107,13 @@ impl DispatcherExtMacOs for Dispatcher {
 /// Windows-specific extensions for `Dispatcher`.
 #[cfg(target_os = "windows")]
 pub trait DispatcherExtWindows {
+  /// Gets the shades of the system accent color.
+  ///
+  /// # Platform-specific
+  ///
+  /// This method is only available on Windows.
+  fn accent_palette(&self) -> crate::Result<AccentPalette>;
+
   /// Returns the handle of the event loop's message window.
   ///
   /// # Platform-specific
@@ -182,6 +191,10 @@ pub trait DispatcherExtWindows {
 
 #[cfg(target_os = "windows")]
 impl DispatcherExtWindows for Dispatcher {
+  fn accent_palette(&self) -> crate::Result<AccentPalette> {
+    platform_impl::accent_palette()
+  }
+
   fn message_window_handle(&self) -> isize {
     self.source.as_ref().unwrap().message_window_handle
   }

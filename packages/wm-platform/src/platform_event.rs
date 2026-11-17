@@ -1,7 +1,7 @@
 use super::NativeWindow;
 use crate::{
-  platform_impl::WindowEventNotificationInner, Keybinding, MouseEventKind,
-  Point, WindowId,
+  platform_impl::WindowEventNotificationInner, AccentPalette, Keybinding,
+  MouseEventKind, Point, WindowId,
 };
 
 #[derive(Clone, Debug)]
@@ -10,6 +10,7 @@ pub enum PlatformEvent {
   Keybinding(KeybindingEvent),
   Mouse(MouseEvent),
   DisplaySettingsChanged,
+  AccentPaletteChanged(AccentPalette),
 }
 
 #[derive(Clone, Debug)]

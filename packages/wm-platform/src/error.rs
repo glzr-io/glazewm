@@ -79,6 +79,13 @@ pub enum Error {
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
   #[error(
+    "Invalid accent shade '{0}': must be one of 'accent', \
+     'accent_light1' to 'accent_light3', or 'accent_dark1' to \
+     'accent_dark3'."
+  )]
+  AccentShade(String),
+
+  #[error(
     "Invalid length value '{0}': must be of format '10px' or '10%'."
   )]
   Length(String),

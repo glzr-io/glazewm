@@ -49,7 +49,7 @@ pub fn platform_sync(
     let prev_effects_window = state.prev_effects_window.clone();
 
     if let Ok(window) = focused_container.as_window_container() {
-      apply_window_effects(&window, true, config);
+      apply_window_effects(&window, true, state, config);
       state.prev_effects_window = Some(window.clone());
     } else {
       state.prev_effects_window = None;
@@ -69,7 +69,7 @@ pub fn platform_sync(
       .filter(|window| window.id() != focused_container.id());
 
     for window in unfocused_windows {
-      apply_window_effects(&window, false, config);
+      apply_window_effects(&window, false, state, config);
     }
   }
 
@@ -513,6 +513,9 @@ fn apply_window_effects(
   #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
   window: &WindowContainer,
   is_focused: bool,
+  // LINT: `state` is only used on Windows.
+  #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
+  state: &WmState,
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
@@ -530,7 +533,7 @@ fn apply_window_effects(
   if window_effects.focused_window.border.enabled
     || window_effects.other_windows.border.enabled
   {
-    apply_border_effect(window, effect_config);
+    apply_border_effect(window, effect_config, state);
   }
 
   #[cfg(target_os = "windows")]
@@ -559,12 +562,20 @@ fn apply_window_effects(
 fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
+  state: &WmState,
 ) {
-  let border_color = if effect_config.border.enabled {
-    Some(&effect_config.border.color)
-  } else {
-    None
-  };
+  // Falls back to the system default border if an accent shade is used
+  // but the accent palette is unavailable.
+  let border_color = effect_config
+    .border
+    .enabled
+    .then(|| {
+      effect_config
+        .border
+        .color
+        .resolve(state.accent_palette.as_ref())
+    })
+    .flatten();
 
   _ = window.native().set_border_color(border_color);
 

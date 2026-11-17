@@ -6,10 +6,12 @@ use tracing::warn;
 use uuid::Uuid;
 use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
 use wm_platform::{
-  Direction, Dispatcher, Display, NativeWindow, Point, Rect,
+  AccentPalette, Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
 #[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, OpacityValue};
+use wm_platform::{
+  DispatcherExtWindows, NativeWindowWindowsExt, OpacityValue,
+};
 
 use crate::{
   commands::{
@@ -35,6 +37,12 @@ pub struct WmState {
   pub dispatcher: Dispatcher,
 
   pub pending_sync: PendingSync,
+
+  /// Shades of the system accent color.
+  ///
+  /// Used for resolving accent border colors. Always `None` on macOS, or
+  /// if the palette could not be read.
+  pub accent_palette: Option<AccentPalette>,
 
   /// Name of the most recently focused workspace.
   ///
@@ -83,10 +91,19 @@ impl WmState {
     event_tx: mpsc::UnboundedSender<WmEvent>,
     exit_tx: mpsc::UnboundedSender<()>,
   ) -> Self {
+    #[cfg(target_os = "windows")]
+    let accent_palette = dispatcher
+      .accent_palette()
+      .inspect_err(|err| warn!("Failed to read accent palette: {err}"))
+      .ok();
+    #[cfg(target_os = "macos")]
+    let accent_palette = None;
+
     Self {
       root_container: RootContainer::new(),
       dispatcher,
       pending_sync: PendingSync::default(),
+      accent_palette,
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,
@@ -554,10 +571,16 @@ impl WmState {
   /// Does not emit events while the WM is paused or populating initial
   /// state. This is to prevent events (e.g. workspace activation events)
   /// from being emitted via IPC server before the initial state is
-  /// prepared.
+  /// prepared. Events reflecting system state (e.g. accent palette
+  /// changes) are still emitted while paused.
   pub fn emit_event(&self, event: WmEvent) {
     if self.has_initialized
-      && (!self.is_paused || matches!(event, WmEvent::PauseChanged { .. }))
+      && (!self.is_paused
+        || matches!(
+          event,
+          WmEvent::PauseChanged { .. }
+            | WmEvent::AccentPaletteChanged { .. }
+        ))
     {
       if let Err(err) = self.event_tx.send(event) {
         warn!("Failed to send event: {}", err);
