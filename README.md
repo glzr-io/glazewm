@@ -294,6 +294,11 @@ window_effects:
     # Highlight the window with a colored border.
     border:
       enabled: true
+      # Either a hex color or a shade of the system accent color ('accent',
+      # 'accent_light1' to 'accent_light3', 'accent_dark1' to
+      # 'accent_dark3'). Accent shades update when the accent changes.
+      # Windows derives the shades from the accent; '1' is closest to it and
+      # '3' furthest ('accent_light3' lightest, 'accent_dark3' darkest).
       color: "#0000ff"
 
   # Visual effects to apply to non-focused windows.

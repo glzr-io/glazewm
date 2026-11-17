@@ -61,6 +61,12 @@ window_effects:
     # ** Exclusive to Windows 11 due to API limitations.
     border:
       enabled: true
+      # Either a hex color (e.g. '#8dbcff') or a shade of the system accent
+      # color, which updates automatically when the accent changes.
+      # Allowed accent shades: 'accent', 'accent_light1' to 'accent_light3',
+      # 'accent_dark1' to 'accent_dark3'. Windows derives these shades from
+      # the current accent; '1' is closest to the accent and '3' furthest
+      # (i.e. 'accent_light3' is the lightest, 'accent_dark3' the darkest).
       color: '#8dbcff'
 
     # Remove the title bar from the window's frame. Note that this can

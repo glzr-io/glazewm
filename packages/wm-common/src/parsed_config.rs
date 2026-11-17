@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use wm_platform::{
-  Color, CornerStyle, Key, Keybinding, LengthValue, OpacityValue,
-  RectDelta,
+  AccentPalette, AccentShade, Color, CornerStyle, Key, Keybinding,
+  LengthValue, OpacityValue, RectDelta,
 };
 
 use crate::app_command::InvokeCommand;
@@ -254,6 +254,18 @@ pub struct WindowEffectConfig {
   pub transparency: TransparencyEffectConfig,
 }
 
+impl WindowEffectsConfig {
+  /// Whether any enabled border uses a shade of the system accent color.
+  #[must_use]
+  pub fn has_accent_border(&self) -> bool {
+    [&self.focused_window.border, &self.other_windows.border]
+      .iter()
+      .any(|border| {
+        border.enabled && matches!(border.color, BorderColor::Accent(_))
+      })
+  }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct BorderEffectConfig {
@@ -261,19 +273,89 @@ pub struct BorderEffectConfig {
   pub enabled: bool,
 
   /// Color of the window border.
-  pub color: Color,
+  pub color: BorderColor,
 }
 
 impl Default for BorderEffectConfig {
   fn default() -> Self {
     BorderEffectConfig {
       enabled: false,
-      color: Color {
+      color: BorderColor::Custom(Color {
         r: 140,
         g: 190,
         b: 255,
         a: 255,
-      },
+      }),
+    }
+  }
+}
+
+/// Color of a window border.
+///
+/// Deserialized from either a hex string (e.g. `#8dbcff`), an accent
+/// shade (e.g. `accent` or `accent_dark1`), or a color struct.
+#[derive(Clone, Debug, PartialEq)]
+pub enum BorderColor {
+  /// A shade of the system accent color. Follows system changes.
+  Accent(AccentShade),
+
+  /// A fixed color.
+  Custom(Color),
+}
+
+impl BorderColor {
+  /// Resolves to a concrete color.
+  ///
+  /// Returns `None` for an accent shade if `palette` is unavailable.
+  #[must_use]
+  pub fn resolve<'a>(
+    &'a self,
+    palette: Option<&'a AccentPalette>,
+  ) -> Option<&'a Color> {
+    match self {
+      Self::Accent(shade) => palette.map(|palette| palette.color(*shade)),
+      Self::Custom(color) => Some(color),
+    }
+  }
+}
+
+impl<'de> Deserialize<'de> for BorderColor {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum BorderColorDe {
+      String(String),
+      Color(Color),
+    }
+
+    match BorderColorDe::deserialize(deserializer)? {
+      BorderColorDe::String(str) => str
+        .parse::<AccentShade>()
+        .map(Self::Accent)
+        .or_else(|_| str.parse::<Color>().map(Self::Custom))
+        .map_err(|_| {
+          serde::de::Error::custom(format!(
+            "Invalid border color '{str}': must be of format '#RRGGBB', \
+             '#RRGGBBAA', or an accent shade ('accent', 'accent_light1' \
+             to 'accent_light3', 'accent_dark1' to 'accent_dark3')."
+          ))
+        }),
+      BorderColorDe::Color(color) => Ok(Self::Custom(color)),
+    }
+  }
+}
+
+impl Serialize for BorderColor {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    match self {
+      Self::Accent(shade) => serializer.serialize_str(shade.as_str()),
+      Self::Custom(color) => color.serialize(serializer),
     }
   }
 }
@@ -470,5 +552,96 @@ where
   #[cfg(not(target_os = "macos"))]
   {
     Ok(method)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn parse_color(yaml: &str) -> serde_yaml::Result<BorderColor> {
+    serde_yaml::from_str(yaml)
+  }
+
+  #[test]
+  fn border_color_deserializes() {
+    assert_eq!(
+      parse_color("accent").unwrap(),
+      BorderColor::Accent(AccentShade::Accent)
+    );
+    assert_eq!(
+      parse_color("accent_light3").unwrap(),
+      BorderColor::Accent(AccentShade::AccentLight3)
+    );
+    assert_eq!(
+      parse_color("'#8dbcff'").unwrap(),
+      BorderColor::Custom(Color {
+        r: 0x8d,
+        g: 0xbc,
+        b: 0xff,
+        a: 255
+      })
+    );
+    assert_eq!(
+      parse_color("{ r: 1, g: 2, b: 3, a: 4 }").unwrap(),
+      BorderColor::Custom(Color {
+        r: 1,
+        g: 2,
+        b: 3,
+        a: 4
+      })
+    );
+    assert!(parse_color("Accent").is_err());
+    assert!(parse_color("accent_dark4").is_err());
+  }
+
+  #[test]
+  fn border_color_round_trips() {
+    for color in [
+      BorderColor::Accent(AccentShade::AccentDark2),
+      BorderColor::Custom(Color {
+        r: 1,
+        g: 2,
+        b: 3,
+        a: 4,
+      }),
+    ] {
+      let json = serde_json::to_string(&color).unwrap();
+      assert_eq!(
+        serde_json::from_str::<BorderColor>(&json).unwrap(),
+        color
+      );
+    }
+
+    assert_eq!(
+      serde_json::to_string(&BorderColor::Accent(AccentShade::Accent))
+        .unwrap(),
+      r#""accent""#
+    );
+  }
+
+  #[test]
+  fn border_color_resolves() {
+    let palette =
+      AccentPalette::from_registry_bytes(&(0u8..32).collect::<Vec<_>>())
+        .unwrap();
+    let accent = BorderColor::Accent(AccentShade::AccentDark1);
+
+    assert_eq!(
+      accent.resolve(Some(&palette)),
+      Some(&palette.accent_dark1)
+    );
+    assert_eq!(accent.resolve(None), None);
+  }
+
+  #[test]
+  fn detects_accent_border() {
+    let mut effects = WindowEffectsConfig::default();
+    effects.other_windows.border.color =
+      BorderColor::Accent(AccentShade::Accent);
+    assert!(!effects.has_accent_border());
+
+    effects.other_windows.border.enabled = true;
+    assert!(effects.has_accent_border());
   }
 }

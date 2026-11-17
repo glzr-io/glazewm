@@ -36,11 +36,11 @@ use crate::{
     },
   },
   events::{
-    handle_display_settings_changed, handle_mouse_move,
-    handle_window_destroyed, handle_window_focused, handle_window_hidden,
-    handle_window_minimize_ended, handle_window_minimized,
-    handle_window_moved_or_resized, handle_window_shown,
-    handle_window_title_changed,
+    handle_accent_palette_changed, handle_display_settings_changed,
+    handle_mouse_move, handle_window_destroyed, handle_window_focused,
+    handle_window_hidden, handle_window_minimize_ended,
+    handle_window_minimized, handle_window_moved_or_resized,
+    handle_window_shown, handle_window_title_changed,
   },
   ipc_server::IpcServer,
   models::{Container, WorkspaceTarget},
@@ -81,6 +81,9 @@ impl WindowManager {
     let state = &mut self.state;
 
     match event {
+      PlatformEvent::AccentPaletteChanged(accent_palette) => {
+        handle_accent_palette_changed(accent_palette, state, config)
+      }
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
       }

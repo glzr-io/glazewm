@@ -12,11 +12,11 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tracing::{info, warn};
 use uuid::Uuid;
 use wm_common::{
-  AppCommand, AppMetadataData, BindingModesData, ClientResponseData,
-  ClientResponseMessage, CommandData, EventSubscribeData,
-  EventSubscriptionMessage, FocusedData, MonitorsData, QueryCommand,
-  ServerMessage, SubscribableEvent, TilingDirectionData, WindowsData,
-  WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
+  AccentPaletteData, AppCommand, AppMetadataData, BindingModesData,
+  ClientResponseData, ClientResponseMessage, CommandData,
+  EventSubscribeData, EventSubscriptionMessage, FocusedData, MonitorsData,
+  QueryCommand, ServerMessage, SubscribableEvent, TilingDirectionData,
+  WindowsData, WmEvent, WorkspacesData, DEFAULT_IPC_PORT,
 };
 
 use crate::{
@@ -242,6 +242,15 @@ impl IpcServer {
         QueryCommand::Paused => {
           ClientResponseData::Paused(wm.state.is_paused)
         }
+        QueryCommand::AccentPalette => {
+          ClientResponseData::AccentPalette(AccentPaletteData {
+            accent_palette: wm
+              .state
+              .accent_palette
+              .clone()
+              .context("Accent palette is unavailable.")?,
+          })
+        }
       },
       AppCommand::Command {
         subject_container_id,
@@ -356,6 +365,9 @@ impl IpcServer {
 
   pub fn process_event(&mut self, event: WmEvent) -> anyhow::Result<()> {
     let event_type = match event {
+      WmEvent::AccentPaletteChanged { .. } => {
+        SubscribableEvent::AccentPaletteChanged
+      }
       WmEvent::ApplicationExiting => SubscribableEvent::ApplicationExiting,
       WmEvent::BindingModesChanged { .. } => {
         SubscribableEvent::BindingModesChanged

@@ -113,6 +113,8 @@ impl Verbosity {
 
 #[derive(Clone, Debug, Parser)]
 pub enum QueryCommand {
+  /// Outputs the shades of the system accent color (Windows only).
+  AccentPalette,
   /// Outputs metadata about the application (e.g. version number).
   AppMetadata,
   /// Outputs the active binding modes.
@@ -136,6 +138,7 @@ pub enum QueryCommand {
 #[clap(rename_all = "snake_case")]
 pub enum SubscribableEvent {
   All,
+  AccentPaletteChanged,
   ApplicationExiting,
   BindingModesChanged,
   FocusChanged,

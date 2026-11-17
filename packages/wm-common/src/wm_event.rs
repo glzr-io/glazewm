@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use wm_platform::AccentPalette;
 
 use crate::{
   dtos::ContainerDto,
@@ -14,6 +15,9 @@ use crate::{
   rename_all_fields = "camelCase"
 )]
 pub enum WmEvent {
+  AccentPaletteChanged {
+    accent_palette: AccentPalette,
+  },
   ApplicationExiting,
   BindingModesChanged {
     new_binding_modes: Vec<BindingModeConfig>,

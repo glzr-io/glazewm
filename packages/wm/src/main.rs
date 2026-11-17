@@ -24,9 +24,9 @@ use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
-  Dispatcher, DisplayListener, EventLoop, KeybindingListener,
-  MouseEventKind, MouseListener, PlatformEvent, SingleInstance,
-  WindowListener,
+  AccentPaletteListener, Dispatcher, DisplayListener, EventLoop,
+  KeybindingListener, MouseEventKind, MouseListener, PlatformEvent,
+  SingleInstance, WindowListener,
 };
 
 use crate::{
@@ -153,6 +153,8 @@ async fn start_wm(
   // Start listening for platform events after populating initial state.
   let mut window_listener = WindowListener::new(dispatcher)?;
   let mut display_listener = DisplayListener::new(dispatcher)?;
+  let mut accent_palette_listener =
+    AccentPaletteListener::new(dispatcher)?;
   let mut mouse_listener = MouseListener::new(
     if config.value.general.focus_follows_cursor {
       &[MouseEventKind::Move, MouseEventKind::LeftButtonUp]
@@ -209,6 +211,10 @@ async fn start_wm(
       Some(()) = display_listener.next_event() => {
         tracing::debug!("Received display settings changed event.");
         wm.process_event(PlatformEvent::DisplaySettingsChanged, &mut config)
+      },
+      Some(palette) = accent_palette_listener.next_event() => {
+        tracing::debug!("Received accent palette changed event.");
+        wm.process_event(PlatformEvent::AccentPaletteChanged(palette), &mut config)
       },
       Some(event) = keybinding_listener.next_event() => {
         tracing::debug!("Received keyboard event: {:?}", event);

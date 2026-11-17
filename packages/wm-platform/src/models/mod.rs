@@ -1,3 +1,4 @@
+mod accent_palette;
 mod color;
 mod corner_style;
 mod delta;
@@ -10,6 +11,7 @@ mod point;
 mod rect;
 mod rect_delta;
 
+pub use accent_palette::*;
 pub use color::*;
 pub use corner_style::*;
 pub use delta::*;

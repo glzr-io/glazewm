@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use wm_platform::AccentPalette;
 
 use crate::{BindingModeConfig, ContainerDto, TilingDirection, WmEvent};
 
@@ -24,6 +25,7 @@ pub struct ClientResponseMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
+  AccentPalette(AccentPaletteData),
   AppMetadata(AppMetadataData),
   BindingModes(BindingModesData),
   Command(CommandData),
@@ -35,6 +37,12 @@ pub enum ClientResponseData {
   Windows(WindowsData),
   Workspaces(WorkspacesData),
   Paused(bool),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccentPaletteData {
+  pub accent_palette: AccentPalette,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
