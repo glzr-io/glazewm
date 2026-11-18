@@ -110,6 +110,10 @@ fn contain_native_frame(
   }
 }
 
+/// Recovers tile size drift once per request and contains the result.
+///
+/// Returns the contained frame and whether the immediate recovery was
+/// ignored, in which case the caller should retry after a delay.
 fn reconcile_native_tiling_frame(
   requested: &Rect,
   bounds: &Rect,
@@ -118,9 +122,10 @@ fn reconcile_native_tiling_frame(
   mut read: impl FnMut() -> crate::Result<Rect>,
   resize: impl FnOnce() -> crate::Result<()>,
   move_to: impl FnOnce(&Rect) -> crate::Result<()>,
-) -> crate::Result<Rect> {
+) -> crate::Result<(Rect, bool)> {
   let frame = read()?;
   let request = (revision, requested.width(), requested.height());
+  let mut retry_later = false;
   if frame.width() == requested.width()
     && frame.height() == requested.height()
   {
@@ -131,8 +136,15 @@ fn reconcile_native_tiling_frame(
     if let Err(error) = resize() {
       tracing::warn!("Failed to recover macOS tile size: {error}");
     }
+    // Apps such as Teams ignore writes right after a restore but accept a
+    // delayed one, as cross-monitor moves already rely on.
+    let recovered = read()?;
+    retry_later = recovered.width() != requested.width()
+      || recovered.height() != requested.height();
   }
-  contain_native_frame(bounds, Some(requested), read, move_to)
+  let frame =
+    contain_native_frame(bounds, Some(requested), read, move_to)?;
+  Ok((frame, retry_later))
 }
 
 /// Some apps reject `AXSize` with an error rather than accepting a clamped
@@ -354,21 +366,24 @@ impl NativeWindow {
     let result =
       self.set_frame_at_revision(&rect, revision, retry, Some(bounds));
     if retry {
-      let native = self.clone();
-      let bounds = bounds.clone();
-      tokio::task::spawn(async move {
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        if let Err(error) = native.set_frame_at_revision(
-          &rect,
-          revision,
-          true,
-          Some(&bounds),
-        ) {
-          tracing::warn!("Failed to retry macOS window frame: {error}");
-        }
-      });
+      self.retry_frame_later(&rect, revision, bounds);
     }
     result
+  }
+
+  /// Re-applies a frame after 100ms unless a newer request replaced it.
+  fn retry_frame_later(&self, rect: &Rect, revision: u64, bounds: &Rect) {
+    let native = self.clone();
+    let rect = rect.clone();
+    let bounds = bounds.clone();
+    tokio::task::spawn(async move {
+      tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+      if let Err(error) =
+        native.set_frame_at_revision(&rect, revision, true, Some(&bounds))
+      {
+        tracing::warn!("Failed to retry macOS window frame: {error}");
+      }
+    });
   }
 
   pub(crate) fn is_programmatic_frame(&self, frame: &Rect) -> bool {
@@ -400,7 +415,7 @@ impl NativeWindow {
     bounds: &Rect,
   ) -> crate::Result<Rect> {
     let revision = self.frame_revision.load(Ordering::SeqCst);
-    reconcile_native_tiling_frame(
+    let (frame, retry_later) = reconcile_native_tiling_frame(
       requested,
       bounds,
       revision,
@@ -410,7 +425,11 @@ impl NativeWindow {
         self.set_frame_at_revision(requested, revision, true, Some(bounds))
       },
       |frame| self.reconcile_frame(Some(frame), bounds).map(|_| ()),
-    )
+    )?;
+    if retry_later {
+      self.retry_frame_later(requested, revision, bounds);
+    }
+    Ok(frame)
   }
 
   fn reconcile_frame(
@@ -962,10 +981,11 @@ mod frame_tests {
 
   #[test]
   fn tiled_size_drift_recovers_without_leaving_a_gap() {
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
+    let retry_later = Cell::new(0);
     let requested = Rect::from_xy(2718, 45, 1696, 1390);
     let native = RefCell::new(Rect::from_xy(2718, 45, 1512, 1390));
-    let actual = reconcile_native_tiling_frame(
+    let (actual, retry) = reconcile_native_tiling_frame(
       &requested,
       &Rect::from_xy(1728, 0, 3440, 1440),
       1,
@@ -981,12 +1001,15 @@ mod frame_tests {
       },
     )
     .unwrap();
+    retry_later.set(retry_later.get() + u32::from(retry));
     assert_eq!(actual, Rect::from_xy(2718, 45, 1696, 1390));
+    assert_eq!(retry_later.get(), 0);
   }
 
   #[test]
   fn slack_huddle_and_main_window_recover_without_a_desktop_strip() {
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
+    let retry_later = Cell::new(0);
     let bounds = Rect::from_xy(0, 32, 1728, 1085);
     let mut frames = Vec::new();
     for (requested, observed, accepted_size) in [
@@ -1002,7 +1025,7 @@ mod frame_tests {
       ),
     ] {
       let native = RefCell::new(observed);
-      let actual = reconcile_native_tiling_frame(
+      let (actual, retry) = reconcile_native_tiling_frame(
         &requested,
         &bounds,
         1,
@@ -1023,11 +1046,15 @@ mod frame_tests {
         },
       )
       .unwrap();
+      retry_later.set(retry_later.get() + u32::from(retry));
       assert!(bounds.contains_rect(&actual));
       frames.push(actual);
     }
     assert_eq!(frames[0], Rect::from_xy(785, 45, 668, 1067));
     assert_eq!(frames[1], Rect::from_xy(1273, 45, 455, 1067));
+    // Only the huddle still differs from its tile after the immediate
+    // retry.
+    assert_eq!(retry_later.get(), 1);
   }
 
   #[test]
@@ -1037,9 +1064,10 @@ mod frame_tests {
     let bounds = Rect::from_xy(5, 45, 1718, 1067);
     let native = RefCell::new(Rect::from_xy(1400, 45, 700, 1067));
     let attempts = Cell::new(0);
+    let retry_later = Cell::new(0);
     let mut recovery = None;
     for revision in [1, 1, 1, 2, 2] {
-      let actual = reconcile_native_tiling_frame(
+      let (actual, retry) = reconcile_native_tiling_frame(
         &requested,
         &bounds,
         revision,
@@ -1056,9 +1084,11 @@ mod frame_tests {
         },
       )
       .unwrap();
+      retry_later.set(retry_later.get() + u32::from(retry));
       assert_eq!(actual, Rect::from_xy(1023, 45, 700, 1067));
     }
     assert_eq!(attempts.get(), 2);
+    assert_eq!(retry_later.get(), 2);
   }
 
   #[test]
@@ -1067,10 +1097,11 @@ mod frame_tests {
     let requested = Rect::from_xy(10, 45, 800, 900);
     let native = RefCell::new(requested.clone());
     let attempts = Cell::new(0);
+    let retry_later = Cell::new(0);
     let mut recovery = Some((1, 800, 900));
     for height in [900, 700, 900, 1100] {
       *native.borrow_mut() = Rect::from_xy(10, 45, 800, height);
-      let actual = reconcile_native_tiling_frame(
+      let (actual, retry) = reconcile_native_tiling_frame(
         &requested,
         &Rect::from_xy(0, 0, 1728, 1117),
         1,
@@ -1087,9 +1118,42 @@ mod frame_tests {
         },
       )
       .unwrap();
+      retry_later.set(retry_later.get() + u32::from(retry));
       assert_eq!(actual, Rect::from_xy(10, 45, 800, 900));
     }
     assert_eq!(attempts.get(), 2);
+    assert_eq!(retry_later.get(), 0);
+  }
+
+  #[test]
+  fn teams_ignoring_immediate_resize_schedules_one_delayed_retry() {
+    use std::cell::{Cell, RefCell};
+    // Values observed on Teams after a restore: tile shrank to 2510px but
+    // the native window stayed 2852px wide.
+    let requested = Rect::from_xy(1733, 45, 2510, 1390);
+    let bounds = Rect::from_xy(1728, 0, 3440, 1440);
+    let native = RefCell::new(Rect::from_xy(1733, 45, 2852, 1390));
+    let retry_later = Cell::new(0);
+    let mut recovery = None;
+    for _ in 0..3 {
+      let (_, retry) = reconcile_native_tiling_frame(
+        &requested,
+        &bounds,
+        7,
+        &mut recovery,
+        || Ok(native.borrow().clone()),
+        // Model the app silently ignoring the immediate AXSize write.
+        || Ok(()),
+        |frame| {
+          *native.borrow_mut() = frame.clone();
+          Ok(())
+        },
+      )
+      .unwrap();
+      retry_later.set(retry_later.get() + u32::from(retry));
+    }
+    // Repeated AX events for the same request must not reschedule.
+    assert_eq!(retry_later.get(), 1);
   }
 
   #[test]
