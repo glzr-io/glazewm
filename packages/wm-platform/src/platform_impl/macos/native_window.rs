@@ -373,16 +373,18 @@ impl NativeWindow {
 
   /// Re-applies a frame after 100ms unless a newer request replaced it.
   ///
-  /// Skipped while the left mouse button is down, since the write would
-  /// interrupt a live resize the user just started.
+  /// Waits for the left mouse button to be released, since the write
+  /// would interrupt a live resize the user just started.
   fn retry_frame_later(&self, rect: &Rect, revision: u64, bounds: &Rect) {
     let native = self.clone();
     let rect = rect.clone();
     let bounds = bounds.clone();
     tokio::task::spawn(async move {
       tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-      if NSEvent::pressedMouseButtons() & 1 != 0 {
-        return;
+      // A newer request or drag bumps the revision, which still cancels
+      // this write once the button is released.
+      while NSEvent::pressedMouseButtons() & 1 != 0 {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
       }
       if let Err(error) =
         native.set_frame_at_revision(&rect, revision, true, Some(&bounds))
