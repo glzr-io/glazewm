@@ -49,11 +49,15 @@ pub fn handle_window_moved_or_resized(
     let is_programmatic =
       window.native().is_programmatic_frame(&frame_position);
 
+    // A live resize first reports the unchanged frame, which matches our
+    // last write. Mouse state, not the frame, identifies user geometry.
+    #[cfg(target_os = "macos")]
+    let is_left_mouse_down =
+      state.dispatcher.is_mouse_down(&MouseButton::Left);
+
     #[cfg(target_os = "macos")]
     {
-      if !is_programmatic
-        && state.dispatcher.is_mouse_down(&MouseButton::Left)
-      {
+      if is_left_mouse_down {
         window.native().cancel_pending_frame_retry();
       }
     }
@@ -113,8 +117,7 @@ pub fn handle_window_moved_or_resized(
         window.display_state(),
         DisplayState::Shown | DisplayState::Showing
       )
-      && (is_programmatic
-        || !state.dispatcher.is_mouse_down(&MouseButton::Left))
+      && !is_left_mouse_down
     {
       let bounds = window
         .monitor()
