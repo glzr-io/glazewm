@@ -5,14 +5,14 @@ use wm_common::{
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
+use wm_platform::{LengthValue, NativeWindow, Rect};
 #[cfg(target_os = "macos")]
-use wm_platform::{LengthValue, MouseButton, RectDelta};
-use wm_platform::{NativeWindow, Rect};
+use wm_platform::{MouseButton, RectDelta};
 
 use crate::{
   commands::{
     container::{flatten_split_container, move_container_within_tree},
-    window::update_window_state,
+    window::{set_window_size, update_window_state},
   },
   events::handle_window_moved_or_resized_end,
   models::{Monitor, NonTilingWindow, WindowContainer},
@@ -441,6 +441,16 @@ fn update_drag_state(
 
     is_move
   };
+
+  // Resize tiling siblings live instead of only on release.
+  if !is_move && window.state() == WindowState::Tiling {
+    set_window_size(
+      window.clone(),
+      Some(LengthValue::from_px(frame_position.width())),
+      Some(LengthValue::from_px(frame_position.height())),
+      state,
+    )?;
+  }
 
   // Transition window to be floating while it's being dragged, but only
   // after it has been moved at least 10px from its initial position. The
