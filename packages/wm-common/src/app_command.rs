@@ -22,7 +22,7 @@ pub enum AppCommand {
     config_path: Option<PathBuf>,
 
     #[clap(flatten)]
-    verbosity: Verbosity,
+    logging: LoggingConfig,
   },
 
   /// Retrieves and outputs a specific part of the window manager's state.
@@ -75,9 +75,12 @@ impl AppCommand {
     if args.len() == 1 {
       AppCommand::Start {
         config_path: None,
-        verbosity: Verbosity {
-          verbose: false,
-          quiet: false,
+        logging: LoggingConfig {
+          verbosity: Verbosity {
+            verbose: false,
+            quiet: false,
+          },
+          log_dir: None,
         },
       }
     } else {
@@ -109,6 +112,20 @@ impl Verbosity {
       _ => Level::INFO,
     }
   }
+}
+
+#[derive(Args, Clone, Debug)]
+#[clap(about = "Logging configuration", long_about = None)]
+pub struct LoggingConfig {
+  #[clap(flatten)]
+  pub verbosity: Verbosity,
+
+  /// Directory to save log files to.
+  /// Errors will be saved to `<log_dir>/errors.log`.
+  ///
+  /// The default path is `%userprofile%/.glzr/glazewm`
+  #[clap(long, value_hint = clap::ValueHint::DirPath)]
+  pub log_dir: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Parser)]

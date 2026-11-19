@@ -20,7 +20,7 @@ use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
 };
-use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
+use wm_common::{AppCommand, InvokeCommand, LoggingConfig, WmEvent};
 #[cfg(target_os = "macos")]
 use wm_platform::DispatcherExtMacOs;
 use wm_platform::{
@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<()> {
 
   if let AppCommand::Start {
     config_path,
-    verbosity,
+    logging,
   } = app_command
   {
     let rt = tokio::runtime::Runtime::new()?;
@@ -66,8 +66,7 @@ fn main() -> anyhow::Result<()> {
 
     let task_handle = std::thread::spawn(move || {
       rt.block_on(async {
-        let start_res =
-          start_wm(config_path, verbosity, &dispatcher).await;
+        let start_res = start_wm(config_path, logging, &dispatcher).await;
 
         if let Err(err) = &start_res {
           // If unable to start the WM, the error is fatal and a message
@@ -102,10 +101,10 @@ fn main() -> anyhow::Result<()> {
 #[allow(clippy::too_many_lines)]
 async fn start_wm(
   config_path: Option<PathBuf>,
-  verbosity: Verbosity,
+  logging: LoggingConfig,
   dispatcher: &Dispatcher,
 ) -> anyhow::Result<()> {
-  setup_logging(&verbosity)?;
+  setup_logging(logging)?;
 
   // Ensure that only one instance of the WM is running.
   let _single_instance = SingleInstance::new()?;
@@ -301,19 +300,25 @@ async fn start_wm(
 /// Initialize logging with the specified verbosity level.
 ///
 /// Error logs are saved to `~/.glzr/glazewm/errors.log`.
-fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
-  let error_log_dir = home::home_dir()
+fn setup_logging(logging: LoggingConfig) -> anyhow::Result<()> {
+  let default_log_dir = home::home_dir()
     .context("Unable to get home directory.")?
     .join(".glzr/glazewm/");
 
+  let error_log_dir = logging
+    .log_dir
+    .or_else(|| env::var("GLAZEWM_LOG_DIR").ok().map(PathBuf::from))
+    .unwrap_or(default_log_dir);
+
   let error_writer =
-    tracing_appender::rolling::never(error_log_dir, "errors.log");
+    tracing_appender::rolling::never(&error_log_dir, "errors.log");
 
   let subscriber = tracing_subscriber::registry()
     .with(
       // Output to stdout with specified verbosity level.
-      fmt::Layer::new()
-        .with_writer(std::io::stdout.with_max_level(verbosity.level())),
+      fmt::Layer::new().with_writer(
+        std::io::stdout.with_max_level(logging.verbosity.level()),
+      ),
     )
     .with(
       // Output to error log file.
@@ -324,8 +329,9 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
   tracing::subscriber::set_global_default(subscriber)?;
 
   tracing::info!(
-    "Starting WM with log level {:?}.",
-    verbosity.level().to_string()
+    "Starting WM with log level {:?} with log directory {:?}.",
+    logging.verbosity.level().to_string(),
+    error_log_dir.display()
   );
 
   Ok(())
