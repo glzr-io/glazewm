@@ -5,9 +5,9 @@ use wm_common::{
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
+use wm_platform::{LengthValue, NativeWindow, Rect};
 #[cfg(target_os = "macos")]
 use wm_platform::{MouseButton, RectDelta};
-use wm_platform::{LengthValue, NativeWindow, Rect};
 
 use crate::{
   commands::{
