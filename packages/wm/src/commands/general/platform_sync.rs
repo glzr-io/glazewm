@@ -2,8 +2,8 @@ use anyhow::Context;
 #[cfg(target_os = "windows")]
 use wm_common::WindowEffectConfig;
 use wm_common::{
-  CursorJumpTrigger, DisplayState, HideCorner, HideMethod, UniqueExt,
-  WindowState, WmEvent,
+  ActiveDragOperation, CursorJumpTrigger, DisplayState, HideCorner,
+  HideMethod, UniqueExt, WindowState, WmEvent,
 };
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
@@ -175,7 +175,16 @@ fn redraw_containers(
   state: &mut WmState,
   config: &UserConfig,
 ) -> anyhow::Result<()> {
-  let windows_to_redraw = state.windows_to_redraw();
+  // Setting the frame of a window under a live resize fights the user.
+  let windows_to_redraw = state
+    .windows_to_redraw()
+    .into_iter()
+    .filter(|window| {
+      !window.active_drag().is_some_and(|drag| {
+        drag.operation == Some(ActiveDragOperation::Resize)
+      })
+    })
+    .collect::<Vec<_>>();
   let windows_to_bring_to_front =
     windows_to_bring_to_front(focused_container, state)?;
 
