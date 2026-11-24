@@ -22,6 +22,8 @@ GlazeWM lets you easily organize windows and adjust their layout on the fly by u
 [FAQ](#faq) •
 [Contributing ↗](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md)
 
+[简体中文](README_zh.md)
+
 ![Demo video][demo-video]
 
 </div>
