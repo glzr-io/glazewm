@@ -139,14 +139,14 @@ impl SystemTray {
   ) -> anyhow::Result<TrayIcon> {
     let reload_config_item = MenuItem::with_id(
       TrayMenuId::ReloadConfig,
-      "Reload config",
+      "重新加载配置",
       true,
       None,
     );
 
     let config_dir_item = MenuItem::with_id(
       TrayMenuId::ShowConfigFolder,
-      "Show config folder",
+      "打开配置文件夹",
       true,
       None,
     );
@@ -154,7 +154,7 @@ impl SystemTray {
     #[cfg(target_os = "windows")]
     let toggle_animations_item = CheckMenuItem::with_id(
       TrayMenuId::ToggleWindowAnimations,
-      "Window animations",
+      "窗口动画",
       true,
       animations_enabled,
       None,
@@ -162,14 +162,14 @@ impl SystemTray {
 
     let run_on_startup_item = CheckMenuItem::with_id(
       TrayMenuId::RunOnStartup,
-      "Run on system startup",
+      "开机时启动",
       true,
       run_on_startup_enabled,
       None,
     );
 
     let exit_item =
-      MenuItem::with_id(TrayMenuId::Exit, "Exit", true, None);
+      MenuItem::with_id(TrayMenuId::Exit, "退出", true, None);
 
     let tray_menu = Menu::new();
     tray_menu.append_items(&[

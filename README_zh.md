@@ -20,7 +20,7 @@ GlazeWM 让您可以通过键盘驱动的命令轻松组织窗口并即时调整
 [默认快捷键](#默认快捷键) •
 [配置文档](#配置文档) •
 [常见问题](#常见问题) •
-[贡献 ↗](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md)
+[贡献 ↗](CONTRIBUTING_zh.md)
 
 ![Demo video][demo-video]
 
@@ -63,7 +63,7 @@ scoop install extras/glazewm
 
 帮助修复困扰您的问题，或添加您一直想要的功能！我们非常欢迎贡献。
 
-本地开发和指南可在 [贡献指南](https://github.com/glzr-io/glazewm/blob/main/CONTRIBUTING.md) 中找到。
+本地开发和指南可在 [贡献指南](CONTRIBUTING_zh.md) 中找到。
 
 ## 默认快捷键
 

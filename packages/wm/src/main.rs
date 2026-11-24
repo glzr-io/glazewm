@@ -73,7 +73,7 @@ fn main() -> anyhow::Result<()> {
           // If unable to start the WM, the error is fatal and a message
           // dialog is shown.
           tracing::error!("{:?}", err);
-          dispatcher.show_error_dialog("Fatal error", &err.to_string());
+          dispatcher.show_error_dialog("致命错误", &err.to_string());
         }
 
         if let Err(err) = dispatcher.stop_event_loop() {
@@ -176,7 +176,7 @@ async fn start_wm(
     &mut config,
   ) {
     tracing::error!("{:?}", err);
-    dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
+    dispatcher.show_error_dialog("非致命错误", &err.to_string());
   }
 
   // Create an interval for periodically cleaning up invalid windows.
@@ -288,7 +288,7 @@ async fn start_wm(
 
     if let Err(err) = res {
       tracing::error!("{:?}", err);
-      dispatcher.show_error_dialog("Non-fatal error", &err.to_string());
+      dispatcher.show_error_dialog("非致命错误", &err.to_string());
     }
   }
 

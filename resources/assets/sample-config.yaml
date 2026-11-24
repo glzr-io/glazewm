@@ -1,53 +1,53 @@
 general:
-  # Commands to run when the WM has started. This is useful for running a
-  # script or launching another application.
-  # Example: The below command launches Zebar.
+  # 窗口管理器启动后执行的命令，可用于运行
+  # 脚本或启动其他应用程序。
+  # 例如，下方命令用于启动 Zebar。
   startup_commands: ['shell-exec zebar']
 
-  # Commands to run just before the WM is shutdown.
-  # Example: The below command kills Zebar.
+  # 窗口管理器退出前执行的命令。
+  # 例如，下方命令用于结束 Zebar 进程。
   shutdown_commands: ['shell-exec taskkill /IM zebar.exe /F']
 
-  # Commands to run after the WM config is reloaded.
+  # 重新加载窗口管理器配置后执行的命令。
   config_reload_commands: []
 
-  # Whether to automatically focus windows underneath the cursor.
+  # 鼠标指针移到窗口上时，是否自动将焦点移到该窗口。
   focus_follows_cursor: false
 
-  # Whether to switch back and forth between the previously focused
-  # workspace when focusing the current workspace.
+  # 再次聚焦当前工作区时，是否
+  # 切回上一次聚焦的工作区。
   toggle_workspace_on_refocus: false
 
   cursor_jump:
-    # Whether to automatically move the cursor on the specified trigger.
+    # 触发指定事件时，是否自动移动鼠标指针。
     enabled: true
 
-    # Trigger for cursor jump:
-    # - 'monitor_focus': Jump when focus changes between monitors.
-    # - 'window_focus': Jump when focus changes between windows.
+    # 鼠标指针跳转的触发条件：
+    # - 'monitor_focus'：焦点切换到另一台显示器时跳转。
+    # - 'window_focus'：焦点切换到另一个窗口时跳转。
     trigger: 'monitor_focus'
 
-  # How windows should be hidden when switching workspaces.
-  # - 'cloak': (Windows-only) Recommended option for Windows.
-  # - 'hide': (Windows-only) Legacy option for Windows. Has stability issues with some apps.
-  # - 'place_in_corner': Artifically hides the window by placing it in the corner of the
-  #   monitor. On macOS, this is always used instead of cloak/hide.
+  # 切换工作区时隐藏窗口的方式。
+  # - 'cloak'：仅限 Windows，推荐使用。
+  # - 'hide'：仅限 Windows，旧方式，部分应用可能出现稳定性问题。
+  # - 'place_in_corner'：将窗口移至显示器角落以隐藏窗口。
+  #   macOS 始终使用此方式。
   hide_method: 'cloak'
 
-  # Affects which windows get shown in the native Windows taskbar. Has no
-  # effect if `hide_method: 'hide'`.
-  # - 'true': Show all windows (regardless of workspace).
-  # - 'false': Only show windows from the currently shown workspaces.
+  # 控制哪些窗口会显示在 Windows 原生任务栏上。
+  # 当 hide_method 为 'hide' 时，此设置无效。
+  # - 'true'：显示所有窗口，包括其他工作区的窗口。
+  # - 'false'：仅显示当前可见工作区中的窗口。
   show_all_in_taskbar: false
 
 gaps:
-  # Whether to scale the gaps with the DPI of the monitor.
+  # 是否根据显示器的 DPI 缩放间隙。
   scale_with_dpi: true
 
-  # Gap between adjacent windows.
+  # 相邻窗口之间的间隙。
   inner_gap: '20px'
 
-  # Gap between windows and the screen edge.
+  # 窗口与屏幕边缘之间的间隙。
   outer_gap:
     top: '60px'
     right: '20px'
@@ -55,34 +55,34 @@ gaps:
     left: '20px'
 
 window_effects:
-  # Visual effects to apply to the focused window.
+  # 应用于当前获得焦点的窗口的视觉效果。
   focused_window:
-    # Highlight the window with a colored border.
-    # ** Exclusive to Windows 11 due to API limitations.
+    # 用彩色边框突出显示窗口。
+    # 由于 API 限制，仅支持 Windows 11。
     border:
       enabled: true
       color: '#8dbcff'
 
-    # Remove the title bar from the window's frame. Note that this can
-    # cause rendering issues for some applications.
+    # 移除窗口边框上的标题栏。
+    # 部分应用可能因此出现显示问题。
     hide_title_bar:
       enabled: false
 
-    # Change the corner style of the window's frame.
-    # ** Exclusive to Windows 11 due to API limitations.
+    # 更改窗口边框的边角样式。
+    # 由于 API 限制，仅支持 Windows 11。
     corner_style:
       enabled: false
-      # Allowed values: 'square', 'rounded', 'small_rounded'.
+      # 可选值为 'square'、'rounded' 和 'small_rounded'。
       style: 'square'
 
-    # Change the transparency of the window.
+    # 更改窗口的透明度。
     transparency:
       enabled: false
-      # Can be something like '95%' or '0.95' for slightly transparent windows.
-      # '0' or '0%' is fully transparent (and, by consequence, unfocusable).
+      # 可使用 '95%' 或 '0.95' 使窗口略微透明。
+      # '0' 或 '0%' 表示完全透明，窗口因此无法获得焦点。
       opacity: '95%'
 
-  # Visual effects to apply to non-focused windows.
+  # 应用于未获得焦点的窗口的视觉效果。
   other_windows:
     border:
       enabled: true
@@ -97,27 +97,27 @@ window_effects:
       opacity: '0%'
 
 window_behavior:
-  # New windows are created in this state whenever possible.
-  # Allowed values: 'tiling', 'floating'.
+  # 新窗口会尽可能以此状态创建。
+  # 可选值为 'tiling' 和 'floating'。
   initial_state: 'tiling'
 
-  # Sets the default options for when a new window is created. This also
-  # changes the defaults for when the state change commands, like
-  # `set-floating`, are used without any flags.
+  # 设置新窗口的默认选项。这些选项也会应用于
+  # 未指定任何参数的窗口状态切换命令，
+  # 例如 set-floating。
   state_defaults:
     floating:
-      # Whether to center floating windows by default.
+      # 浮动窗口默认是否居中。
       centered: true
 
-      # Whether to show floating windows as always on top.
+      # 浮动窗口是否始终置顶。
       shown_on_top: false
 
     fullscreen:
-      # Maximize the window if possible. If the window doesn't have a
-      # maximize button, then it'll be fullscreen'ed normally instead.
+      # 如果可以，则最大化窗口。如果窗口没有
+      # 最大化按钮，则以常规方式进入全屏。
       maximized: false
 
-      # Whether to show fullscreen windows as always on top.
+      # 全屏窗口是否始终置顶。
       shown_on_top: false
 
 workspaces:
@@ -134,14 +134,14 @@ workspaces:
 window_rules:
   - commands: ['ignore']
     match:
-      # Ignores any Zebar windows.
+      # 忽略所有 Zebar 窗口。
       - window_process: { equals: 'zebar' }
 
-      # Ignores picture-in-picture windows for browsers.
+      # 忽略浏览器的画中画窗口。
       - window_title: { regex: '[Pp]icture.in.[Pp]icture' }
         window_class: { regex: 'Chrome_WidgetWin_1|MozillaDialogClass' }
 
-      # Ignore rules for various 3rd-party apps.
+      # 忽略部分第三方应用程序的窗口。
       - window_process: { equals: 'PowerToys' }
         window_class: { regex: 'HwndWrapper\[PowerToys\.PowerAccent.*?\]' }
       - window_title: { equals: 'Command Palette' }
@@ -159,7 +159,7 @@ window_rules:
       - window_process: { equals: 'CleanShot X' }
 
 binding_modes:
-  # When enabled, the focused window can be resized via arrow keys or HJKL.
+  # 启用后，可用方向键或 HJKL 调整当前窗口的大小。
   - name: 'resize'
     keybindings:
       - commands: ['resize --width -2%']
@@ -170,12 +170,12 @@ binding_modes:
         bindings: ['k', 'up']
       - commands: ['resize --height -2%']
         bindings: ['j', 'down']
-      # Press escape/enter/alt+r to return to default keybindings.
+      # 按 Escape、Enter 或 Alt+R 返回默认快捷键模式。
       - commands: ['wm-disable-binding-mode --name resize']
         bindings: ['escape', 'enter', 'alt+r']
 
 keybindings:
-  # Shift focus in a given direction.
+  # 将焦点移向指定方向。
   - commands: ['focus --direction left']
     bindings: ['alt+h', 'alt+left']
   - commands: ['focus --direction right']
@@ -185,7 +185,7 @@ keybindings:
   - commands: ['focus --direction down']
     bindings: ['alt+j', 'alt+down']
 
-  # Move focused window in a given direction.
+  # 向指定方向移动当前窗口。
   - commands: ['move --direction left']
     bindings: ['alt+shift+h', 'alt+shift+left']
   - commands: ['move --direction right']
@@ -195,7 +195,7 @@ keybindings:
   - commands: ['move --direction down']
     bindings: ['alt+shift+j', 'alt+shift+down']
 
-  # Resize focused window by a percentage or pixel amount.
+  # 按百分比或像素数调整当前窗口的大小。
   - commands: ['resize --width -2%']
     bindings: ['alt+u']
   - commands: ['resize --width +2%']
@@ -205,75 +205,75 @@ keybindings:
   - commands: ['resize --height -2%']
     bindings: ['alt+i']
 
-  # As an alternative to the resize keybindings above, resize mode enables
-  # resizing via arrow keys or HJKL. The binding mode is defined above with
-  # the name 'resize'.
+  # 除了上述调整大小的快捷键，也可以进入调整大小模式，
+  # 使用方向键或 HJKL 调整窗口。该模式已在上方定义，
+  # 名称为 'resize'。
   - commands: ['wm-enable-binding-mode --name resize']
     bindings: ['alt+r']
 
-  # Disables window management and all other keybindings until alt+shift+p
-  # is pressed again.
+  # 暂停窗口管理并禁用其他快捷键，
+  # 直到再次按下 Alt+Shift+P。
   - commands: ['wm-toggle-pause']
     bindings: ['alt+shift+p']
 
-  # Change tiling direction. This determines where new tiling windows will
-  # be inserted.
+  # 更改平铺方向，决定新平铺窗口的
+  # 插入位置。
   - commands: ['toggle-tiling-direction']
     bindings: ['alt+v']
 
-  # Change focus from tiling windows -> floating -> fullscreen.
+  # 在平铺、浮动和全屏窗口之间切换焦点。
   - commands: ['wm-cycle-focus']
     bindings: ['alt+space']
 
-  # Change the focused window to be floating.
+  # 将当前窗口设为浮动。
   - commands: ['toggle-floating --centered']
     bindings: ['alt+shift+space']
 
-  # Change the focused window to be tiling.
+  # 将当前窗口设为平铺。
   - commands: ['toggle-tiling']
     bindings: ['alt+t']
 
-  # Change the focused window to be fullscreen.
+  # 将当前窗口设为全屏。
   - commands: ['toggle-fullscreen']
     bindings: ['alt+f']
 
-  # Minimize focused window.
+  # 最小化当前窗口。
   - commands: ['toggle-minimized']
     bindings: ['alt+m']
 
-  # Close focused window.
+  # 关闭当前窗口。
   - commands: ['close']
     bindings: ['alt+shift+q']
 
-  # Kill GlazeWM process safely.
+  # 安全退出 GlazeWM 进程。
   - commands: ['wm-exit']
     bindings: ['alt+shift+e']
 
-  # Re-evaluate configuration file.
+  # 重新加载配置文件。
   - commands: ['wm-reload-config']
     bindings: ['alt+shift+r']
 
-  # Redraw all windows.
+  # 重绘所有窗口。
   - commands: ['wm-redraw']
     bindings: ['alt+shift+w']
 
-  # Launch CMD terminal. Alternatively, use `shell-exec wt` or
-  # `shell-exec %ProgramFiles%/Git/git-bash.exe` to start Windows
-  # Terminal and Git Bash respectively.
+  # 启动 CMD 终端。也可以用 shell-exec wt 启动
+  # Windows Terminal，或用 shell-exec %ProgramFiles%/Git/git-bash.exe
+  # 启动 Git Bash。
   - commands: ['shell-exec cmd']
     bindings: ['alt+enter']
 
-  # Focus the next/previous active workspace defined in `workspaces` config.
+  # 聚焦 workspaces 中定义的下一个或上一个活动工作区。
   - commands: ['focus --next-active-workspace']
     bindings: ['alt+s']
   - commands: ['focus --prev-active-workspace']
     bindings: ['alt+a']
 
-  # Focus the workspace that last had focus.
+  # 聚焦上一次获得焦点的工作区。
   - commands: ['focus --recent-workspace']
     bindings: ['alt+d']
 
-  # Change focus to a workspace defined in `workspaces` config.
+  # 聚焦 workspaces 中定义的指定工作区。
   - commands: ['focus --workspace 1']
     bindings: ['alt+1']
   - commands: ['focus --workspace 2']
@@ -293,8 +293,8 @@ keybindings:
   - commands: ['focus --workspace 9']
     bindings: ['alt+9']
 
-  # Move the focused window's parent workspace to a monitor in a given
-  # direction.
+  # 将当前窗口所在的工作区移到
+  # 指定方向的显示器上。
   - commands: ['move-workspace --direction left']
     bindings: ['alt+shift+a']
   - commands: ['move-workspace --direction right']
@@ -304,7 +304,7 @@ keybindings:
   - commands: ['move-workspace --direction down']
     bindings: ['alt+shift+s']
 
-  # Move focused window to a workspace defined in `workspaces` config.
+  # 将当前窗口移至 workspaces 中定义的指定工作区。
   - commands: ['move --workspace 1', 'focus --workspace 1']
     bindings: ['alt+shift+1']
   - commands: ['move --workspace 2', 'focus --workspace 2']
