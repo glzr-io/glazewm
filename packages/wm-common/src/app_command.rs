@@ -13,11 +13,11 @@ const VERSION: &str = env!("VERSION_NUMBER");
 #[derive(Clone, Debug, Parser)]
 #[clap(name = "glazewm", author, version = VERSION, about, long_about = None)]
 pub enum AppCommand {
-  /// Starts the window manager.
+  /// 启动窗口管理器。
   Start {
-    /// Custom path to user config file.
+    /// 用户配置文件的自定义路径。
     ///
-    /// The default path is `%userprofile%/.glzr/glazewm/config.yaml`
+    /// 默认路径为 %userprofile%/.glzr/glazewm/config.yaml
     #[clap(short = 'c', long = "config", value_hint = clap::ValueHint::FilePath)]
     config_path: Option<PathBuf>,
 
@@ -25,18 +25,18 @@ pub enum AppCommand {
     verbosity: Verbosity,
   },
 
-  /// Retrieves and outputs a specific part of the window manager's state.
+  /// 获取并输出窗口管理器的指定状态。
   ///
-  /// Requires an already running instance of the window manager.
+  /// 需要窗口管理器已在运行。
   #[clap(alias = "q")]
   Query {
     #[clap(subcommand)]
     command: QueryCommand,
   },
 
-  /// Invokes a window manager command.
+  /// 执行窗口管理命令。
   ///
-  /// Requires an already running instance of the window manager.
+  /// 需要窗口管理器已在运行。
   #[clap(alias = "c")]
   Command {
     #[clap(long = "id")]
@@ -46,30 +46,30 @@ pub enum AppCommand {
     command: InvokeCommand,
   },
 
-  /// Subscribes to one or more WM events (e.g. `window_close`), and
-  /// continuously outputs the incoming events.
+  /// 订阅一个或多个窗口管理器事件（例如 window_close），
+  /// 并持续输出收到的事件。
   ///
-  /// Requires an already running instance of the window manager.
+  /// 需要窗口管理器已在运行。
   Sub {
-    /// WM event(s) to subscribe to.
+    /// 要订阅的窗口管理器事件。
     #[clap(short = 'e', long, value_enum, num_args = 1..)]
     events: Vec<SubscribableEvent>,
   },
 
-  /// Unsubscribes from a prior event subscription.
+  /// 取消现有的事件订阅。
   ///
-  /// Requires an already running instance of the window manager.
+  /// 需要窗口管理器已在运行。
   Unsub {
-    /// Subscription ID to unsubscribe from.
+    /// 要取消的订阅 ID。
     #[clap(long = "id")]
     subscription_id: Uuid,
   },
 }
 
 impl AppCommand {
-  /// Parses `AppCommand` from command line arguments.
+  /// 从命令行参数解析 AppCommand。
   ///
-  /// Defaults to `AppCommand::Start` if no arguments are provided.
+  /// 未提供参数时默认为 AppCommand::Start。
   #[must_use]
   pub fn parse_with_default(args: &Vec<String>) -> Self {
     if args.len() == 1 {
@@ -90,17 +90,17 @@ impl AppCommand {
 #[derive(Args, Clone, Debug)]
 #[clap(about = None, long_about = None)]
 pub struct Verbosity {
-  /// Enables verbose logging.
+  /// 启用详细日志。
   #[clap(short = 'v', long, action)]
   verbose: bool,
 
-  /// Disables logging.
+  /// 禁用日志。
   #[clap(short = 'q', long, action, conflicts_with = "verbose")]
   quiet: bool,
 }
 
 impl Verbosity {
-  /// Gets the log level based on the verbosity flags.
+  /// 根据详细程度选项获取日志级别。
   #[must_use]
   pub fn level(&self) -> Level {
     match (self.verbose, self.quiet) {
@@ -113,22 +113,22 @@ impl Verbosity {
 
 #[derive(Clone, Debug, Parser)]
 pub enum QueryCommand {
-  /// Outputs metadata about the application (e.g. version number).
+  /// 输出应用程序的元数据（例如版本号）。
   AppMetadata,
-  /// Outputs the active binding modes.
+  /// 输出当前启用的快捷键模式。
   BindingModes,
-  /// Outputs the focused container (either a window or an empty
-  /// workspace).
+  /// 输出当前获得焦点的容器（窗口或
+  /// 空工作区）。
   Focused,
-  /// Outputs the tiling direction of the focused container.
+  /// 输出当前获得焦点的容器的平铺方向。
   TilingDirection,
-  /// Outputs all monitors.
+  /// 输出所有显示器。
   Monitors,
-  /// Outputs all windows.
+  /// 输出所有窗口。
   Windows,
-  /// Outputs all active workspaces.
+  /// 输出所有活动工作区。
   Workspaces,
-  /// Outputs whether the window manager is paused.
+  /// 输出窗口管理器是否已暂停。
   Paused,
 }
 
@@ -350,15 +350,15 @@ pub struct InvokeFocusCommand {
 #[group(required = true, multiple = false)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct InvokeMoveCommand {
-  /// Direction to move the window.
+  /// 窗口移动方向。
   #[clap(long)]
   pub direction: Option<Direction>,
 
-  /// Move window to workspace in specified direction.
+  /// 将窗口移至指定方向的工作区。
   #[clap(long)]
   pub workspace_in_direction: Option<Direction>,
 
-  /// Name of workspace to move the window.
+  /// 目标工作区的名称。
   #[clap(long)]
   pub workspace: Option<String>,
 
