@@ -160,7 +160,10 @@ impl MouseListener {
       CGEvent::tap_create(
         CGEventTapLocation::AnnotatedSessionEventTap,
         CGEventTapPlacement::HeadInsertEventTap,
-        CGEventTapOptions::Default,
+        // Mouse events are only observed. An active tap holds every drag
+        // event until the callback returns, so a busy thread stalls and
+        // cancels native window resizes.
+        CGEventTapOptions::ListenOnly,
         mask,
         Some(Self::mouse_event_callback),
         callback_data_ptr as *mut c_void,
