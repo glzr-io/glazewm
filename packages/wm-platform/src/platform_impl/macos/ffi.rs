@@ -1,7 +1,7 @@
 use std::{ffi::c_void, ptr::NonNull};
 
 use objc2_application_services::{AXError, AXUIElement};
-use objc2_core_foundation::CFUUID;
+use objc2_core_foundation::{CGRect, CFUUID};
 use objc2_core_graphics::{CGDirectDisplayID, CGError, CGWindowID};
 
 use crate::platform_impl::ProcessId;
@@ -66,6 +66,16 @@ unsafe extern "C" {
 
 #[link(name = "SkyLight", kind = "framework")]
 unsafe extern "C" {
+  /// Returns the main `SkyLight` connection ID for the current process.
+  pub(crate) fn SLSMainConnectionID() -> i32;
+
+  /// Reads committed geometry rather than `AXSize`'s transient cache.
+  pub(crate) fn SLSGetWindowBounds(
+    connection: i32,
+    window_id: CGWindowID,
+    bounds: *mut CGRect,
+  ) -> CGError;
+
   pub(crate) fn _SLPSSetFrontProcessWithOptions(
     psn: &ProcessSerialNumber,
     window_id: i32,
