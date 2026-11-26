@@ -1,5 +1,6 @@
 use anyhow::Context;
 use wm_common::try_warn;
+use wm_platform::FixedWindowSize;
 
 use crate::{
   commands::monitor::{
@@ -85,6 +86,13 @@ pub fn handle_display_settings_changed(
     // Display setting changes can spread windows out sporadically, so mark
     // all windows as needing a DPI adjustment (just in case).
     window.set_has_pending_dpi_adjustment(true);
+
+    // Sizes probed mid-transition can be wrong, and a cached fixed width
+    // is never re-probed because tiles are then fitted to it.
+    window.update_native_properties(|properties| {
+      properties.fixed_size = FixedWindowSize::default();
+      properties.fixed_size_probe = None;
+    });
 
     // Need to update floating position of moved windows when a monitor is
     // disconnected or if the primary display is changed. The primary
