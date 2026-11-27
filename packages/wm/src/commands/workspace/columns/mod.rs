@@ -43,7 +43,7 @@ use crate::{
 /// wide center — `center` is ignored and no window is privileged.
 ///
 /// The center window fills the `C` column at `center` width (a fraction of
-/// the workspace, clamped to `0.1..=0.9`); the remaining columns split the
+/// the workspace, clamped to `0.1..=0.99`); the remaining columns split the
 /// rest of the width evenly. Windows are assigned in on-screen order, left
 /// to right. When `*` columns can't split the leftovers evenly, `bias`
 /// decides which end claims the odd window(s). Any window still unplaced
@@ -118,7 +118,7 @@ pub fn apply_columns(
     distribute_columns(&kinds, None, windows, bias)
   };
 
-  let widths = column_widths(&kinds, center.clamp(0.1, 0.9));
+  let widths = column_widths(&kinds, center.clamp(0.1, 0.99));
 
   ColumnGrid { columns, widths }.render(workspace, state, config)
 }

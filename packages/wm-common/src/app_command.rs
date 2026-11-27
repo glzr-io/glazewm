@@ -375,7 +375,7 @@ pub struct InvokeColumnsCommand {
   /// columns; otherwise it defaults to `*,C,*`.
   pub spec: Option<String>,
 
-  /// Center column width as a fraction of the workspace (0.1..=0.9). The
+  /// Center column width as a fraction of the workspace (0.1..=0.99). The
   /// remaining width is split equally across the other columns. Defaults
   /// to `0.6`.
   #[clap(long, allow_hyphen_values = true)]
