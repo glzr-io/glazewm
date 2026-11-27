@@ -102,6 +102,10 @@ pub struct GeneralConfig {
   /// workspace currently occupies. See [`DefaultColumns`].
   #[serde(default)]
   pub default_columns: Option<DefaultColumns>,
+
+  /// How column layouts react to windows opening, closing, and workspace
+  /// switches.
+  pub columns_behavior: ColumnsBehaviorConfig,
 }
 
 impl Default for GeneralConfig {
@@ -125,8 +129,55 @@ impl Default for GeneralConfig {
       },
       show_all_in_taskbar: false,
       default_columns: None,
+      columns_behavior: ColumnsBehaviorConfig::default(),
     }
   }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct ColumnsBehaviorConfig {
+  /// Where a newly opened window goes in a column layout.
+  pub new_window: NewWindowPlacement,
+
+  /// Which window gains focus when the focused window in a column layout
+  /// closes.
+  pub focus_after_close: FocusAfterClose,
+
+  /// Whether switching to a workspace re-applies its column layout, which
+  /// re-centers its last focused window. When `false`, the layout is kept
+  /// as it was left.
+  pub reapply_on_focus: bool,
+}
+
+impl Default for ColumnsBehaviorConfig {
+  fn default() -> Self {
+    ColumnsBehaviorConfig {
+      new_window: NewWindowPlacement::default(),
+      focus_after_close: FocusAfterClose::default(),
+      reapply_on_focus: true,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NewWindowPlacement {
+  /// The new window takes the center column.
+  #[default]
+  Center,
+  /// The new window joins a side column and the center stays put.
+  Side,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FocusAfterClose {
+  /// Focus the most recently focused window.
+  #[default]
+  LastFocused,
+  /// Focus the window next to the closed one in the column grid.
+  Neighbor,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

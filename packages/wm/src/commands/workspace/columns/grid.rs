@@ -104,6 +104,26 @@ impl ColumnGrid {
     self.widths.get(self.center?).copied()
   }
 
+  /// Window to focus when the window with `id` closes: the next window in
+  /// its column, else the previous one, else the top of the nearest other
+  /// column (the left one on a tie).
+  pub fn neighbor_of(&self, id: Uuid) -> Option<TilingWindow> {
+    let (col, row) = self.find(id)?;
+    let column = &self.columns[col];
+
+    if let Some(window) = column
+      .get(row + 1)
+      .or_else(|| row.checked_sub(1).and_then(|above| column.get(above)))
+    {
+      return Some(window.clone());
+    }
+
+    (0..self.columns.len())
+      .filter(|&other| other != col && !self.columns[other].is_empty())
+      .min_by_key(|&other| (other.abs_diff(col), other))
+      .and_then(|other| self.columns[other].first().cloned())
+  }
+
   /// `(column, row)` position of the window with `id`, if present.
   pub fn find(&self, id: Uuid) -> Option<(usize, usize)> {
     self.columns.iter().enumerate().find_map(|(col, windows)| {

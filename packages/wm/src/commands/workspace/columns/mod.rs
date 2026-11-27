@@ -12,7 +12,7 @@ mod spec;
 
 use anyhow::Context;
 use uuid::Uuid;
-use wm_common::{ColumnBias, ColumnLayout};
+use wm_common::{ColumnBias, ColumnLayout, FocusAfterClose};
 use wm_platform::{Direction, Rect};
 
 use self::{
@@ -263,6 +263,42 @@ pub fn reapply_columns_after_move(
 /// `reapply_assigned_columns` can keep that window centered.
 pub fn workspace_center_window_id(workspace: &Workspace) -> Option<Uuid> {
   ColumnGrid::read(workspace).center_window_id()
+}
+
+/// Window to focus when `window` closes, when
+/// `general.columns_behavior.focus_after_close` asks for its neighbor in
+/// the column grid. Call before unmanaging the window.
+///
+/// Returns `None` to keep the default focus target: the setting is off,
+/// the window isn't focused, or its workspace has no effective columns.
+pub fn column_focus_after_close(
+  window: &WindowContainer,
+  state: &WmState,
+  config: &UserConfig,
+) -> anyhow::Result<Option<TilingWindow>> {
+  if config.value.general.columns_behavior.focus_after_close
+    != FocusAfterClose::Neighbor
+  {
+    return Ok(None);
+  }
+
+  let WindowContainer::TilingWindow(tiling) = window else {
+    return Ok(None);
+  };
+
+  let is_focused = state
+    .focused_container()
+    .is_some_and(|focused| focused.id() == tiling.id());
+
+  let Some(workspace) = tiling.workspace() else {
+    return Ok(None);
+  };
+
+  if !is_focused || effective_columns(&workspace, config)?.is_none() {
+    return Ok(None);
+  }
+
+  Ok(ColumnGrid::read(&workspace).neighbor_of(tiling.id()))
 }
 
 /// On-screen rect of the workspace's wide center window — the top of its
@@ -663,9 +699,9 @@ mod tests {
 
   use super::{
     apply_center, apply_columns, apply_rotate, assign_columns,
-    effective_columns, focused_window_id, grid::ColumnGrid,
-    move_window_in_columns, reapply_assigned_columns, store_center_width,
-    unassign_columns, workspace_center_window_id,
+    column_focus_after_close, effective_columns, focused_window_id,
+    grid::ColumnGrid, move_window_in_columns, reapply_assigned_columns,
+    store_center_width, unassign_columns, workspace_center_window_id,
   };
   use crate::{
     commands::{
@@ -1483,5 +1519,67 @@ mod tests {
       id_grid(&workspace),
       vec![vec![ids[0], ids[3]], vec![ids[2]], vec![ids[5]]]
     );
+  }
+
+  /// The close neighbor is the next window in the column, else the one
+  /// above, else the top of the nearest column (left on a tie).
+  #[test]
+  fn finds_neighbor_of_closing_window() {
+    let (mut state, workspace, windows) = setup(5);
+    let config = mock_user_config();
+    let ids = windows.iter().map(CommonGetters::id).collect::<Vec<_>>();
+
+    apply_columns(
+      &workspace,
+      "*,C,*",
+      0.6,
+      &ColumnBias::Left,
+      Some(ids[2]),
+      &mut state,
+      &config,
+    )
+    .unwrap();
+
+    let grid = ColumnGrid::read(&workspace);
+    let neighbor =
+      |index: usize| grid.neighbor_of(ids[index]).map(|w| w.id());
+    assert_eq!(neighbor(0), Some(ids[1]));
+    assert_eq!(neighbor(1), Some(ids[0]));
+    assert_eq!(neighbor(2), Some(ids[0]));
+    assert_eq!(neighbor(4), Some(ids[3]));
+  }
+
+  /// `focus_after_close: neighbor` picks the grid neighbor of the focused
+  /// window, and leaves unfocused windows and the default setting alone.
+  #[test]
+  fn focus_after_close_follows_setting() {
+    let (mut state, workspace, windows) = setup(5);
+    let ids = windows.iter().map(CommonGetters::id).collect::<Vec<_>>();
+    let yaml = "general:\n  default_columns:\n    - min_aspect_ratio: 1.5\n      spec: '*,C,*'\n  columns_behavior:\n    focus_after_close: neighbor\n";
+    let neighbor_config =
+      UserConfig::mock(serde_yaml::from_str(yaml).unwrap());
+    let default_config = config_with_default_columns("*,C,*");
+
+    apply_columns(
+      &workspace,
+      "*,C,*",
+      0.6,
+      &ColumnBias::Left,
+      Some(ids[2]),
+      &mut state,
+      &neighbor_config,
+    )
+    .unwrap();
+    focus_container_by_id(&ids[3], &mut state).unwrap();
+
+    let target = |index: usize, config: &UserConfig| {
+      let window = WindowContainer::TilingWindow(windows[index].clone());
+      column_focus_after_close(&window, &state, config)
+        .unwrap()
+        .map(|w| w.id())
+    };
+    assert_eq!(target(3, &neighbor_config), Some(ids[4]));
+    assert_eq!(target(0, &neighbor_config), None);
+    assert_eq!(target(3, &default_config), None);
   }
 }

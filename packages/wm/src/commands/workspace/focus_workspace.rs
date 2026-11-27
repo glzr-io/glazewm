@@ -66,8 +66,12 @@ pub fn focus_workspace(
     state.pending_sync.queue_focus_change();
 
     // Reapply this workspace's columns (if any), now that its last-focused
-    // window is focused and will become the center.
-    reapply_assigned_columns(&target_workspace, None, state, config)?;
+    // window is focused and will become the center. Skipped when the
+    // config keeps layouts as they were left; window changes reapply them
+    // anyway.
+    if config.value.general.columns_behavior.reapply_on_focus {
+      reapply_assigned_columns(&target_workspace, None, state, config)?;
+    }
 
     // Display the workspace to switch focus to.
     state

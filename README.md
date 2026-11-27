@@ -314,6 +314,19 @@ general:
     - spec: default
 ```
 
+**Behavior.** `general.columns_behavior` tunes how layouts react to windows and workspace switches. The defaults are shown below.
+
+```yaml
+general:
+  columns_behavior:
+    # `center`: a new window takes the center. `side`: it joins a side column.
+    new_window: "center"
+    # `last_focused` or `neighbor` (next window in the column, else the nearest column).
+    focus_after_close: "last_focused"
+    # `false` keeps a workspace's layout as you left it when switching back.
+    reapply_on_focus: true
+```
+
 **Commands.** Bind these in the `keybindings` section:
 
 | Command | Description |
