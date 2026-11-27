@@ -424,26 +424,26 @@ mod tests {
   use super::dropped_onto_center;
 
   /// A center column spanning x in `[600, 1000)`.
-  fn center() -> Option<Rect> {
-    Some(Rect::from_xy(600, 0, 400, 1080))
+  fn center() -> Rect {
+    Rect::from_xy(600, 0, 400, 1080)
   }
 
   #[test]
   fn drop_within_center_band_takes_center() {
-    assert!(dropped_onto_center(center(), Some(600)));
-    assert!(dropped_onto_center(center(), Some(700)));
+    assert!(dropped_onto_center(Some(center()), Some(600)));
+    assert!(dropped_onto_center(Some(center()), Some(700)));
   }
 
   #[test]
   fn drop_outside_center_band_keeps_center() {
     // Left of the band, and the right edge is exclusive.
-    assert!(!dropped_onto_center(center(), Some(200)));
-    assert!(!dropped_onto_center(center(), Some(1000)));
+    assert!(!dropped_onto_center(Some(center()), Some(200)));
+    assert!(!dropped_onto_center(Some(center()), Some(1000)));
   }
 
   #[test]
   fn no_center_or_no_cursor_never_takes_center() {
     assert!(!dropped_onto_center(None, Some(700)));
-    assert!(!dropped_onto_center(center(), None));
+    assert!(!dropped_onto_center(Some(center()), None));
   }
 }
