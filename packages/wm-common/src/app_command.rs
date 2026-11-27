@@ -380,8 +380,8 @@ pub struct InvokeColumnsCommand {
   /// to `0.6`.
   ///
   /// A comma-separated list (e.g. `0.7,0.99`) cycles: each invocation
-  /// applies the value after the one closest to the current center width,
-  /// wrapping around.
+  /// applies the next value in the list, wrapping around. It starts from
+  /// the first value when the current center width matches none of them.
   #[clap(long, allow_hyphen_values = true, value_delimiter = ',')]
   pub center: Option<Vec<f32>>,
 

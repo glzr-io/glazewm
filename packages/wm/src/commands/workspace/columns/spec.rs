@@ -163,13 +163,196 @@ pub(super) fn column_widths(
     .collect()
 }
 
+/// Clamps a center width to the range the layout supports.
+pub(super) fn clamp_center(center: f32) -> f32 {
+  center.clamp(0.1, 0.99)
+}
+
+/// Width fraction the center column ends up with once laid out: its
+/// `column_widths` share after `ColumnGrid::render` drops the empty
+/// columns and renormalises the rest.
+///
+/// Returns `None` when `kinds` has no `C` or there are fewer than two
+/// windows, since no center is laid out then.
+pub(super) fn rendered_center_width(
+  kinds: &[ColumnKind],
+  window_count: usize,
+  center: f32,
+  bias: &ColumnBias,
+) -> Option<f32> {
+  let center_index =
+    kinds.iter().position(|k| matches!(k, ColumnKind::Center))?;
+
+  if window_count < 2 {
+    return None;
+  }
+
+  let columns =
+    distribute_columns(kinds, Some(()), vec![(); window_count - 1], bias);
+  let widths = column_widths(kinds, clamp_center(center));
+
+  let total = columns
+    .iter()
+    .zip(&widths)
+    .filter(|(column, _)| !column.is_empty())
+    .map(|(_, width)| width)
+    .sum::<f32>();
+
+  Some(widths.get(center_index)? / total.max(f32::EPSILON))
+}
+
+/// Laid-out widths closer than this count as the same width.
+const WIDTH_TOLERANCE: f32 = 1e-3;
+
+/// Index of the center-width candidate to apply next, so repeated calls
+/// cycle through every distinct laid-out width in list order.
+///
+/// `rendered` holds each candidate's laid-out width. The cycle continues
+/// after the candidate matching `current`, skipping candidates that lay
+/// out to that same width. Starts at the first candidate when `current`
+/// is `None` or matches none of them (e.g. another layout or a manual
+/// resize).
+pub(super) fn next_center_index(
+  rendered: &[f32],
+  current: Option<f32>,
+) -> usize {
+  let Some(current) = current else {
+    return 0;
+  };
+
+  let differs = |width: f32| (width - current).abs() >= WIDTH_TOLERANCE;
+
+  let Some(matched) = rendered.iter().position(|&width| !differs(width))
+  else {
+    return 0;
+  };
+
+  (1..=rendered.len())
+    .map(|step| (matched + step) % rendered.len())
+    .find(|&index| differs(rendered[index]))
+    .unwrap_or(matched)
+}
+
 #[cfg(test)]
 mod tests {
   use wm_common::ColumnBias;
 
   use super::{
-    column_widths, distribute_columns, parse_columns_spec, ColumnKind,
+    column_widths, distribute_columns, next_center_index,
+    parse_columns_spec, rendered_center_width, ColumnKind,
   };
+
+  /// Presses a cycling binding `presses` times from no laid-out center,
+  /// returning the width applied by each press.
+  fn press(rendered: &[f32], presses: usize) -> Vec<f32> {
+    let mut current = None;
+    (0..presses)
+      .map(|_| {
+        let width = rendered[next_center_index(rendered, current)];
+        current = Some(width);
+        width
+      })
+      .collect()
+  }
+
+  /// Laid-out widths for `candidates` under `spec`.
+  fn rendered(
+    spec: &str,
+    window_count: usize,
+    candidates: &[f32],
+    bias: &ColumnBias,
+  ) -> Vec<f32> {
+    let kinds = parse_columns_spec(spec).unwrap();
+    candidates
+      .iter()
+      .map(|&c| rendered_center_width(&kinds, window_count, c, bias))
+      .map(Option::unwrap)
+      .collect()
+  }
+
+  #[test]
+  fn rendered_width_renormalises_empty_columns() {
+    let left = ColumnBias::Left;
+
+    // One side column is empty, so the center gets 0.6 of 0.8.
+    assert!((rendered("*,C,*", 2, &[0.6], &left)[0] - 0.75).abs() < 1e-5);
+    assert!((rendered("*,C,*", 3, &[0.6], &left)[0] - 0.6).abs() < 1e-5);
+
+    let kinds = parse_columns_spec("*,C,*").unwrap();
+    assert_eq!(rendered_center_width(&kinds, 1, 0.6, &left), None);
+    let no_center = parse_columns_spec("*,*").unwrap();
+    assert_eq!(rendered_center_width(&no_center, 4, 0.6, &left), None);
+  }
+
+  /// Regression: `0.6` lays out as `0.75` here, which a raw-value
+  /// comparison takes for `0.7`, so the binding never leaves `0.6`.
+  #[test]
+  fn cycles_renormalised_widths() {
+    let widths = rendered("*,C,*", 2, &[0.6, 0.7], &ColumnBias::Left);
+    let pressed = press(&widths, 4);
+    assert_eq!(pressed, [widths[0], widths[1], widths[0], widths[1]]);
+  }
+
+  /// Regression: `1.5` clamps to `0.99`, which a raw-value comparison
+  /// takes for `0.7`, so the binding stays on `0.99`.
+  #[test]
+  fn cycles_clamped_widths() {
+    let widths = rendered("C,*", 2, &[0.7, 1.5], &ColumnBias::Left);
+    assert_eq!(press(&widths, 3), [widths[0], widths[1], widths[0]]);
+  }
+
+  #[test]
+  fn starts_at_first_on_unmatched_width() {
+    assert_eq!(next_center_index(&[0.7, 0.99], Some(0.5)), 0);
+    assert_eq!(next_center_index(&[0.7, 0.99], None), 0);
+    assert_eq!(next_center_index(&[], Some(0.5)), 0);
+  }
+
+  /// For every spec, window count and candidate list, `n` presses visit
+  /// each of the `n` distinct laid-out widths once, in list order, then
+  /// repeat.
+  #[test]
+  fn cycle_visits_every_distinct_width() {
+    let specs = ["*,C,*", "C,*", "*,C", "2,C,*", "1,C,2", "*,*,C,*,*"];
+    let lists: [&[f32]; 6] = [
+      &[0.7, 0.99],
+      &[0.6, 0.7],
+      &[0.99, 0.5, 0.7],
+      &[0.7, 0.7, 0.9],
+      &[0.7, 1.5, 0.99],
+      &[0.6],
+    ];
+
+    for spec in specs {
+      for bias in [ColumnBias::Left, ColumnBias::Right] {
+        for window_count in 2..=8 {
+          for list in lists {
+            let widths = rendered(spec, window_count, list, &bias);
+
+            let mut distinct = Vec::<f32>::new();
+            for &width in &widths {
+              if distinct.iter().all(|d| (d - width).abs() >= 1e-3) {
+                distinct.push(width);
+              }
+            }
+
+            let n = distinct.len();
+            let pressed = press(&widths, 2 * n);
+            let case = format!("{spec} {bias:?} {window_count} {list:?}");
+
+            for (i, width) in pressed[..n].iter().enumerate() {
+              assert!(
+                (width - distinct[i]).abs() < 1e-3,
+                "{case}: press {i} gave {width}, want {}",
+                distinct[i]
+              );
+            }
+            assert_eq!(pressed[..n], pressed[n..], "{case}: not periodic");
+          }
+        }
+      }
+    }
+  }
 
   #[test]
   fn parses_star_center_star() {

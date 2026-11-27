@@ -12,13 +12,14 @@ mod spec;
 
 use anyhow::Context;
 use uuid::Uuid;
-use wm_common::{ColumnBias, ColumnLayout, InvokeColumnsCommand};
+use wm_common::{ColumnBias, ColumnLayout};
 use wm_platform::{Direction, Rect};
 
 use self::{
   grid::ColumnGrid,
   spec::{
-    column_widths, distribute_columns, parse_columns_spec, ColumnKind,
+    clamp_center, column_widths, distribute_columns, next_center_index,
+    parse_columns_spec, rendered_center_width, ColumnKind,
   },
 };
 use crate::{
@@ -43,14 +44,14 @@ use crate::{
 /// wide center — `center` is ignored and no window is privileged.
 ///
 /// The center window fills the `C` column at `center` width (a fraction of
-/// the workspace, clamped to `0.1..=0.99`); the remaining columns split the
-/// rest of the width evenly. Windows are assigned in on-screen order, left
-/// to right. When `*` columns can't split the leftovers evenly, `bias`
-/// decides which end claims the odd window(s). Any window still unplaced
-/// (fixed counts under-specify the total and there is no `*`) is appended
-/// to the last non-center column. Columns that end up empty are dropped
-/// and the widths renormalise, so a wide spec still degrades cleanly on a
-/// small monitor.
+/// the workspace, clamped to `0.1..=0.99`); the remaining columns split
+/// the rest of the width evenly. Windows are assigned in on-screen order,
+/// left to right. When `*` columns can't split the leftovers evenly,
+/// `bias` decides which end claims the odd window(s). Any window still
+/// unplaced (fixed counts under-specify the total and there is no `*`) is
+/// appended to the last non-center column. Columns that end up empty are
+/// dropped and the widths renormalise, so a wide spec still degrades
+/// cleanly on a small monitor.
 ///
 /// The `C` column takes `preferred_center` when set and that window is
 /// still present, otherwise the focused window, otherwise the middle
@@ -118,7 +119,7 @@ pub fn apply_columns(
     distribute_columns(&kinds, None, windows, bias)
   };
 
-  let widths = column_widths(&kinds, center.clamp(0.1, 0.99));
+  let widths = column_widths(&kinds, clamp_center(center));
 
   ColumnGrid { columns, widths }.render(workspace, state, config)
 }
@@ -312,36 +313,38 @@ fn workspace_center_width(workspace: &Workspace) -> Option<f32> {
   grid.center_width()
 }
 
-/// Picks the center width to apply from `candidates`, so a single binding
-/// can cycle between widths (e.g. `columns C,* --center 0.7,0.99`).
+/// Picks the center width to apply from `candidates`, so one binding can
+/// cycle between widths (e.g. `columns C,* --center 0.7,0.99`).
 ///
-/// Returns the candidate after the one closest to the workspace's current
-/// center width, wrapping around. Falls back to the first candidate when
-/// the workspace has no laid-out center (fewer than two tiling windows).
-pub fn next_center_width(workspace: &Workspace, candidates: &[f32]) -> f32 {
-  cycle_after_closest(candidates, workspace_center_width(workspace))
-    .unwrap_or(InvokeColumnsCommand::DEFAULT_CENTER)
-}
-
-/// The value after the one in `candidates` closest to `current`, wrapping
-/// around; the first candidate when `current` is `None`.
-///
-/// Returns `None` only for empty `candidates`.
-fn cycle_after_closest(
+/// Stateless: the workspace's current center width is compared with the
+/// width each candidate lays out to under `spec`, which can differ from
+/// the candidate itself when columns are empty or the value is clamped.
+/// Applies the next distinct width in list order, or the first candidate
+/// when the current width matches none of them.
+pub fn next_center_width(
+  workspace: &Workspace,
+  spec: &str,
+  bias: &ColumnBias,
   candidates: &[f32],
-  current: Option<f32>,
-) -> Option<f32> {
-  let Some(current) = current else {
-    return candidates.first().copied();
-  };
+) -> anyhow::Result<f32> {
+  let kinds = parse_columns_spec(spec)?;
+  let window_count = ColumnGrid::read(workspace).window_count();
 
-  let closest = (0..candidates.len()).min_by(|&a, &b| {
-    (candidates[a] - current)
-      .abs()
-      .total_cmp(&(candidates[b] - current).abs())
-  })?;
+  let rendered = candidates
+    .iter()
+    .map(|&center| {
+      rendered_center_width(&kinds, window_count, center, bias)
+    })
+    .collect::<Option<Vec<_>>>()
+    .unwrap_or_default();
 
-  candidates.get((closest + 1) % candidates.len()).copied()
+  let index =
+    next_center_index(&rendered, workspace_center_width(workspace));
+
+  candidates
+    .get(index)
+    .copied()
+    .context("No center width candidates.")
 }
 
 /// Records the workspace's current center-column width into its assigned
@@ -656,7 +659,6 @@ mod tests {
 
   use super::{
     apply_center, apply_columns, apply_rotate, assign_columns,
-    cycle_after_closest,
     effective_columns, focused_window_id, grid::ColumnGrid,
     move_window_in_columns, reapply_assigned_columns, store_center_width,
     unassign_columns, workspace_center_window_id,
@@ -1401,18 +1403,5 @@ mod tests {
 
     let stored = workspace.config().columns.unwrap().center;
     assert!((stored - 0.7).abs() < 1e-3);
-  }
-
-  /// Center candidates cycle from whichever is closest to the current
-  /// width, wrapping; no current width picks the first.
-  #[test]
-  fn cycle_after_closest_wraps() {
-    let candidates = [0.7, 0.99];
-
-    assert_eq!(cycle_after_closest(&candidates, None), Some(0.7));
-    assert_eq!(cycle_after_closest(&candidates, Some(0.69)), Some(0.99));
-    assert_eq!(cycle_after_closest(&candidates, Some(0.98)), Some(0.7));
-    assert_eq!(cycle_after_closest(&[0.6], Some(0.6)), Some(0.6));
-    assert_eq!(cycle_after_closest(&[], Some(0.6)), None);
   }
 }

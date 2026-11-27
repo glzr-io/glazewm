@@ -358,7 +358,12 @@ impl WindowManager {
           apply_columns(
             &workspace,
             args.spec_or_default(),
-            next_center_width(&workspace, args.centers_or_default()),
+            next_center_width(
+              &workspace,
+              args.spec_or_default(),
+              &args.bias_or_default(),
+              args.centers_or_default(),
+            )?,
             &args.bias_or_default(),
             None,
             state,
@@ -373,7 +378,12 @@ impl WindowManager {
         assign_columns(
           &workspace,
           args.spec_or_default(),
-          next_center_width(&workspace, args.centers_or_default()),
+          next_center_width(
+            &workspace,
+            args.spec_or_default(),
+            &args.bias_or_default(),
+            args.centers_or_default(),
+          )?,
           &args.bias_or_default(),
           state,
           config,
