@@ -1,7 +1,8 @@
 use tauri_winres::VersionInfo;
 
 fn main() {
-  if cfg!(not(target_os = "windows")) {
+  // Build scripts run on the host, so `cfg!` would check the host OS.
+  if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
     panic!("wm-watcher is only supported on Windows.");
   }
 
