@@ -378,8 +378,12 @@ pub struct InvokeColumnsCommand {
   /// Center column width as a fraction of the workspace (0.1..=0.99). The
   /// remaining width is split equally across the other columns. Defaults
   /// to `0.6`.
-  #[clap(long, allow_hyphen_values = true)]
-  pub center: Option<f32>,
+  ///
+  /// A comma-separated list (e.g. `0.7,0.99`) cycles: each invocation
+  /// applies the value after the one closest to the current center width,
+  /// wrapping around.
+  #[clap(long, allow_hyphen_values = true, value_delimiter = ',')]
+  pub center: Option<Vec<f32>>,
 
   /// Which side wins the odd leftover window when `*` columns can't
   /// divide evenly (e.g. `*,C,*` with one window to place). Defaults to
@@ -407,10 +411,16 @@ impl InvokeColumnsCommand {
     self.spec.as_deref().unwrap_or(Self::DEFAULT_SPEC)
   }
 
-  /// The supplied center width, or the default `0.6`.
+  /// The supplied center width candidates, or just the default `0.6`.
+  ///
+  /// Never empty.
   #[must_use]
-  pub fn center_or_default(&self) -> f32 {
-    self.center.unwrap_or(Self::DEFAULT_CENTER)
+  pub fn centers_or_default(&self) -> &[f32] {
+    self
+      .center
+      .as_deref()
+      .filter(|centers| !centers.is_empty())
+      .unwrap_or(&[Self::DEFAULT_CENTER])
   }
 
   /// The supplied bias, or the default (`left`).

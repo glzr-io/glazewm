@@ -318,7 +318,7 @@ general:
 
 | Command | Description |
 | --- | --- |
-| `columns [<spec>] [--center <fraction>] [--bias left\|right]` | Apply a one-shot layout to the focused workspace. Bare `columns` re-asserts the assigned layout; with no assignment it defaults to `*,C,*`. |
+| `columns [<spec>] [--center <fraction>[,<fraction>...]] [--bias left\|right]` | Apply a one-shot layout to the focused workspace. Bare `columns` re-asserts the assigned layout; with no assignment it defaults to `*,C,*`. Multiple `--center` values (e.g. `0.7,0.99`) cycle on each invocation. |
 | `assign-columns [<spec>] [--center <fraction>] [--bias left\|right]` | Assign a persistent layout to the focused workspace (equivalent to setting `columns` in the config). |
 | `unassign-columns` | Clear the workspace's assigned layout and return to normal tiling. |
 | `center` | Swap the focused window into the center column. Running it again swaps the previous center back. |

@@ -33,8 +33,8 @@ use crate::{
     workspace::{
       apply_center, apply_columns, apply_rotate, assign_columns,
       effective_columns, focus_workspace, move_window_in_columns,
-      move_workspace_in_direction, reapply_assigned_columns,
-      unassign_columns, update_workspace_config,
+      move_workspace_in_direction, next_center_width,
+      reapply_assigned_columns, unassign_columns, update_workspace_config,
       workspace_center_window_id,
     },
   },
@@ -358,7 +358,7 @@ impl WindowManager {
           apply_columns(
             &workspace,
             args.spec_or_default(),
-            args.center_or_default(),
+            next_center_width(&workspace, args.centers_or_default()),
             &args.bias_or_default(),
             None,
             state,
@@ -373,7 +373,7 @@ impl WindowManager {
         assign_columns(
           &workspace,
           args.spec_or_default(),
-          args.center_or_default(),
+          next_center_width(&workspace, args.centers_or_default()),
           &args.bias_or_default(),
           state,
           config,

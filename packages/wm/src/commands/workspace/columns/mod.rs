@@ -12,7 +12,7 @@ mod spec;
 
 use anyhow::Context;
 use uuid::Uuid;
-use wm_common::{ColumnBias, ColumnLayout};
+use wm_common::{ColumnBias, ColumnLayout, InvokeColumnsCommand};
 use wm_platform::{Direction, Rect};
 
 use self::{
@@ -310,6 +310,38 @@ fn workspace_center_width(workspace: &Workspace) -> Option<f32> {
   }
 
   grid.center_width()
+}
+
+/// Picks the center width to apply from `candidates`, so a single binding
+/// can cycle between widths (e.g. `columns C,* --center 0.7,0.99`).
+///
+/// Returns the candidate after the one closest to the workspace's current
+/// center width, wrapping around. Falls back to the first candidate when
+/// the workspace has no laid-out center (fewer than two tiling windows).
+pub fn next_center_width(workspace: &Workspace, candidates: &[f32]) -> f32 {
+  cycle_after_closest(candidates, workspace_center_width(workspace))
+    .unwrap_or(InvokeColumnsCommand::DEFAULT_CENTER)
+}
+
+/// The value after the one in `candidates` closest to `current`, wrapping
+/// around; the first candidate when `current` is `None`.
+///
+/// Returns `None` only for empty `candidates`.
+fn cycle_after_closest(
+  candidates: &[f32],
+  current: Option<f32>,
+) -> Option<f32> {
+  let Some(current) = current else {
+    return candidates.first().copied();
+  };
+
+  let closest = (0..candidates.len()).min_by(|&a, &b| {
+    (candidates[a] - current)
+      .abs()
+      .total_cmp(&(candidates[b] - current).abs())
+  })?;
+
+  candidates.get((closest + 1) % candidates.len()).copied()
 }
 
 /// Records the workspace's current center-column width into its assigned
@@ -624,6 +656,7 @@ mod tests {
 
   use super::{
     apply_center, apply_columns, apply_rotate, assign_columns,
+    cycle_after_closest,
     effective_columns, focused_window_id, grid::ColumnGrid,
     move_window_in_columns, reapply_assigned_columns, store_center_width,
     unassign_columns, workspace_center_window_id,
@@ -1368,5 +1401,18 @@ mod tests {
 
     let stored = workspace.config().columns.unwrap().center;
     assert!((stored - 0.7).abs() < 1e-3);
+  }
+
+  /// Center candidates cycle from whichever is closest to the current
+  /// width, wrapping; no current width picks the first.
+  #[test]
+  fn cycle_after_closest_wraps() {
+    let candidates = [0.7, 0.99];
+
+    assert_eq!(cycle_after_closest(&candidates, None), Some(0.7));
+    assert_eq!(cycle_after_closest(&candidates, Some(0.69)), Some(0.99));
+    assert_eq!(cycle_after_closest(&candidates, Some(0.98)), Some(0.7));
+    assert_eq!(cycle_after_closest(&[0.6], Some(0.6)), Some(0.6));
+    assert_eq!(cycle_after_closest(&[], Some(0.6)), None);
   }
 }
