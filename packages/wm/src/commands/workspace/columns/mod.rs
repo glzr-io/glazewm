@@ -670,6 +670,7 @@ mod tests {
   use crate::{
     commands::{
       container::{attach_container, focus_container_by_id},
+      window::unmanage_window,
       workspace::move_workspace_in_direction,
     },
     models::{
@@ -1442,5 +1443,45 @@ mod tests {
       vec![vec![ids[1]], vec![ids[0]], vec![ids[2]]]
     );
     assert_eq!(workspace_center_window_id(&workspace), Some(ids[0]));
+  }
+
+  /// Closing a side window re-tidies the rest in their existing order,
+  /// keeping the center in place.
+  #[test]
+  fn closing_a_window_keeps_window_order() {
+    let (mut state, workspace, windows) = setup(6);
+    let config = config_with_default_columns("*,C,*");
+    let ids = windows.iter().map(CommonGetters::id).collect::<Vec<_>>();
+
+    apply_columns(
+      &workspace,
+      "*,C,*",
+      0.6,
+      &ColumnBias::Left,
+      Some(ids[2]),
+      &mut state,
+      &config,
+    )
+    .unwrap();
+    assert_eq!(
+      id_grid(&workspace),
+      vec![
+        vec![ids[0], ids[1], ids[3]],
+        vec![ids[2]],
+        vec![ids[4], ids[5]],
+      ]
+    );
+
+    for closed in [1, 4] {
+      let center = workspace_center_window_id(&workspace);
+      unmanage_window(windows[closed].clone().into(), &mut state).unwrap();
+      reapply_assigned_columns(&workspace, center, &mut state, &config)
+        .unwrap();
+    }
+
+    assert_eq!(
+      id_grid(&workspace),
+      vec![vec![ids[0], ids[3]], vec![ids[2]], vec![ids[5]]]
+    );
   }
 }
