@@ -3,8 +3,17 @@ use wm_common::{DisplayState, HideMethod};
 use wm_platform::NativeWindow;
 
 use crate::{
-  commands::window::unmanage_window, traits::WindowGetters,
-  user_config::UserConfig, wm_state::WmState,
+  commands::{
+    container::set_focused_descendant,
+    window::unmanage_window,
+    workspace::{
+      column_focus_after_close, reapply_assigned_columns,
+      workspace_center_window_id,
+    },
+  },
+  traits::{CommonGetters, WindowGetters},
+  user_config::UserConfig,
+  wm_state::WmState,
 };
 
 pub fn handle_window_hidden(
@@ -32,7 +41,27 @@ pub fn handle_window_hidden(
       || window.display_state() == DisplayState::Shown)
       && !window.native().is_visible().unwrap_or(false)
     {
+      let workspace = window.workspace();
+
+      // Note the current center before unmanaging so the reapply keeps it
+      // in place — closing a side window shouldn't move the center
+      // window.
+      let center = workspace.as_ref().and_then(workspace_center_window_id);
+      let focus_target = column_focus_after_close(&window, state, config)?;
+
       unmanage_window(window, state)?;
+
+      // Focus before the reapply, so a hidden center is replaced by the
+      // newly focused window.
+      if let Some(target) = focus_target {
+        set_focused_descendant(&target.into(), None);
+        state.pending_sync.queue_focus_change();
+      }
+
+      // Re-tidy the workspace's columns (if any) now a window's gone.
+      if let Some(workspace) = workspace {
+        reapply_assigned_columns(&workspace, center, state, config)?;
+      }
     }
   }
 

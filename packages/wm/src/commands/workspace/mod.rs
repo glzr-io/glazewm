@@ -1,4 +1,5 @@
 mod activate_workspace;
+mod columns;
 mod deactivate_workspace;
 mod focus_workspace;
 mod move_workspace_in_direction;
@@ -6,6 +7,7 @@ mod sort_workspaces;
 mod update_workspace_config;
 
 pub use activate_workspace::*;
+pub use columns::*;
 pub use deactivate_workspace::*;
 pub use focus_workspace::*;
 pub use move_workspace_in_direction::*;

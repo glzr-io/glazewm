@@ -57,6 +57,21 @@ impl UserConfig {
     })
   }
 
+  /// Creates a `UserConfig` directly from an in-memory `ParsedConfig` for
+  /// use in tests, bypassing all file IO.
+  #[cfg(test)]
+  #[must_use]
+  pub fn mock(value: ParsedConfig) -> Self {
+    let window_rules_by_event = Self::window_rules_by_event(&value);
+
+    Self {
+      path: PathBuf::new(),
+      value,
+      value_str: String::new(),
+      window_rules_by_event,
+    }
+  }
+
   /// Reads and validates the user config from the given path.
   ///
   /// Creates a new config file from sample if it doesn't exist.
@@ -83,7 +98,7 @@ impl UserConfig {
       config_path.parent().context("Invalid config path.")?;
 
     fs::create_dir_all(parent_dir).with_context(|| {
-      format!("Unable to create directory {}.", &config_path.display())
+      format!("Unable to create directory {}.", config_path.display())
     })?;
 
     fs::write(config_path, SAMPLE_CONFIG).with_context(|| {

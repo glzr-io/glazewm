@@ -3,7 +3,9 @@ use wm_common::WindowState;
 use wm_platform::{LengthValue, Rect};
 
 use crate::{
-  commands::container::resize_tiling_container,
+  commands::{
+    container::resize_tiling_container, workspace::store_center_width,
+  },
   models::{NonTilingWindow, TilingWindow, WindowContainer},
   traits::{
     CommonGetters, PositionGetters, TilingSizeGetters, WindowGetters,
@@ -24,6 +26,14 @@ pub fn set_window_size(
   match window {
     WindowContainer::TilingWindow(window) => {
       set_tiling_window_size(&window, target_width, target_height, state)?;
+
+      // A tiling resize is user intent, so record the resulting center
+      // width into the workspace's columns (if assigned), making it
+      // persist across later reapplies until config reload or
+      // restart.
+      if let Some(workspace) = window.workspace() {
+        store_center_width(&workspace);
+      }
     }
     WindowContainer::NonTilingWindow(window) => {
       if matches!(window.state(), WindowState::Floating(_)) {

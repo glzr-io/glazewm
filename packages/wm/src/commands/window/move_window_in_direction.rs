@@ -3,10 +3,13 @@ use wm_common::{TilingDirection, WindowState};
 use wm_platform::{Direction, Rect};
 
 use crate::{
-  commands::container::{
-    flatten_child_split_containers, flatten_split_container,
-    move_container_within_tree, resize_tiling_container,
-    set_focused_descendant, wrap_in_split_container,
+  commands::{
+    container::{
+      flatten_child_split_containers, flatten_split_container,
+      move_container_within_tree, resize_tiling_container,
+      set_focused_descendant, wrap_in_split_container,
+    },
+    workspace::{reapply_columns_after_move, workspace_center_window_id},
   },
   models::{
     DirectionContainer, Monitor, NonTilingWindow, SplitContainer,
@@ -41,6 +44,7 @@ pub fn move_window_in_direction(
           &non_tiling_window.into(),
           direction,
           state,
+          config,
         ),
         _ => Ok(()),
       }
@@ -94,6 +98,7 @@ fn move_tiling_window(
       &window_to_move.into(),
       direction,
       state,
+      config,
     );
   }
 
@@ -206,10 +211,14 @@ fn move_to_sibling_container(
   Ok(())
 }
 
-fn move_to_workspace_in_direction(
+/// Moves a window to the displayed workspace of the monitor in the given
+/// direction, re-tidying both workspaces' columns. A no-op when there is
+/// no monitor in that direction.
+pub(crate) fn move_to_workspace_in_direction(
   window_to_move: &WindowContainer,
   direction: &Direction,
   state: &mut WmState,
+  config: &UserConfig,
 ) -> anyhow::Result<()> {
   let parent = window_to_move.parent().context("No parent.")?;
   let workspace = window_to_move.workspace().context("No workspace.")?;
@@ -244,6 +253,13 @@ fn move_to_workspace_in_direction(
       _ => target_workspace.child_count(),
     };
 
+    // Capture columns state before the move: the source's current center
+    // (so its layout re-tidies without shifting center) and the moving
+    // window (so it becomes the target's center on arrival).
+    let is_tiling = window_to_move.is_tiling_window();
+    let moved_window_id = window_to_move.id();
+    let source_center = workspace_center_window_id(&workspace);
+
     // Focus should be reassigned within the original workspace after the
     // window is moved out. For example, if the focus order is 1. tiling
     // window and 2. fullscreen window, then we'd want to retain focus on a
@@ -270,7 +286,19 @@ fn move_to_workspace_in_direction(
       .queue_containers_to_redraw(target_workspace.tiling_children())
       .queue_containers_to_redraw(parent.tiling_children())
       .queue_cursor_jump()
-      .queue_workspace_to_reorder(target_workspace);
+      .queue_workspace_to_reorder(target_workspace.clone());
+
+    // Reapply assigned columns now the window has changed workspaces.
+    if is_tiling {
+      reapply_columns_after_move(
+        &workspace,
+        source_center,
+        &target_workspace,
+        moved_window_id,
+        state,
+        config,
+      )?;
+    }
   }
 
   Ok(())

@@ -4,11 +4,12 @@
 //! mock builders in the model modules.
 
 use bon::bon;
+use tokio::sync::mpsc;
 use wm_common::{
-  FloatingStateConfig, GapsConfig, TilingDirection, WindowState,
-  WorkspaceConfig,
+  FloatingStateConfig, GapsConfig, ParsedConfig, TilingDirection,
+  WindowState, WorkspaceConfig,
 };
-use wm_platform::{Display, NativeWindow, Rect, RectDelta};
+use wm_platform::{Dispatcher, Display, NativeWindow, Rect, RectDelta};
 
 use crate::{
   commands::container::attach_container,
@@ -18,6 +19,8 @@ use crate::{
     Workspace,
   },
   traits::TilingSizeGetters,
+  user_config::UserConfig,
+  wm_state::WmState,
 };
 
 pub const MOCK_MONITOR_WIDTH: i32 = 1680;
@@ -47,6 +50,24 @@ pub fn mock_window_rect() -> Rect {
 
 pub fn mock_border_delta() -> RectDelta {
   RectDelta::zero()
+}
+
+/// Creates a `WmState` backed by a no-op `Dispatcher` for use in tests.
+///
+/// The event and exit channel receivers are dropped, so this is only
+/// suitable for commands that mutate the container tree and queue redraws
+/// (they never emit events during execution).
+pub fn mock_wm_state() -> WmState {
+  let (event_tx, _event_rx) = mpsc::unbounded_channel();
+  let (exit_tx, _exit_rx) = mpsc::unbounded_channel();
+
+  WmState::new(Dispatcher::mock(), event_tx, exit_tx)
+}
+
+/// Creates a `UserConfig` from the default `ParsedConfig` for use in
+/// tests.
+pub fn mock_user_config() -> UserConfig {
+  UserConfig::mock(ParsedConfig::default())
 }
 
 #[bon]
@@ -241,6 +262,7 @@ impl Workspace {
       display_name,
       bind_to_monitor: None,
       keep_alive: false,
+      columns: None,
     };
 
     let workspace = Self::new(config, gaps_config, tiling_direction);
